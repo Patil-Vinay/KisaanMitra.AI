@@ -1,0 +1,211 @@
+digraph "KisaanMitra.AI - Production AWS Architecture" {
+	graph [fontcolor="#2D3436" fontname="Sans-Serif" fontsize=15 label="KisaanMitra.AI - Production AWS Architecture" nodesep=1.5 pad=2.0 rankdir=LR ranksep=2 splines=ortho]
+	node [fixedsize=true fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 height=1.4 imagescale=true labelloc=b shape=box style=rounded width=1.4]
+	edge [color="#7B8894"]
+	c1c124ecebd34685b67aea85651ff2e7 [label="140M+ Farmers
+(Target Users)" height=2.3 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/general/users.png" shape=none]
+	subgraph "cluster_WhatsApp Integration" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="WhatsApp Integration" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		d4a2c6de6a684de1815818a3486273ee [label="WhatsApp
+Business API
+(Meta/Twilio)" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/general/mobile-client.png" shape=none]
+	}
+	subgraph "cluster_AWS Cloud - ap-south-1 (Mumbai)" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="AWS Cloud - ap-south-1 (Mumbai)" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		subgraph "cluster_Edge & Security Layer" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Edge & Security Layer" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			ac6898f1e68142dda285a4bc4ba13f02 [label="Route 53
+(DNS)" height=2.3 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/network/route-53.png" shape=none]
+			"1a2517a4d92f4a648de08776ebcf9192" [label="CloudFront
+(CDN)" height=2.3 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/network/cloudfront.png" shape=none]
+			fcc4e2eb13c7400c9299284f6c1b9cd0 [label="WAF
+(DDoS Protection)" height=2.3 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/security/waf.png" shape=none]
+			"9990063e00a345bb9bd9c5663ce64ac2" [label="Shield
+Advanced" height=2.3 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/security/shield.png" shape=none]
+		}
+		subgraph "cluster_API Gateway Layer" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="API Gateway Layer" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			"5c56bd2de2024b2eb410c3478accecfa" [label="API Gateway
+(REST API)
+Rate Limiting" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/mobile/api-gateway.png" shape=none]
+		}
+		subgraph "cluster_Webhook Processing" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Webhook Processing" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			d43fc246e43547c8a9ea907aa02de060 [label="Webhook Handler
+Node.js 20.x
+512MB" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/compute/lambda.png" shape=none]
+			"9b2f0320088a49d0be345e1ba8c670c3" [label="Media Processor
+Image/Audio
+1GB" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/compute/lambda.png" shape=none]
+			"822f3a43bc59485db399ccac7fed6592" [label="SQS Queue
+Message Buffer
+30s visibility" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/integration/simple-queue-service-sqs.png" shape=none]
+		}
+		subgraph "cluster_Orchestration Layer - ECS Fargate" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Orchestration Layer - ECS Fargate" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			"6c2a258d62cd444ca1741dd3e27eb1e1" [label="Orchestrator
+Python 3.11
+2vCPU, 4GB" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/compute/elastic-container-service.png" shape=none]
+			subgraph "cluster_NLP Services" {
+				graph [bgcolor="#ECE8F6" fontname="Sans-Serif" fontsize=12 label="NLP Services" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+				c1ee0f56d8b5434eac3b6c5763cb3386 [label="NLP Engine
+IndicBERT
+Intent: 95%+" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/ml/comprehend.png" shape=none]
+				"76fbd8c1ecfb4696878cd6db8b19c545" [label="Transcribe
+Voice-to-Text
+Hindi" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/ml/transcribe.png" shape=none]
+			}
+		}
+		subgraph "cluster_AI Agent Services - ECS Fargate" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="AI Agent Services - ECS Fargate" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			subgraph "cluster_Crop Agent" {
+				graph [bgcolor="#ECE8F6" fontname="Sans-Serif" fontsize=12 label="Crop Agent" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+				"015908bf6dd5495fa03e7039d0b36838" [label="Crop Service
+2vCPU, 4GB" height=2.3 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/compute/fargate.png" shape=none]
+				"89983de7781f40a2a845ed41076d4e9a" [label="Disease Detection
+EfficientNet-B4
+ml.g4dn.xlarge
+95%+ accuracy" height=3.1 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/ml/sagemaker.png" shape=none]
+			}
+			subgraph "cluster_Finance Agent" {
+				graph [bgcolor="#ECE8F6" fontname="Sans-Serif" fontsize=12 label="Finance Agent" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+				db456549a5774f3c807c83676bd7acdd [label="Finance Service
+2vCPU, 4GB" height=2.3 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/compute/fargate.png" shape=none]
+			}
+			subgraph "cluster_Market Agent" {
+				graph [bgcolor="#ECE8F6" fontname="Sans-Serif" fontsize=12 label="Market Agent" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+				"96da1823522f4d64ae58ac755b3a2497" [label="Market Service
+2vCPU, 4GB" height=2.3 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/compute/fargate.png" shape=none]
+				"441d21a3aaf94d64b7461b80ab0c4f58" [label="Price Forecasting
+LSTM + Prophet
+ml.m5.xlarge
+85%+ accuracy" height=3.1 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/ml/sagemaker.png" shape=none]
+			}
+		}
+		subgraph "cluster_Data Layer - Multi-AZ" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Data Layer - Multi-AZ" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			subgraph "cluster_Primary Databases" {
+				graph [bgcolor="#ECE8F6" fontname="Sans-Serif" fontsize=12 label="Primary Databases" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+				"66568b12987d4491bad02860fcf74ac6" [label="RDS PostgreSQL
+User Data, Schemes
+db.r5.large
+Multi-AZ" height=3.1 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/database/rds.png" shape=none]
+				e670f2bd82ca4618863b0a99e58944ed [label="DynamoDB
+Sessions, Prices
+On-Demand" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/database/dynamodb.png" shape=none]
+				e380eb7bb2d140779fb6b83c31cc5a0b [label="Neptune
+Knowledge Graph
+600K Villages
+db.r5.large" height=3.1 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/database/neptune.png" shape=none]
+				"78d039f2fd714642a8e84fdac86200cd" [label="Timestream
+Mandi Prices
+Weather Data
+5 Years History" height=3.1 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/database/timestream.png" shape=none]
+			}
+			subgraph "cluster_Cache & Search" {
+				graph [bgcolor="#ECE8F6" fontname="Sans-Serif" fontsize=12 label="Cache & Search" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+				b49133d58a4d4057b554f2b73198b4d3 [label="ElastiCache Redis
+Session Cache
+cache.r6g.large
+13GB" height=3.1 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/database/elasticache.png" shape=none]
+				"341ed7b989744ddb9c6feeda9d57aff1" [label="OpenSearch
+Scheme Search
+3-node cluster" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/analytics/elasticsearch-service.png" shape=none]
+			}
+		}
+		subgraph cluster_Storage {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label=Storage labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			"488fe2e3427240bcab9ea823862b1b84" [label="S3 Media
+Images, Audio
+Lifecycle: 30d→IA" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/storage/simple-storage-service-s3.png" shape=none]
+			ea79f643029f414b8b2d169e206c626a [label="S3 ML Models
+Training Data
+Versioning" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/storage/simple-storage-service-s3.png" shape=none]
+			"689eeb7980e24f6b89a24799af0dc47f" [label="S3 Backups
+Cross-Region
+Glacier" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/storage/simple-storage-service-s3.png" shape=none]
+		}
+		subgraph "cluster_Event & Notification" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Event & Notification" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			e929e46b08ec41b296841b699dfc1d67 [label="EventBridge
+Scheduled Tasks
+Price Updates" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/integration/eventbridge.png" shape=none]
+			"3e9de4fef33a411b89943ab0e57d09f4" [label="SNS Topics
+Price Alerts
+Notifications" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/integration/simple-notification-service-sns.png" shape=none]
+		}
+		subgraph "cluster_Monitoring & Security" {
+			graph [bgcolor="#EBF3E7" fontname="Sans-Serif" fontsize=12 label="Monitoring & Security" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+			eb87fc9b7fa6416f9c040650b6f2e50b [label="CloudWatch
+Logs, Metrics
+Alarms" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/management/cloudwatch.png" shape=none]
+			d7d0e4848335478b867a2a2f5fd606be [label="X-Ray
+Distributed
+Tracing" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/devtools/x-ray.png" shape=none]
+			e84b7e1fdaf641f3a1e5f50c5a656cb9 [label="Secrets Manager
+API Keys
+Credentials" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/security/secrets-manager.png" shape=none]
+			fbc5d07a23a7464b8e8c9f8839de1de3 [label="KMS
+Encryption Keys
+AES-256" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/security/key-management-service.png" shape=none]
+		}
+	}
+	subgraph "cluster_DR Region - ap-south-2 (Hyderabad)" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="DR Region - ap-south-2 (Hyderabad)" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"2a7f4cb213e2448382d27f878b28cadc" [label="RDS Replica
+Read Replica
+Auto Failover" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/database/rds.png" shape=none]
+		"42231dcc30614086b184f1598de175b2" [label="S3 Replica
+Cross-Region
+Replication" height=2.7 image="/Users/parthnikam/.cache/uv/archive-v0/2doc7upWaekigI-I-2YJp/lib/python3.14/site-packages/resources/aws/storage/simple-storage-service-s3.png" shape=none]
+	}
+	c1c124ecebd34685b67aea85651ff2e7 -> d4a2c6de6a684de1815818a3486273ee [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	d4a2c6de6a684de1815818a3486273ee -> ac6898f1e68142dda285a4bc4ba13f02 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	ac6898f1e68142dda285a4bc4ba13f02 -> "1a2517a4d92f4a648de08776ebcf9192" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"1a2517a4d92f4a648de08776ebcf9192" -> fcc4e2eb13c7400c9299284f6c1b9cd0 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	fcc4e2eb13c7400c9299284f6c1b9cd0 -> "9990063e00a345bb9bd9c5663ce64ac2" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"9990063e00a345bb9bd9c5663ce64ac2" -> "5c56bd2de2024b2eb410c3478accecfa" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"5c56bd2de2024b2eb410c3478accecfa" -> d43fc246e43547c8a9ea907aa02de060 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	d43fc246e43547c8a9ea907aa02de060 -> "822f3a43bc59485db399ccac7fed6592" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	d43fc246e43547c8a9ea907aa02de060 -> "9b2f0320088a49d0be345e1ba8c670c3" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"9b2f0320088a49d0be345e1ba8c670c3" -> "488fe2e3427240bcab9ea823862b1b84" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"822f3a43bc59485db399ccac7fed6592" -> "6c2a258d62cd444ca1741dd3e27eb1e1" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"6c2a258d62cd444ca1741dd3e27eb1e1" -> c1ee0f56d8b5434eac3b6c5763cb3386 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"6c2a258d62cd444ca1741dd3e27eb1e1" -> "76fbd8c1ecfb4696878cd6db8b19c545" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"6c2a258d62cd444ca1741dd3e27eb1e1" -> "015908bf6dd5495fa03e7039d0b36838" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"6c2a258d62cd444ca1741dd3e27eb1e1" -> db456549a5774f3c807c83676bd7acdd [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"6c2a258d62cd444ca1741dd3e27eb1e1" -> "96da1823522f4d64ae58ac755b3a2497" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"015908bf6dd5495fa03e7039d0b36838" -> "89983de7781f40a2a845ed41076d4e9a" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96da1823522f4d64ae58ac755b3a2497" -> "441d21a3aaf94d64b7461b80ab0c4f58" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"015908bf6dd5495fa03e7039d0b36838" -> e380eb7bb2d140779fb6b83c31cc5a0b [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"015908bf6dd5495fa03e7039d0b36838" -> "78d039f2fd714642a8e84fdac86200cd" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	db456549a5774f3c807c83676bd7acdd -> "66568b12987d4491bad02860fcf74ac6" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	db456549a5774f3c807c83676bd7acdd -> "341ed7b989744ddb9c6feeda9d57aff1" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96da1823522f4d64ae58ac755b3a2497" -> "78d039f2fd714642a8e84fdac86200cd" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96da1823522f4d64ae58ac755b3a2497" -> e670f2bd82ca4618863b0a99e58944ed [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"015908bf6dd5495fa03e7039d0b36838" -> b49133d58a4d4057b554f2b73198b4d3 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	db456549a5774f3c807c83676bd7acdd -> b49133d58a4d4057b554f2b73198b4d3 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96da1823522f4d64ae58ac755b3a2497" -> b49133d58a4d4057b554f2b73198b4d3 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"015908bf6dd5495fa03e7039d0b36838" -> "488fe2e3427240bcab9ea823862b1b84" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	db456549a5774f3c807c83676bd7acdd -> "488fe2e3427240bcab9ea823862b1b84" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96da1823522f4d64ae58ac755b3a2497" -> "488fe2e3427240bcab9ea823862b1b84" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"89983de7781f40a2a845ed41076d4e9a" -> ea79f643029f414b8b2d169e206c626a [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"441d21a3aaf94d64b7461b80ab0c4f58" -> ea79f643029f414b8b2d169e206c626a [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	e929e46b08ec41b296841b699dfc1d67 -> "3e9de4fef33a411b89943ab0e57d09f4" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"3e9de4fef33a411b89943ab0e57d09f4" -> d4a2c6de6a684de1815818a3486273ee [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"6c2a258d62cd444ca1741dd3e27eb1e1" -> eb87fc9b7fa6416f9c040650b6f2e50b [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"015908bf6dd5495fa03e7039d0b36838" -> eb87fc9b7fa6416f9c040650b6f2e50b [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	db456549a5774f3c807c83676bd7acdd -> eb87fc9b7fa6416f9c040650b6f2e50b [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96da1823522f4d64ae58ac755b3a2497" -> eb87fc9b7fa6416f9c040650b6f2e50b [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"6c2a258d62cd444ca1741dd3e27eb1e1" -> d7d0e4848335478b867a2a2f5fd606be [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"015908bf6dd5495fa03e7039d0b36838" -> d7d0e4848335478b867a2a2f5fd606be [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	db456549a5774f3c807c83676bd7acdd -> d7d0e4848335478b867a2a2f5fd606be [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"96da1823522f4d64ae58ac755b3a2497" -> d7d0e4848335478b867a2a2f5fd606be [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	d43fc246e43547c8a9ea907aa02de060 -> e84b7e1fdaf641f3a1e5f50c5a656cb9 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"6c2a258d62cd444ca1741dd3e27eb1e1" -> e84b7e1fdaf641f3a1e5f50c5a656cb9 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"66568b12987d4491bad02860fcf74ac6" -> fbc5d07a23a7464b8e8c9f8839de1de3 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	e670f2bd82ca4618863b0a99e58944ed -> fbc5d07a23a7464b8e8c9f8839de1de3 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"488fe2e3427240bcab9ea823862b1b84" -> fbc5d07a23a7464b8e8c9f8839de1de3 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"66568b12987d4491bad02860fcf74ac6" -> "2a7f4cb213e2448382d27f878b28cadc" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"689eeb7980e24f6b89a24799af0dc47f" -> "42231dcc30614086b184f1598de175b2" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+}
