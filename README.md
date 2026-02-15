@@ -1,6 +1,6 @@
 # KisaanMitra.AI 🌾
 
-**Team**: KisaanMitra.AI | **Leader**: Aditya Mahesh Rane  
+**Team**: KisaanMitra.AI  
 **Problem Statement**: AI for Rural Innovation & Sustainable Systems
 
 > WhatsApp-based Multi-Agent AI System - From "Hi" to Profit in the Bank
@@ -8,8 +8,6 @@
 ## 🎯 The Problem
 
 Farmers lack timely, hyper-local, integrated decision support across crop management, financial planning, and market intelligence. Existing information is fragmented, non-personalized, and difficult to apply at village level.
-
-**Impact**: Low productivity, poor pricing decisions, financial risk
 
 ## 💡 Our Solution
 
