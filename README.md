@@ -1,203 +1,146 @@
 # KisaanMitra.AI 🌾
 
-> **Empowering 140M+ Indian Farmers with AI-Powered Agricultural Intelligence via WhatsApp**
+**Team**: KisaanMitra.AI | **Leader**: Aditya Mahesh Rane  
+**Problem Statement**: AI for Rural Innovation & Sustainable Systems
 
-[![AWS](https://img.shields.io/badge/AWS-Cloud%20Native-orange)](https://aws.amazon.com)
-[![WhatsApp](https://img.shields.io/badge/WhatsApp-Business%20API-25D366)](https://business.whatsapp.com)
-[![Python](https://img.shields.io/badge/Python-3.11-blue)](https://python.org)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+> WhatsApp-based Multi-Agent AI System - From "Hi" to Profit in the Bank
 
-## 🎯 Problem Statement
+## 🎯 The Problem
 
-Indian farmers face critical challenges:
-- **Information Gap**: Limited access to expert agricultural advice
-- **Financial Losses**: 40% crop losses due to diseases and poor market timing
-- **Input Costs**: Overspending on fertilizers/pesticides by 20-30%
-- **Market Inefficiency**: Selling at wrong time leads to 25% lower prices
-- **Scheme Awareness**: Missing out on ₹50,000+ in government benefits
+Farmers lack timely, hyper-local, integrated decision support across crop management, financial planning, and market intelligence. Existing information is fragmented, non-personalized, and difficult to apply at village level.
 
-## 💡 Solution
+**Impact**: Low productivity, poor pricing decisions, financial risk
 
-KisaanMitra.AI is a **WhatsApp-based multi-agent AI system** that delivers hyper-local agricultural intelligence through three specialized agents:
+## 💡 Our Solution
 
-### 🌱 Crop Agent
-- **AI Disease Detection**: 95%+ accuracy on 50+ diseases
-- **Hyper-Local Guidance**: Village-level knowledge graph (600K villages)
-- **Smart Recommendations**: Fertilizer, pesticide, irrigation advice
-- **Weather Integration**: Real-time alerts and forecasts
+KisaanMitra.AI is a **WhatsApp-based multi-agent AI system** - a farmer's all-in-one intelligent assistant.
 
-### 💰 Finance Agent
-- **Budget Planning**: Pre-planting cost estimation and ROI analysis
-- **Scheme Matching**: 500+ government schemes with AI-powered eligibility
-- **Price Comparison**: Lowest input costs across 10+ vendors
-- **Loan Optimization**: KCC, crop loans, subsidy calculations
+### 🤖 Three Specialized AI Agents
 
-### 📈 Market Agent
-- **Price Forecasting**: 85%+ accuracy using LSTM + Prophet models
-- **Crop Recommendation**: Best crop to grow based on expected demand
-- **Harvest Timing**: Optimal selling window for maximum profit
-- **Mandi Tracking**: Real-time prices from 3000+ mandis
+**🌱 Crop Agent**
+- Hyper-local crop guidance (village-level knowledge graph)
+- Disease diagnosis (image + text, 95%+ accuracy)
+- Fertilizer & pesticide recommendations
+- Weather-aware suggestions
 
-## 🚀 Key Features
+**💰 Finance Agent**
+- End-to-end budget planning
+- Government scheme discovery + eligibility matching
+- Lowest price inputs (fertilizer/pesticide comparison)
+- Loan & subsidy planning, risk estimation
 
-✅ **WhatsApp Native**: Zero app download, 500M+ users in India  
-✅ **Hindi Language**: MVP focused on 43% of farmers (future: 11 more languages)  
-✅ **Voice Support**: Speech-to-text for low-literacy farmers  
-✅ **Hyper-Local**: Village-level recommendations using knowledge graphs  
-✅ **Real-Time**: <2s response time, 99.9% uptime  
-✅ **Cost-Effective**: ₹5/user/month operational cost  
+**📈 Market Agent**
+- Demand trends & time-series forecasting
+- Best crop to grow recommendations
+- Optimal harvest timing
+- Nearby mandi price trends, supply vs demand signals
+
+### ✨ Key Features
+- **WhatsApp Native**: No app download, works on basic smartphones
+- **Local Language**: Hindi (MVP), voice + text support
+- **Image Support**: Disease detection from crop photos
+- **Real-Time**: <2s response time, 99.9% uptime
+
+## 🏗️ Architecture
+
+```
+Farmer (WhatsApp) → Meta WhatsApp Business API
+    ↓
+AWS API Gateway (Auth, Rate Limit)
+    ↓
+Lambda Orchestrator (Intent Detection + Agent Routing)
+    ↓
+┌─────────────┬──────────────┬─────────────┐
+│ Crop Agent  │Finance Agent │Market Agent │
+└─────────────┴──────────────┴─────────────┘
+    ↓
+ML + Knowledge Layer
+├─ Crop DB, Pest Models, Soil API
+├─ Budget Engine, Schemes, Credit Scoring
+└─ Time-Series Forecasting (ARIMA, Mandi Prices)
+    ↓
+Data Layer: DynamoDB | S3 | Neptune | OpenSearch
+    ↓
+AWS Bedrock LLM (RAG + Multilingual)
+```
+
+## 🚀 Technology Stack
+
+**Interface**: WhatsApp Business API, AWS Transcribe (voice)  
+**Backend**: FastAPI (Python), LangGraph + LangChain (multi-agent)  
+**AI/ML**: AWS Bedrock (Claude/Llama), PyTorch, XGBoost, SageMaker  
+**Data**: S3 (Data Lake), DynamoDB, Neptune (Knowledge Graph), OpenSearch (Vector DB)  
+**Deployment**: Docker + ECS/EKS, Lambda, API Gateway, EventBridge  
 
 ## 📊 Expected Impact
 
-| Metric | Target Improvement |
-|--------|-------------------|
+| Metric | Target |
+|--------|--------|
 | Farmer Income | +20-30% |
 | Crop Loss Reduction | -40% |
 | Input Cost Savings | -15-20% |
 | Better Market Prices | +25% |
-| Scheme Access | 10x increase |
 
-## 🏗️ Architecture
+## � Cost & Revenue
 
-### High-Level Architecture
+**1 Village Pilot Cost**: ₹1.5-2.5 Lakhs (setup + 3 months)
+- Tech Infrastructure: ₹6-17K/month
+- Village Data Agent: ₹10-12K/month
+- Data Collection: One-time setup
+
+**Revenue Model**:
+- Data-as-a-Service (DaaS): Agri-input companies, insurers
+- Sponsored Recommendations: Pay-per-lead
+- B2B SaaS Licensing: FPOs, KVKs, agri-dealers
+- Advisory & Referral Network: Mandis, banks
+
+**Why It Works**: Village-level agricultural data doesn't exist in India. Every interaction creates a data moat that competitors can't replicate.
+
+## 🛣️ Farmer Journey
+
 ```
-Farmers (WhatsApp) 
-    ↓
-API Gateway + WAF + Shield
-    ↓
-Orchestration Layer (ECS Fargate)
-    ↓
-┌─────────┬──────────┬──────────┐
-│  Crop   │ Finance  │  Market  │
-│  Agent  │  Agent   │  Agent   │
-└─────────┴──────────┴──────────┘
-    ↓
-Data Layer (RDS, DynamoDB, Neptune, Timestream)
+Onboarding → Pre-Planting → Growing → Harvest → Selling
+    ↓            ↓            ↓          ↓         ↓
+  "Hi"    "Kaunsi fasal   Disease   "Kab      Market
+          lagau?"         Diagnosis  harvest   Intelligence
+                                     karu?"    + ROI
 ```
 
-### Technology Stack
+**Complete cycle**: From "Hi" on WhatsApp to profit in bank, powered by 3 AI agents
 
-**Compute**: ECS Fargate, Lambda, SageMaker  
-**Databases**: RDS PostgreSQL, DynamoDB, Neptune, Timestream, ElastiCache Redis  
-**ML/AI**: PyTorch, Prophet, IndicBERT, EfficientNet-B4  
-**Storage**: S3 (Standard, IA, Glacier)  
-**Monitoring**: CloudWatch, X-Ray, CloudTrail  
-**Security**: WAF, Shield, KMS, Secrets Manager  
+## 🏆 Why We're Unique
 
-### Architecture Diagrams
-
-📐 **5 Comprehensive Diagrams** (see `generated-diagrams/` folder):
-1. **Production Architecture**: Complete AWS infrastructure
-2. **ML/AI Pipeline**: Training and inference workflow
-3. **Complete System Overview**: High-level with metrics
-4. **Detailed Data Flow**: Component interactions
-5. **Cost Optimization**: Savings strategies
-
-## 💰 Cost Breakdown
-
-**Monthly Cost for 100K Users**: $7,230 ($0.07/user)
-
-| Category | Monthly Cost |
-|----------|-------------|
-| Compute (ECS + Lambda) | $700 |
-| ML (SageMaker) | $1,500 |
-| Databases | $1,700 |
-| Storage | $230 |
-| Network | $700 |
-| WhatsApp API | $2,000 |
-| Other | $400 |
-
-**Cost Optimization**: 50% savings through spot instances, reserved capacity, caching, and model optimization
-
-## 📈 Scalability
-
-- **Current**: 100K concurrent users, 10M messages/day
-- **Target**: 10M+ users, 100M messages/day
-- **Auto-Scaling**: 2-20 ECS tasks, on-demand DynamoDB
-- **Multi-Region**: Mumbai (primary), Hyderabad (DR)
-- **Performance**: <2s response (p95), 99.9% uptime
-
-## 🔒 Security & Compliance
-
-✅ **Encryption**: TLS 1.3 (transit), AES-256 (rest)  
-✅ **Compliance**: DPDP Act 2023, ISO 27001 (target)  
-✅ **Data Residency**: All data stored in India  
-✅ **DDoS Protection**: WAF + Shield  
-✅ **Access Control**: RBAC with audit logging  
-
-## 🛣️ Roadmap
-
-### MVP (3 Months)
-- ✅ Hindi language support
-- ✅ Core 3 agents (Crop, Finance, Market)
-- ✅ Disease detection (95%+ accuracy)
-- ✅ Price forecasting (85%+ accuracy)
-- ✅ 100K villages in knowledge graph
-- ✅ Beta with 1000 farmers
-
-### Phase 2 (6 Months)
-- 🔄 11 additional languages
-- 🔄 Voice interface optimization
-- 🔄 600K villages coverage
-- 🔄 Satellite imagery integration
-- 🔄 1M users
-
-### Phase 3 (12 Months)
-- 🔄 Peer-to-peer farmer network
-- 🔄 Equipment rental marketplace
-- 🔄 IoT sensor integration
-- 🔄 Video tutorials
-- 🔄 10M users
-
-## 📚 Documentation
-
-- **[Requirements Document](requirements.md)**: Detailed functional and non-functional requirements
-- **[Design Document](design.md)**: Complete system architecture and technical specifications
-- **[Architecture Diagrams](generated-diagrams/)**: 5 comprehensive AWS architecture diagrams
-
-## 🏆 Competitive Advantages
-
-1. **Hyper-Local Intelligence**: Village-level knowledge graph (unique)
-2. **Multi-Agent System**: Holistic solution vs point solutions
-3. **WhatsApp Native**: Zero friction, 500M+ users
-4. **Real-Time ML**: LSTM price forecasting with 85%+ accuracy
-5. **Voice-First**: Accessibility for low-literacy farmers
-6. **Cost-Effective**: ₹5/user/month makes it sustainable
-7. **Free Forever**: Ad-supported or government-subsidized
-
-## 🎯 Success Metrics
-
-### Technical KPIs
-- Response time: <2s (p95) ✅
-- Uptime: >99.9% ✅
-- ML accuracy: Disease >95%, Price >85% ✅
-- Cost: <₹5/user/month ✅
-
-### Business KPIs
-- User adoption: 1M users (Year 1) 🎯
-- Engagement: DAU/MAU >40% 🎯
-- Retention: >60% at 90 days 🎯
-- Impact: +20-30% farmer income 🎯
-- NPS: >50 (world-class) 🎯
+✅ **Multi-Agent System**: Holistic support across full agricultural lifecycle  
+✅ **Hyper-Local**: Village-level knowledge graph (600K villages)  
+✅ **WhatsApp Native**: 500M+ users, zero friction  
+✅ **Voice-First**: Accessibility for low-literacy farmers  
+✅ **Data Moat**: Every interaction generates irreplaceable hyper-local data  
 
 ## 👥 Team
 
-Built by expert AI engineers from Google India with deep expertise in:
-- Cloud-native architecture (AWS)
-- Multi-agent AI systems
-- Agricultural technology
-- WhatsApp Business API
-- Production ML/AI at scale
+- **Aditya Rane**: Project Manager, Agile Delivery Strategy
+- **Vinay Patil**: Lead Engineer, Backend AI Systems, Cloud
+- **Parth Nikam**: Advanced Analytics, Data Science, Agentic AI
 
-## 📞 Contact
+## � Documenntation
 
-**Project**: KisaanMitra.AI  
-**Platform**: WhatsApp Business API  
-**Cloud**: AWS (ap-south-1)  
-**Status**: Ready for Implementation  
+- **[Requirements](requirements.md)**: Functional requirements and success metrics
+- **[Design](design.md)**: System architecture and AWS infrastructure
+- **[Technical Specs](TECHNICAL_SPECS.md)**: Detailed specifications
+- **[Pitch Deck](HACKATHON_PITCH.md)**: Hackathon presentation
+
+## 📐 Architecture Diagrams
+
+6 professional AWS diagrams in `generated-diagrams/`:
+1. Production Architecture
+2. ML/AI Pipeline
+3. Complete System Overview
+4. Detailed Data Flow
+5. Cost Optimization
+6. Simplified Architecture
 
 ---
 
-**Made with ❤️ for Indian Farmers**
+**"The AI is the interface. The data is the moat."**
 
-*Transforming agriculture through AI, one farmer at a time.*
+*Building India's first village-level agricultural data infrastructure*
