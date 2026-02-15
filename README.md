@@ -48,9 +48,9 @@ AWS API Gateway (Auth, Rate Limit)
     ↓
 Lambda Orchestrator (Intent Detection + Agent Routing)
     ↓
-┌─────────────┬──────────────┬─────────────┐
-│ Crop Agent  │Finance Agent │Market Agent │
-└─────────────┴──────────────┴─────────────┘
+┌─────────────┬─────────────┬──────────────┐
+│ Crop Agent  │Market Agent │Finance Agent │
+└─────────────┴─────────────┴──────────────┘
     ↓
 ML + Knowledge Layer
 ├─ Crop DB, Pest Models, Soil API
