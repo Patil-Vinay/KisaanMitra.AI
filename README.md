@@ -7,7 +7,7 @@
 
 ## 🎯 The Problem
 
-Farmers lack timely, hyper-local, integrated decision support across crop management, financial planning, and market intelligence. Existing information is fragmented, non-personalized, and difficult to apply at village level.
+Farmers lack timely, hyper-local, integrated decision support across crop management, financial planning and market intelligence. Existing information is fragmented, non-personalized and difficult to apply at village level.
 
 ## 💡 Our Solution
 
@@ -16,10 +16,16 @@ KisaanMitra.AI is a **WhatsApp-based multi-agent AI system** - a farmer's all-in
 ### 🤖 Three Specialized AI Agents
 
 **🌱 Crop Agent**
-- Hyper-local crop guidance (village-level knowledge graph)
-- Disease diagnosis (image + text, 95%+ accuracy)
+- Village-level knowledge graph
+- Disease diagnosis (image + text, high accuracy)
 - Fertilizer & pesticide recommendations
 - Weather-aware suggestions
+
+**📈 Market Agent**
+- Demand trends & time-series forecasting
+- Best crop to grow recommendations
+- Optimal harvest timing
+- Nearby farmer's market (mandi) price trends, supply vs demand signals
 
 **💰 Finance Agent**
 - End-to-end budget planning
@@ -27,17 +33,11 @@ KisaanMitra.AI is a **WhatsApp-based multi-agent AI system** - a farmer's all-in
 - Lowest price inputs (fertilizer/pesticide comparison)
 - Loan & subsidy planning, risk estimation
 
-**📈 Market Agent**
-- Demand trends & time-series forecasting
-- Best crop to grow recommendations
-- Optimal harvest timing
-- Nearby mandi price trends, supply vs demand signals
-
 ### ✨ Key Features
 - **WhatsApp Native**: No app download, works on basic smartphones
-- **Local Language**: Hindi (MVP), voice + text support
+- **Local Language**: Hindi (USP), voice + text support
 - **Image Support**: Disease detection from crop photos
-- **Real-Time**: <2s response time, 99.9% uptime
+- **Real-Time**: Instant response, high availability
 
 ## 🏗️ Architecture
 
@@ -81,35 +81,25 @@ AWS Bedrock LLM (RAG + Multilingual)
 
 ## � Cost & Revenue
 
-**1 Village Pilot Cost**: ₹1.5-2.5 Lakhs (setup + 3 months)
+**1 Village Pilot Cost**: ₹47,000-74,000 Lakhs (setup + 1 month cost)
 - Tech Infrastructure: ₹6-17K/month
 - Village Data Agent: ₹10-12K/month
-- Data Collection: One-time setup
+- Data Collection: One-time setup (₹28-40K)
 
 **Revenue Model**:
 - Data-as-a-Service (DaaS): Agri-input companies, insurers
 - Sponsored Recommendations: Pay-per-lead
 - B2B SaaS Licensing: FPOs, KVKs, agri-dealers
-- Advisory & Referral Network: Mandis, banks
+- Advisory & Referral Network: Farmer's Market(Mandis), banks
 
 **Why It Works**: Village-level agricultural data doesn't exist in India. Every interaction creates a data moat that competitors can't replicate.
-
-## 🛣️ Farmer Journey
-
-```
-Onboarding → Pre-Planting → Growing → Harvest → Selling
-    ↓            ↓            ↓          ↓         ↓
-  "Hi"    "Kaunsi fasal   Disease   "Kab      Market
-          lagau?"         Diagnosis  harvest   Intelligence
-                                     karu?"    + ROI
-```
 
 **Complete cycle**: From "Hi" on WhatsApp to profit in bank, powered by 3 AI agents
 
 ## 🏆 Why We're Unique
 
 ✅ **Multi-Agent System**: Holistic support across full agricultural lifecycle  
-✅ **Hyper-Local**: Village-level knowledge graph (600K villages)  
+✅ **Hyper-Local**: Village-level knowledge graph
 ✅ **WhatsApp Native**: 500M+ users, zero friction  
 ✅ **Voice-First**: Accessibility for low-literacy farmers  
 ✅ **Data Moat**: Every interaction generates irreplaceable hyper-local data  
