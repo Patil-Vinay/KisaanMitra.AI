@@ -1,5 +1,15 @@
 # KisaanMitra.AI - System Design Document
 
+## Quick Reference
+
+**System Type**: Multi-Agent AI Platform for Agricultural Intelligence  
+**Target Scale**: 10M+ farmers, 100K concurrent users, 10M messages/day  
+**Primary Language**: Hindi (MVP), 11 additional languages (future)  
+**Platform**: WhatsApp Business API  
+**Cloud Provider**: AWS (ap-south-1 Mumbai primary, ap-south-2 Hyderabad DR)  
+**Cost Target**: <₹5/user/month ($0.07/user/month)  
+**Key Metrics**: 99.9% uptime, <2s response time, 95%+ ML accuracy  
+
 ## 1. Architecture Overview
 
 **Design Philosophy**: Cloud-native, event-driven microservices architecture optimized for scale, resilience, and cost-efficiency.
@@ -58,6 +68,13 @@
 4. Agent → Process + ML inference → Response generation
 5. Response → Translation → WhatsApp → Farmer
 6. Async: Metrics → CloudWatch, Events → EventBridge
+
+**Architecture Diagrams**:
+1. **Production Architecture** (`kisaanmitra-production-architecture.png`): Complete production AWS architecture showing all services, data flows, security layers, and DR setup
+2. **ML/AI Pipeline** (`kisaanmitra-ml-pipeline.png`): End-to-end ML training and inference pipeline with data ingestion, model training, deployment, and monitoring
+3. **Complete System Overview** (`kisaanmitra-complete-overview.png`): High-level system overview with performance metrics and key specifications
+4. **Detailed Data Flow** (`kisaanmitra-detailed-flow.png`): Detailed component interactions and data flow patterns
+5. **Cost Optimization** (`kisaanmitra-cost-optimization.png`): Cost optimization strategies across compute, storage, ML, and monitoring
 
 ## 3. Component Design
 
@@ -284,10 +301,10 @@ Outgoing: Agent → Format → WhatsApp API → Delivery Status → DynamoDB
 - **Sentiment Analysis**: Detect user satisfaction/frustration
 
 **Models**:
-- IndicBERT for Indian languages
-- mBERT for multilingual understanding
+- **MVP**: Hindi-only NLP models (IndicBERT fine-tuned for Hindi)
+- **Future**: mBERT for multilingual understanding (11 additional languages)
 - Custom fine-tuned models for agricultural domain
-- AWS Transcribe for voice transcription
+- AWS Transcribe for voice transcription (Hindi)
 
 **AWS Services**:
 - SageMaker for model hosting
@@ -1197,7 +1214,7 @@ Response:
 
 **Components**:
 - **Message Router**: SQS consumer → Intent classification → Agent selection
-- **NLP Engine**: IndicBERT for language detection, mBERT for intent (95%+ accuracy)
+- **NLP Engine**: IndicBERT fine-tuned for Hindi (MVP), intent classification (95%+ accuracy)
 - **Context Manager**: DynamoDB-based conversation state with 30-day TTL
 - **Agent Coordinator**: Handles multi-agent queries (parallel execution with timeout)
 - **Response Aggregator**: Merges agent responses, handles conflicts
