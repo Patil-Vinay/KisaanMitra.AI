@@ -1,6 +1,7 @@
 # KisaanMitra.AI - Requirements Document
 
 **Team**: KisaanMitra.AI
+
 **Problem Statement**: AI for Rural Innovation & Sustainable Systems - Build an AI-powered solution that supports rural ecosystems, sustainability, or resource-efficient systems.
 
 ## 1. Problem Statement
