@@ -1,14 +1,14 @@
 # KisaanMitra.AI - System Design Document
 
-**Team**: KisaanMitra.AI | **Leader**: Aditya Mahesh Rane
+**Team**: KisaanMitra.AI
 
 ## Quick Reference
 
 **Platform**: WhatsApp Business API  
 **Language**: Hindi (MVP)  
 **Cloud**: AWS (Mumbai primary, Hyderabad DR)  
-**Cost**: ₹5/user/month  
-**Performance**: <2s response, 99.9% uptime, 95%+ ML accuracy
+**Cost**: ₹50/user/month  
+**Performance**: <2s response, High ML accuracy
 
 ## 1. Architecture Overview
 
@@ -21,7 +21,6 @@ Lambda Orchestrator (Intent Detection + Agent Routing)
     ↓
 ┌─────────────┬──────────────┬─────────────┐
 │ Crop Agent  │Finance Agent │Market Agent │
-│ (Fargate)   │  (Fargate)   │  (Fargate)  │
 └─────────────┴──────────────┴─────────────┘
     ↓
 ML + Knowledge Layer
@@ -32,7 +31,7 @@ ML + Knowledge Layer
 Data Layer
 ├─ DynamoDB (Sessions, Prices)
 ├─ S3 Data Lake (Images, Models)
-├─ Neptune (Knowledge Graph - 600K Villages)
+├─ Neptune (Knowledge Graph)
 └─ OpenSearch (Vector DB for RAG)
     ↓
 AWS Bedrock LLM (RAG + Multilingual Hindi)
@@ -87,7 +86,7 @@ AWS Bedrock LLM (RAG + Multilingual Hindi)
 ### 3.3 Crop Agent (ECS Fargate)
 **Disease Detection**:
 - Model: EfficientNet-B4 (PyTorch)
-- Accuracy: 95%+ on 50+ diseases
+- Accuracy: 90%+ on 50+ diseases
 - Inference: <3s on SageMaker ml.g4dn.xlarge (GPU)
 
 **Knowledge Graph** (Neptune):
