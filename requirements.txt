@@ -1,0 +1,7 @@
+# KisaanMitra.AI Python Dependencies
+
+# API Requests
+requests==2.32.5
+
+# Environment Variables
+python-dotenv==1.0.1
