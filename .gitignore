@@ -28,6 +28,12 @@ wheels/
 .installed.cfg
 *.egg
 
+# Lambda deployment
+package/
+lambda_deployment.zip
+trust-policy.json
+response.json
+
 # IDE
 .vscode/
 .idea/
@@ -42,7 +48,6 @@ Thumbs.db
 # Logs
 *.log
 
-# Test images (optional - remove if you want to commit test images)
-# *.jpg
-# *.jpeg
-# *.png
+# Temporary files
+*.tmp
+*.bak

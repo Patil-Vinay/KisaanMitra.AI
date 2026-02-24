@@ -132,3 +132,27 @@ AWS Bedrock LLM (RAG + Multilingual)
 **"The AI is the interface. The data is the moat."**
 
 *Building India's first village-level agricultural data infrastructure*
+
+
+## 📚 Documentation
+
+- **[Requirements](requirements.md)**: Functional requirements and success metrics
+- **[Design](design.md)**: System architecture and AWS infrastructure
+- **[Project Structure](PROJECT_STRUCTURE.md)**: Repository organization
+- **[Lambda Setup](docs/LAMBDA_SETUP.md)**: AWS Lambda deployment guide
+- **[Quick Start](docs/QUICK_START_LAMBDA.md)**: 5-minute Lambda deployment
+
+## 📐 Repository Structure
+
+```
+src/
+├── crop_agent/          # Crop Health API client
+└── lambda/              # AWS Lambda functions
+
+docs/                    # Documentation
+assets/
+├── diagrams/            # 6 AWS architecture diagrams
+└── test_images/         # Sample test images
+```
+
+See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for complete details.
