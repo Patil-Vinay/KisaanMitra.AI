@@ -1,0 +1,8 @@
+{
+  "image_source": "s3",
+  "s3_bucket": "kisaanmitra-images",
+  "s3_key": "uploads/farmer123/crop_image_001.jpg",
+  "latitude": 18.5204,
+  "longitude": 73.8567,
+  "language": "hi"
+}
