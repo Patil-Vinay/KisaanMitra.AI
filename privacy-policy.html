@@ -32,7 +32,11 @@
     .nav-logo {
       display: flex; align-items: center; gap: 0.75rem; text-decoration: none;
     }
-    .logo-icon { width: 36px; height: 36px; background: var(--amber); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 50%; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
     .logo-text { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--white); font-weight: 700; }
     .logo-text span { color: var(--amber); }
     .nav-home { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.85rem; }
@@ -78,6 +82,16 @@
       background: #0f1f15; color: rgba(255,255,255,0.5);
       padding: 2rem; text-align: center; font-size: 0.8rem;
     }
+    .footer-logo-wrap {
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-bottom: 0.5rem;
+    }
+    .footer-logo-img {
+      width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+    }
+    .footer-logo-text {
+      font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--white);
+    }
+    .footer-logo-text span { color: var(--amber); }
     footer a { color: rgba(255,255,255,0.4); text-decoration: none; margin: 0 0.75rem; }
     footer a:hover { color: var(--green-light); }
 
@@ -88,7 +102,9 @@
 
   <nav>
     <a href="index.html" class="nav-logo">
-      <div class="logo-icon"><div class="logo-icon"><img src="km-logo.png" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" /></div>
+      <div class="logo-icon">
+        <img src="km_logo.png" alt="KisaanMitra.AI Logo" />
+      </div>
       <span class="logo-text">KisaanMitra<span>.AI</span></span>
     </a>
     <a href="index.html" class="nav-home">← Back to Home</a>
@@ -196,12 +212,16 @@
   </div>
 
   <footer>
-    <p>© 2025 KisaanMitra.AI · AI for Bharat Hackathon</p>
+    <div class="footer-logo-wrap">
+      <img src="km_logo.png" alt="KisaanMitra.AI" class="footer-logo-img" />
+      <span class="footer-logo-text">KisaanMitra<span>.AI</span></span>
+    </div>
     <p style="margin-top:0.5rem;">
       <a href="index.html">Home</a>
       <a href="privacy-policy.html">Privacy Policy</a>
       <a href="mailto:hello@kisaanmitra.ai">Contact</a>
     </p>
+    <p style="margin-top:0.5rem;">© 2025 KisaanMitra.AI · AI for Bharat Hackathon</p>
   </footer>
 
 </body>
