@@ -496,49 +496,48 @@ Keep it short (2-3 sentences) and practical."""
     return ask_bedrock(user_message, system_prompt)
 
 def extract_crop_with_ai(user_message, bedrock_client, conversation_history=""):
-    """Use AI to extract crop name from user message with conversation context"""
-    print(f"[DEBUG] Extracting crop name using AI...")
+    """Extract crop name from user message using keyword matching (no AI call to avoid throttling)"""
+    print(f"[DEBUG] Extracting crop name using keyword matching...")
     print(f"[DEBUG] Message: {user_message}")
-    print(f"[DEBUG] Has conversation context: {len(conversation_history) > 0}")
     
-    prompt = f"""You are an expert agricultural assistant. Extract the crop name from the farmer's message.
-
-{conversation_history}
-
-Current message: "{user_message}"
-
-Instructions:
-- Extract ONLY the crop name mentioned
-- If multiple crops mentioned, extract the primary one
-- Return lowercase crop name
-- Handle common variations (e.g., "chilli" → "chilly", "brinjal" → "eggplant")
-- If no crop mentioned, return "unknown"
-
-Examples:
-"I want to grow soybean" → soybean
-"give me onion budget" → onion
-"chilly farming cost" → chilly
-"mushroom cultivation" → mushroom
-"what about tomatoes?" → tomato
-"brinjal" → brinjal
-
-Reply with ONLY the crop name:"""
+    # Common crop names and variations
+    crop_keywords = {
+        'rice': ['rice', 'paddy', 'धान', 'चावल'],
+        'wheat': ['wheat', 'गेहूं'],
+        'onion': ['onion', 'प्याज'],
+        'potato': ['potato', 'आलू'],
+        'tomato': ['tomato', 'टमाटर'],
+        'cotton': ['cotton', 'कपास'],
+        'sugarcane': ['sugarcane', 'sugar cane', 'गन्ना'],
+        'soybean': ['soybean', 'soya', 'सोयाबीन'],
+        'maize': ['maize', 'corn', 'मक्का'],
+        'chilly': ['chilly', 'chilli', 'pepper', 'मिर्च'],
+        'brinjal': ['brinjal', 'eggplant', 'बैंगन'],
+        'cabbage': ['cabbage', 'पत्तागोभी'],
+        'cauliflower': ['cauliflower', 'फूलगोभी'],
+        'groundnut': ['groundnut', 'peanut', 'मूंगफली'],
+        'turmeric': ['turmeric', 'हल्दी'],
+        'ginger': ['ginger', 'अदरक'],
+        'garlic': ['garlic', 'लहसुन'],
+        'banana': ['banana', 'केला'],
+        'mango': ['mango', 'आम'],
+        'grapes': ['grapes', 'grape', 'अंगूर'],
+        'pomegranate': ['pomegranate', 'अनार'],
+        'papaya': ['papaya', 'पपीता'],
+        'mushroom': ['mushroom', 'मशरूम'],
+    }
     
-    try:
-        print(f"[DEBUG] Calling Bedrock for crop extraction...")
-        response = bedrock_client.converse(
-            modelId="us.amazon.nova-pro-v1:0",  # Using Pro for better accuracy
-            messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": 50, "temperature": 0.2}  # Lower temp for precision
-        )
-        crop_name = response["output"]["message"]["content"][0]["text"].strip().lower()
-        print(f"[INFO] ✅ AI extracted crop: {crop_name}")
-        return crop_name if crop_name != "unknown" else None
-    except Exception as e:
-        print(f"[ERROR] Crop extraction error: {e}")
-        import traceback
-        print(f"[ERROR] Traceback: {traceback.format_exc()}")
-        return None
+    message_lower = user_message.lower()
+    
+    # Check for crop keywords
+    for crop, keywords in crop_keywords.items():
+        for keyword in keywords:
+            if keyword in message_lower:
+                print(f"[INFO] ✅ Extracted crop: {crop}")
+                return crop
+    
+    print(f"[WARNING] No crop found in message")
+    return None
 
 
 def extract_state_with_ai(user_message, bedrock_client):
