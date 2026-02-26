@@ -570,7 +570,16 @@ def generate_crop_budget_with_ai_combined(user_message, land_size, location, bed
     print(f"[DEBUG] State mapped: {state_name}")
     
     # Step 2: Build comprehensive prompt that does EVERYTHING in one call
-    prompt = f"""You are an expert agricultural economist with 20+ years of experience in Indian farming.
+    prompt = f"""**CRITICAL INSTRUCTION - READ FIRST:**
+If the farmer's message contains multiple crops (e.g., "I want to grow X in Y"), extract the LAST crop mentioned (Y), NOT the first one (X).
+
+Examples:
+- "I want to grow rice in tomatoes" → Extract: tomato (NOT rice)
+- "I want to grow rice in soybean" → Extract: soybean (NOT rice)
+- "I want to grow tomato" → Extract: tomato
+- "give me sugarcane budget" → Extract: sugarcane
+
+You are an expert agricultural economist with 20+ years of experience in Indian farming.
 
 **TASK**: Analyze this farmer's request and generate a complete budget:
 
@@ -581,19 +590,9 @@ Current Month: February 2026
 
 **YOUR TASK (Complete in ONE response):**
 
-1. **Extract the crop name** from the farmer's message (if multiple crops mentioned, extract the LAST one)
+1. **Extract the crop name** - If multiple crops mentioned, extract the LAST one
 2. **Analyze feasibility** for that crop in {location}, {state_name}
 3. **Generate realistic budget** with accurate costs and yields
-
-**CRITICAL: CROP EXTRACTION RULES:**
-- If message says "I want to grow X in Y", extract Y (the crop after "in")
-- If message says "give me X budget", extract X
-- If multiple crops mentioned, extract the LAST crop mentioned
-- Examples:
-  * "I want to grow rice in tomatoes" → tomato (last crop mentioned)
-  * "I want to grow rice in soybean" → soybean (last crop mentioned)
-  * "I want to grow tomato" → tomato
-  * "give me sugarcane budget" → sugarcane
 
 **CRITICAL ACCURACY REQUIREMENTS:**
 
