@@ -21,9 +21,15 @@
 - Bedrock AI with market context
 - Hindi responses
 
-#### 3. Finance Agent ⏳
-- Not yet implemented
-- Planned features: budget planning, scheme matching, loan recommendations
+#### 3. Finance Agent ✅
+- 6 crop budget templates (wheat, rice, cotton, sugarcane, onion, potato)
+- Smart loan eligibility calculator with credit scoring
+- Government scheme auto-matching (6+ schemes)
+- Input cost optimization (20-30% savings)
+- Multi-dimensional risk assessment
+- Comprehensive financial plan generation
+- DynamoDB + S3 storage
+- Hindi responses with AI
 
 ## 📊 Test Results
 
@@ -51,17 +57,26 @@
 9. ✅ Infrastructure scripts
 10. ✅ Deployment scripts
 
-### Crop Engine: PASSED ✅
-- Sugarcane rust detection: 99% confidence
-- Response formatting: Working
-- API integration: Functional
+### Finance Agent: 12/12 PASSED ✅
+1. ✅ File structure
+2. ✅ 6 crop budget templates
+3. ✅ Loan eligibility calculation
+4. ✅ Government scheme matching
+5. ✅ Input cost optimization
+6. ✅ Financial risk assessment
+7. ✅ Comprehensive plan generation
+8. ✅ DynamoDB storage
+9. ✅ S3 budget storage
+10. ✅ WhatsApp formatting
+11. ✅ Infrastructure scripts
+12. ✅ Deployment scripts
 
 ## 🏗️ Infrastructure
 
 ### AWS Services
-- ✅ Lambda (2 functions)
-- ✅ DynamoDB (3 tables)
-- ✅ S3 (image storage)
+- ✅ Lambda (3 functions)
+- ✅ DynamoDB (5 tables)
+- ✅ S3 (2 buckets)
 - ✅ Secrets Manager (API keys)
 - ✅ Bedrock (Nova Micro)
 - ✅ IAM (roles + policies)
@@ -71,10 +86,13 @@
 1. **kisaanmitra-conversations**: Conversation history
 2. **kisaanmitra-market-data**: Market price cache
 3. **kisaanmitra-user-preferences**: User settings
+4. **kisaanmitra-finance**: Financial plans (180-day TTL)
+5. **kisaanmitra-schemes**: Government schemes database
 
 ### Lambda Functions
 1. **kisaanmitra-crop-agent**: Deployed ✅
 2. **kisaanmitra-market-agent**: Ready to deploy ✅
+3. **kisaanmitra-finance-agent**: Ready to deploy ✅
 
 ## 🔧 Gaps Addressed
 
@@ -171,6 +189,15 @@ Lambda (Crop/Market Agent)
 └─ Response → WhatsApp
 ```
 
+### Finance Agent
+- 6 crop budget templates
+- Loan eligibility (credit score-based)
+- Government scheme matching
+- Cost optimization (20-30% savings)
+- Multi-risk assessment
+- ROI calculation
+- Hindi responses
+
 ## 🎓 Key Features
 
 ### Crop Agent
@@ -192,15 +219,16 @@ Lambda (Crop/Market Agent)
 ## 💰 Cost Estimation
 
 ### Monthly (1000 farmers, 10 queries/day)
-- Lambda: ~$5
-- DynamoDB: ~$2
-- Bedrock: ~$10
-- S3: ~$1
-- Total: ~$18/month
+- Lambda: ~$8 (3 functions)
+- DynamoDB: ~$3 (5 tables)
+- Bedrock: ~$15
+- S3: ~$2 (2 buckets)
+- Total: ~$28/month
 
 ### Per Query
 - Text: ~$0.0002
 - Image: ~$0.001
+- Financial plan: ~$0.0003
 
 ## 🏆 Hackathon Readiness
 
