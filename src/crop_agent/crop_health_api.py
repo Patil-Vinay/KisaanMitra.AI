@@ -1,115 +1,173 @@
-import requests
-import base64
+import json
+import urllib3
 import os
-from typing import Dict, Optional
-from dotenv import load_dotenv
+import boto3
+import base64
 
-# Load environment variables
-load_dotenv()
+http = urllib3.PoolManager()
 
-class CropHealthAPI:
-    """Crop.health API Client (Kindwise platform)"""
-    
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        self.base_url = "https://crop.kindwise.com/api/v1"
-        self.headers = {
-            "Api-Key": api_key,
-            "Content-Type": "application/json"
-        }
-    
-    def detect_disease(self, image_path: str, 
-                       latitude: Optional[float] = None,
-                       longitude: Optional[float] = None) -> Dict:
-        """Detect crop disease from image"""
-        
-        # Validate image exists
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"Image not found: {image_path}")
-        
-        print(f"Reading image: {image_path}")
-        
-        # Read and encode image
-        with open(image_path, 'rb') as f:
-            image_data = base64.b64encode(f.read()).decode('utf-8')
-        
-        # Build payload
-        payload = {
-            "images": [image_data],
-            "similar_images": True
-        }
-        
-        if latitude and longitude:
-            payload["latitude"] = latitude
-            payload["longitude"] = longitude
-        
-        print("Sending request to API...")
-        
-        # Make request
-        response = requests.post(
-            f"{self.base_url}/identification",
-            json=payload,
-            headers=self.headers,
-            timeout=30
-        )
-        
-        print(f"Response status: {response.status_code}")
-        
-        if response.status_code not in [200, 201]:
-            print(f"Error: {response.text}")
-            response.raise_for_status()
-        
-        return response.json()
+VERIFY_TOKEN = "mySecret_123"
+WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN")
+PHONE_NUMBER_ID = "1049535664900621"
+CROP_HEALTH_API_KEY = os.environ.get("CROP_HEALTH_API_KEY")
+
+bedrock = boto3.client("bedrock-runtime", region_name="ap-south-1")
 
 
-if __name__ == "__main__":
-    # Load API key from environment variable
-    API_KEY = os.getenv("CROP_HEALTH_API_KEY")
+def ask_bedrock(prompt):
+    response = bedrock.converse(
+        modelId="amazon.nova-micro-v1:0",
+        messages=[
+            {
+                "role": "user",
+                "content": [{"text": prompt}]
+            }
+        ],
+        inferenceConfig={"maxTokens": 300}
+    )
+    return response["output"]["message"]["content"][0]["text"]
+
+# Crop Health API
+
+def download_whatsapp_image(media_id):
     
-    if not API_KEY:
-        print("ERROR: CROP_HEALTH_API_KEY not found in environment variables")
-        print("Please create a .env file with: CROP_HEALTH_API_KEY=your_api_key")
-        exit(1)
+    # Step 1: Get media URL
+    url = f"https://graph.facebook.com/v18.0/{media_id}"
+    headers = {"Authorization": f"Bearer {WHATSAPP_TOKEN}"}
     
-    # Initialize API
-    api = CropHealthAPI(API_KEY)
+    response = http.request("GET", url, headers=headers)
+    media_info = json.loads(response.data)
+    media_url = media_info.get("url")
     
-    # Your image file - UPDATE THIS PATH
-    image_path = "2.jpg"  # Change to your actual image filename
+    if not media_url:
+        raise Exception("Could not get media URL")
     
-    # Check if image exists
-    if not os.path.exists(image_path):
-        print(f"ERROR: Image not found: {image_path}")
-        print(f"Current directory: {os.getcwd()}")
-        print(f"Available files: {[f for f in os.listdir('.') if f.endswith(('.jpg', '.jpeg', '.png'))]}")
-        exit(1)
+    response = http.request("GET", media_url, headers=headers)
+    return response.data  # Raw image bytes
+
+def analyze_crop_image(image_bytes, latitude=None, longitude=None):
     
+    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+    
+    payload = {
+        "images": [image_base64],
+        "similar_images": True
+    }
+    
+    if latitude and longitude:
+        payload["latitude"] = latitude
+        payload["longitude"] = longitude
+    
+    headers = {
+        "Api-Key": CROP_HEALTH_API_KEY,
+        "Content-Type": "application/json"
+    }
+    
+    response = http.request(
+        "POST",
+        "https://crop.kindwise.com/api/v1/identification",
+        body=json.dumps(payload),
+        headers=headers
+    )
+    
+    print("Crop API status:", response.status)
+    result = json.loads(response.data)
+    print("Crop API result:", json.dumps(result, indent=2))
+    return result
+
+def format_crop_result(result):
+    """Format the crop health result into a readable WhatsApp message"""
+    
+    suggestions = result.get("result", {}).get("disease", {}).get("suggestions", [])
+    
+    if not suggestions:
+        suggestions = result.get("suggestions", [])
+    
+    if not suggestions:
+        return "I analyzed your crop image but could not detect any specific disease. Please try with a clearer image."
+    
+    message = "*Crop Disease Analysis Results*\n\n"
+    
+    for i, suggestion in enumerate(suggestions[:3], 1):
+        name = suggestion.get("name", "Unknown")
+        probability = suggestion.get("probability", 0)
+        message += f"{i}. *{name}*\n"
+        message += f"   Confidence: {probability:.1%}\n\n"
+    
+    message += "💡 For best results, consult a local agricultural expert."
+    return message
+
+# WhatsApp
+
+def send_whatsapp_message(to, message):
+    url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "text": {"body": message}
+    }
+    response = http.request(
+        "POST",
+        url,
+        body=json.dumps(data),
+        headers=headers
+    )
+    print("WhatsApp API response:", response.data)
+
+# Lambda Handler
+
+def lambda_handler(event, context):
+    print("Event received:", event)
+
+    if event.get("queryStringParameters"):
+        params = event["queryStringParameters"]
+        if params.get("hub.verify_token") == VERIFY_TOKEN:
+            return {
+                'statusCode': 200,
+                'body': params.get("hub.challenge")
+            }
+
     try:
-        # Detect disease
-        print("\n=== Starting Disease Detection ===\n")
-        result = api.detect_disease(
-            image_path=image_path,
-            latitude=18.5204,  # Pune
-            longitude=73.8567
-        )
-        
-        # Display results
-        print("\n=== RESULTS ===\n")
-        
-        if 'suggestions' in result and result['suggestions']:
-            for i, suggestion in enumerate(result['suggestions'][:3], 1):
-                print(f"{i}. {suggestion.get('name', 'Unknown')}")
-                print(f"   Confidence: {suggestion.get('probability', 0):.1%}")
-                print()
-        
-        # Full response
-        print("\nFull API response:")
-        import json
-        print(json.dumps(result, indent=2))
-        
-    except FileNotFoundError as e:
-        print(f"ERROR: {e}")
-    except requests.exceptions.RequestException as e:
-        print(f"API ERROR: {e}")
+        body = json.loads(event["body"])
+        msg = body["entry"][0]["changes"][0]["value"]["messages"][0]
+        from_number = msg["from"]
+        msg_type = msg.get("type")
+
+        print(f"Message type: {msg_type}")
+
+        if msg_type == "text":
+            user_message = msg["text"]["body"]
+            print("User message:", user_message)
+            reply = ask_bedrock(user_message)
+            print("Bedrock reply:", reply)
+            send_whatsapp_message(from_number, reply)
+
+        elif msg_type == "image":
+            media_id = msg["image"]["id"]
+            print("Image media ID:", media_id)
+
+            send_whatsapp_message(from_number, "🔍 Analyzing your crop image, please wait...")
+
+            image_bytes = download_whatsapp_image(media_id)
+            result = analyze_crop_image(
+                image_bytes,
+                latitude=18.5204, #we have to Make this dynamic later
+                longitude=73.8567
+            )
+            reply = format_crop_result(result)
+            send_whatsapp_message(from_number, reply)
+
+        else:
+            send_whatsapp_message(from_number, "Please send a text message or a crop image for disease detection.")
+
     except Exception as e:
-        print(f"UNEXPECTED ERROR: {e}")
+        print("Error:", e)
+
+    return {
+        'statusCode': 200,
+        'body': 'ok'
+    }
