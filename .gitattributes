@@ -1,0 +1,15 @@
+# Git Attributes for KisaanMitra Project
+
+# Critical onboarding files - handle merges carefully
+src/onboarding/** merge=ours
+src/knowledge_graph/** merge=ours
+
+# Lambda handler - requires manual review for conflicts
+src/lambda/lambda_whatsapp_kisaanmitra.py merge=ours
+
+# Deployment scripts - keep local version
+src/lambda/deploy_*.ps1 merge=ours
+src/lambda/deploy_*.sh merge=ours
+
+# Configuration files
+.env merge=ours

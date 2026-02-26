@@ -22,6 +22,25 @@ except ImportError:
     print("Fast market data not available")
     FAST_MARKET_DATA_AVAILABLE = False
 
+# Import onboarding and knowledge graph
+import sys
+sys.path.append('/opt/python')  # Lambda layer path
+try:
+    from onboarding.farmer_onboarding import onboarding_manager
+    from knowledge_graph.village_graph import knowledge_graph
+    ONBOARDING_AVAILABLE = True
+    print("✅ Onboarding module loaded successfully")
+except ImportError as e:
+    print(f"❌ Onboarding module not available: {e}")
+    import traceback
+    traceback.print_exc()
+    ONBOARDING_AVAILABLE = False
+except Exception as e:
+    print(f"❌ Error loading onboarding module: {e}")
+    import traceback
+    traceback.print_exc()
+    ONBOARDING_AVAILABLE = False
+
 http = urllib3.PoolManager()
 
 # Environment variables
@@ -1332,6 +1351,42 @@ def send_whatsapp_message(to, message):
     if response.status != 200:
         print(f"[ERROR] WhatsApp API error response: {response.data}")
 
+
+# ─── Onboarding ───────────────────────────────────────────────────────────────
+
+def check_user_status(user_id):
+    """
+    Check user onboarding status
+    Returns: (is_new, onboarding_state, profile)
+    """
+    if not ONBOARDING_AVAILABLE:
+        print(f"⚠️ ONBOARDING NOT AVAILABLE - treating all users as existing")
+        return False, "completed", None
+    
+    try:
+        # Check if user has completed profile
+        is_new = onboarding_manager.is_new_user(user_id)
+        
+        # Get onboarding state
+        state, data = onboarding_manager.get_onboarding_state(user_id)
+        
+        # Get profile if exists
+        profile = None if is_new else onboarding_manager.get_user_profile(user_id)
+        
+        # ✅ FIX: If state is not "completed", treat as needing onboarding
+        # regardless of is_new flag
+        if state != "completed":
+            is_new = True
+        
+        print(f"🔍 User check: is_new={is_new}, state={state}, has_profile={profile is not None}")
+        return is_new, state, profile
+        
+    except Exception as e:
+        print(f"❌ Error checking user status: {e}")
+        import traceback
+        traceback.print_exc()
+        return True, "new", None  # Default to new user on error
+
 # ─── Lambda Handler ───────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
@@ -1341,6 +1396,8 @@ def lambda_handler(event, context):
     print(f"[DEBUG] Event: {json.dumps(event)}")
     print(f"[DEBUG] Lambda Memory: {context.memory_limit_in_mb} MB")
     print(f"[DEBUG] Lambda Timeout: {context.get_remaining_time_in_millis() / 1000} seconds remaining")
+    print(f"🔧 ONBOARDING_AVAILABLE: {ONBOARDING_AVAILABLE}")
+    print(f"🔧 LANGGRAPH_AVAILABLE: {LANGGRAPH_AVAILABLE}")
     
     # Webhook verification
     if event.get("queryStringParameters"):
@@ -1376,6 +1433,73 @@ def lambda_handler(event, context):
         
         print(f"[INFO] 📱 Message from: {from_number}")
         print(f"[INFO] 📝 Message type: {msg_type}")
+        
+        # ═══════════════════════════════════════════════════════════════
+        # STEP 1: CHECK USER STATUS (ALWAYS FIRST)
+        # ═══════════════════════════════════════════════════════════════
+        is_new_user, onboarding_state, user_profile = check_user_status(from_number)
+        
+        print(f"👤 User Status: is_new={is_new_user}, state={onboarding_state}, has_profile={user_profile is not None}")
+        print(f"🔍 DEBUG: is_new={is_new_user}, state='{onboarding_state}', profile={user_profile}")
+        
+        # ═══════════════════════════════════════════════════════════════
+        # STEP 2: HANDLE NEW USERS (NO PROFILE EXISTS)
+        # ═══════════════════════════════════════════════════════════════
+        if is_new_user:
+            print(f"🆕 NEW USER DETECTED: {from_number} - Starting onboarding")
+            
+            if msg_type == "text":
+                user_message = msg["text"]["body"]
+                response, is_completed = onboarding_manager.process_onboarding_message(from_number, user_message)
+                send_whatsapp_message(from_number, response)
+                
+                # If onboarding completed, add to knowledge graph
+                if is_completed:
+                    profile = onboarding_manager.get_user_profile(from_number)
+                    if profile:
+                        knowledge_graph.add_farmer_to_graph(profile)
+                        print(f"✅ Onboarding completed! Added {profile.get('name')} to knowledge graph")
+                
+                return {'statusCode': 200, 'body': 'ok'}
+            else:
+                # New user sent non-text message (image/video/audio)
+                send_whatsapp_message(
+                    from_number,
+                    "🙏 नमस्ते! KisaanMitra में आपका स्वागत है!\n\nपहले अपना रजिस्ट्रेशन पूरा करें।\nकृपया 'Hi' टाइप करें।"
+                )
+                return {'statusCode': 200, 'body': 'ok'}
+        
+        # ═══════════════════════════════════════════════════════════════
+        # STEP 3: HANDLE USERS IN ONBOARDING PROCESS
+        # ═══════════════════════════════════════════════════════════════
+        if onboarding_state and onboarding_state != "completed":
+            print(f"📝 USER IN ONBOARDING: {from_number}, state: {onboarding_state}")
+            
+            if msg_type == "text":
+                user_message = msg["text"]["body"]
+                response, is_completed = onboarding_manager.process_onboarding_message(from_number, user_message)
+                send_whatsapp_message(from_number, response)
+                
+                # If onboarding completed, add to knowledge graph
+                if is_completed:
+                    profile = onboarding_manager.get_user_profile(from_number)
+                    if profile:
+                        knowledge_graph.add_farmer_to_graph(profile)
+                        print(f"✅ Onboarding completed! Added {profile.get('name')} to knowledge graph")
+                
+                return {'statusCode': 200, 'body': 'ok'}
+            else:
+                # User in onboarding sent non-text message
+                send_whatsapp_message(
+                    from_number,
+                    "कृपया पहले अपना रजिस्ट्रेशन पूरा करें।\nआपके सवाल का जवाब दें।"
+                )
+                return {'statusCode': 200, 'body': 'ok'}
+        
+        # ═══════════════════════════════════════════════════════════════
+        # STEP 4: EXISTING USER WITH COMPLETED PROFILE - ROUTE TO AGENTS
+        # ═══════════════════════════════════════════════════════════════
+        print(f"✅ EXISTING USER: {from_number} ({user_profile.get('name') if user_profile else 'Unknown'}) - Routing to agents")
         
         if msg_type == "text":
             user_message = msg["text"]["body"]
