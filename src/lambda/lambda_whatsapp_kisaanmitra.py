@@ -22,6 +22,14 @@ except ImportError:
     print("Fast market data not available")
     FAST_MARKET_DATA_AVAILABLE = False
 
+# Import realistic crop budget database
+try:
+    from realistic_crop_data import get_realistic_budget, format_realistic_budget, get_crop_recommendation
+    REALISTIC_BUDGET_AVAILABLE = True
+except ImportError:
+    print("Realistic budget database not available")
+    REALISTIC_BUDGET_AVAILABLE = False
+
 http = urllib3.PoolManager()
 
 # Environment variables
@@ -978,7 +986,17 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
         print(f"[INFO] 📍 Final location: {location}, State for API: {state_name}")
         print(f"[INFO] 📊 Generating budget for {crop_name}, {land_size} acre(s) in {location}")
 
-        # Generate budget using enhanced AI (pass both city and state)
+        # Try realistic database first (ACCURATE and CONSISTENT)
+        budget = None
+        if REALISTIC_BUDGET_AVAILABLE:
+            print(f"[DEBUG] Checking realistic budget database...")
+            budget = get_realistic_budget(crop_name, state_name, land_size)
+            if budget:
+                print(f"[INFO] ✅ Using realistic budget from database (100% accurate)")
+                return format_realistic_budget(budget, location)
+        
+        # Fallback to AI generation (for crops not in database)
+        print(f"[DEBUG] Falling back to AI budget generation...")
         budget = generate_crop_budget_with_ai(crop_name, land_size, location, bedrock, state_name)
 
         if not budget:
