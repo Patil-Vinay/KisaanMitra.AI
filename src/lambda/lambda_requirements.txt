@@ -1,4 +1,10 @@
-# AWS Lambda Layer Requirements for KisaanMitra.AI Crop Agent
+# AWS Lambda Layer Requirements for KisaanMitra.AI
 
+# Core dependencies
 requests==2.32.5
 boto3==1.35.0
+
+# LangGraph for multi-agent routing
+langgraph==0.2.45
+langchain-core==0.3.15
+langchain-aws==0.2.6

@@ -45,9 +45,14 @@ cat > lambda-policy.json << EOF
       "Effect": "Allow",
       "Action": [
         "bedrock:InvokeModel",
-        "bedrock:InvokeModelWithResponseStream"
+        "bedrock:InvokeModelWithResponseStream",
+        "bedrock:Converse"
       ],
-      "Resource": "arn:aws:bedrock:${REGION}::foundation-model/amazon.nova-micro-v1:0"
+      "Resource": [
+        "arn:aws:bedrock:us-east-1::foundation-model/us.amazon.nova-micro-v1:0",
+        "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0",
+        "arn:aws:bedrock:${REGION}::foundation-model/*"
+      ]
     },
     {
       "Effect": "Allow",
@@ -61,6 +66,7 @@ cat > lambda-policy.json << EOF
       "Resource": [
         "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-conversations",
         "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-market-data",
+        "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-finance",
         "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-user-preferences"
       ]
     }
