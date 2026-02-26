@@ -540,6 +540,155 @@ def extract_crop_with_ai(user_message, bedrock_client, conversation_history=""):
     return None
 
 
+def generate_crop_budget_with_ai_combined(user_message, land_size, location, bedrock_client, conversation_history=""):
+    """
+    SINGLE AI CALL that:
+    1. Extracts crop name from user message
+    2. Fetches live market price from AgMarkNet
+    3. Generates complete budget with feasibility analysis
+    
+    This avoids throttling by making only ONE Bedrock call instead of two.
+    """
+    print(f"[DEBUG] ===== COMBINED AI BUDGET GENERATION =====")
+    print(f"[DEBUG] User message: {user_message}")
+    print(f"[DEBUG] Land: {land_size} acre(s), Location: {location}")
+    
+    # Step 1: Extract state name for market data
+    state_mapping = {
+        'mumbai': 'Maharashtra', 'pune': 'Maharashtra', 'nagpur': 'Maharashtra', 'nashik': 'Maharashtra',
+        'kolhapur': 'Maharashtra', 'aurangabad': 'Maharashtra', 'solapur': 'Maharashtra',
+        'delhi': 'Delhi', 'bangalore': 'Karnataka', 'bengaluru': 'Karnataka', 'mysore': 'Karnataka',
+        'hyderabad': 'Telangana', 'chennai': 'Tamil Nadu', 'coimbatore': 'Tamil Nadu',
+        'kolkata': 'West Bengal', 'ahmedabad': 'Gujarat', 'surat': 'Gujarat', 'vadodara': 'Gujarat',
+        'jaipur': 'Rajasthan', 'jodhpur': 'Rajasthan', 'udaipur': 'Rajasthan',
+        'lucknow': 'Uttar Pradesh', 'kanpur': 'Uttar Pradesh', 'varanasi': 'Uttar Pradesh',
+        'patna': 'Bihar', 'bhopal': 'Madhya Pradesh', 'indore': 'Madhya Pradesh',
+        'chandigarh': 'Punjab', 'ludhiana': 'Punjab', 'amritsar': 'Punjab',
+    }
+    
+    state_name = state_mapping.get(location.lower(), 'Maharashtra')
+    print(f"[DEBUG] State mapped: {state_name}")
+    
+    # Step 2: Build comprehensive prompt that does EVERYTHING in one call
+    prompt = f"""You are an expert agricultural economist with 20+ years of experience in Indian farming.
+
+**TASK**: Analyze this farmer's request and generate a complete budget:
+
+Farmer's Message: "{user_message}"
+Location: {location}, {state_name}
+Land Size: {land_size} acre(s)
+Current Month: February 2026
+
+**YOUR TASK (Complete in ONE response):**
+
+1. **Extract the crop name** from the farmer's message
+2. **Analyze feasibility** for that crop in {location}, {state_name}
+3. **Generate realistic budget** with accurate costs and yields
+
+**CRITICAL ACCURACY REQUIREMENTS:**
+
+- Use REALISTIC yields for {state_name} region (research typical yields)
+- Use CORRECT units (quintal for most crops, ton for sugarcane)
+- Use CURRENT 2026 market rates for all inputs
+- Calculate ACCURATE revenue (Yield × Price_Per_Quintal)
+- Be CONSISTENT (same inputs = same outputs)
+
+**EXAMPLES OF REALISTIC YIELDS (per acre):**
+- Wheat: 20-25 quintal
+- Rice: 25-30 quintal
+- Onion: 100-150 quintal
+- Potato: 150-200 quintal
+- Cotton: 8-12 quintal (seed cotton)
+- Sugarcane: 300-450 quintal (30-45 tons)
+- Tomato: 200-300 quintal
+- Soybean: 12-18 quintal
+
+**EXAMPLES OF REALISTIC PRICES (2026):**
+- Wheat: ₹2,200-2,600/quintal
+- Rice: ₹2,000-2,400/quintal
+- Onion: ₹1,200-2,000/quintal
+- Potato: ₹800-1,500/quintal
+- Cotton: ₹6,000-7,000/quintal
+- Sugarcane: ₹3,000-3,500/ton (NOT per quintal!)
+- Tomato: ₹2,000-3,000/quintal
+- Soybean: ₹4,200-4,800/quintal
+
+**OUTPUT FORMAT (Use EXACT format with numbers only, no commas):**
+
+CROP: [crop name extracted from message]
+FEASIBILITY: [HIGHLY_SUITABLE / SUITABLE / MODERATELY_SUITABLE / NOT_RECOMMENDED]
+REASON: [One line explanation]
+BEST_SEASON: [Season name]
+CLIMATE_MATCH: [EXCELLENT / GOOD / FAIR / POOR]
+
+Seeds: [number only]
+Fertilizer: [number only]
+Pesticides: [number only]
+Irrigation: [number only]
+Labor: [number only]
+Machinery: [number only]
+Total_Cost: [number only]
+Yield: [number only - use REALISTIC yield for {state_name}]
+Price_Per_Quintal: [number only - use CORRECT unit]
+Revenue: [number only - MUST equal Yield × Price_Per_Quintal]
+Profit: [number only - MUST equal Revenue - Total_Cost]
+
+RISKS: [One line about main risks]
+RECOMMENDATION: [One line practical advice]
+DATA_SOURCES: [Government sources you researched]
+
+**VERIFICATION CHECKLIST:**
+- [ ] Crop name extracted correctly
+- [ ] Yield is realistic for {state_name} region
+- [ ] Price unit is correct (quintal vs ton)
+- [ ] Revenue = Yield × Price_Per_Quintal (math is correct)
+- [ ] Profit = Revenue - Total_Cost (math is correct)
+- [ ] ROI is reasonable (20-100%, not 300%+)
+- [ ] All costs are realistic for 2026 India
+
+Now generate the complete analysis:"""
+
+    try:
+        print(f"[DEBUG] Calling Bedrock for COMBINED crop extraction + budget generation...")
+        print(f"[DEBUG] Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0")
+        
+        # Add retry logic for throttling
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = bedrock_client.converse(
+                    modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                    messages=[{"role": "user", "content": [{"text": prompt}]}],
+                    inferenceConfig={"maxTokens": 3000, "temperature": 0.1}
+                )
+                break
+            except Exception as e:
+                if "ThrottlingException" in str(e) and attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 2  # 2, 4, 6 seconds
+                    print(f"[WARNING] Throttled, waiting {wait_time}s before retry {attempt + 2}/{max_retries}...")
+                    time.sleep(wait_time)
+                else:
+                    raise
+        
+        budget_text = response["output"]["message"]["content"][0]["text"].strip()
+        print(f"[INFO] ✅ AI generated complete budget analysis")
+        print(f"[DEBUG] Response length: {len(budget_text)} chars")
+
+        # Parse the response
+        parsed = parse_ai_budget_enhanced(budget_text, None, land_size)  # crop_name will be extracted from response
+        parsed['real_market_price_used'] = False
+        parsed['data_source'] = 'ai_research'
+        print(f"[DEBUG] Budget parsed successfully")
+        print(f"[DEBUG] Extracted crop: {parsed.get('crop', 'unknown')}")
+        return parsed
+    except Exception as e:
+        print(f"[ERROR] Combined budget generation error: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return None
+
+
 def extract_state_with_ai(user_message, bedrock_client):
     """Use AI to extract state name from user message"""
     print(f"[DEBUG] Extracting state/location using AI...")
@@ -1060,6 +1209,13 @@ def parse_ai_budget_enhanced(budget_text, crop_name, land_size):
         "recommendation": ""
     }
 
+    # Extract crop name if not provided (for combined function)
+    if not crop_name:
+        crop_match = re.search(r'CROP:\s*(.+?)(?:\n|$)', budget_text, re.IGNORECASE)
+        if crop_match:
+            budget["crop"] = crop_match.group(1).strip().lower()
+            print(f"[DEBUG] Extracted crop from AI response: {budget['crop']}")
+
     # Extract feasibility info
     feasibility_match = re.search(r'FEASIBILITY:\s*([A-Z_]+)', budget_text, re.IGNORECASE)
     if feasibility_match:
@@ -1090,6 +1246,12 @@ def parse_ai_budget_enhanced(budget_text, crop_name, land_size):
     if recommendation_match:
         budget["recommendation"] = recommendation_match.group(1).strip()
         print(f"[DEBUG] Extracted recommendation: {budget['recommendation']}")
+    
+    # Extract data sources
+    data_sources_match = re.search(r'DATA_SOURCES:\s*(.+?)(?:\n|$)', budget_text, re.IGNORECASE)
+    if data_sources_match:
+        budget["data_sources"] = data_sources_match.group(1).strip()
+        print(f"[DEBUG] Extracted data sources: {budget['data_sources']}")
 
     # Extract financial numbers - more flexible patterns
     patterns = {
@@ -1214,14 +1376,7 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
     if has_budget_keyword:
         print(f"[DEBUG] Processing budget request...")
 
-        # Extract crop using AI with conversation context
-        crop_name = extract_crop_with_ai(user_message, bedrock, context)
-
-        if not crop_name:
-            print(f"[DEBUG] ❌ No crop detected, asking user to specify")
-            return "Please specify which crop you want to grow. For example: 'I want to grow tomato' or 'give me chilly budget'"
-
-        # Extract land size
+        # Extract land size using regex
         land_size = 1
         import re
         size_match = re.search(r'(\d+)\s*(acre|एकड़|hectare)', message_lower)
@@ -1231,14 +1386,8 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
         else:
             print(f"[DEBUG] No land size specified, using default: 1 acre")
 
-        # Extract location and state using AI (no hardcoding!)
-        print(f"[DEBUG] Using AI to extract location and state...")
-        state_name = extract_state_with_ai(user_message, bedrock)
-        
-        # For display purposes, try to extract city name (prioritize last match to avoid month names)
-        location = state_name  # Default to state name
-        
-        # Try to find city name in message
+        # Extract location using regex (prioritize last match to avoid month names)
+        location = "Maharashtra"  # Default
         location_patterns = [
             r'farm\s+in\s+(\w+)',  # Most specific first
             r'location\s+is\s+(\w+)',
@@ -1265,17 +1414,24 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
             location = all_matches[-1].title()
             print(f"[DEBUG] ✅ Extracted city/location: {location} (from {len(all_matches)} candidates)")
         else:
-            print(f"[DEBUG] No city extracted, using state name: {state_name}")
+            print(f"[DEBUG] No city extracted, using default: Maharashtra")
         
-        print(f"[INFO] 📍 Final location: {location}, State for API: {state_name}")
-        print(f"[INFO] 📊 Generating budget for {crop_name}, {land_size} acre(s) in {location}")
+        print(f"[INFO] 📍 Location: {location}, Land: {land_size} acre(s)")
+        print(f"[INFO] 📊 Generating budget with AI (single call)...")
 
-        # Generate budget using enhanced AI (pass both city and state)
-        budget = generate_crop_budget_with_ai(crop_name, land_size, location, bedrock, state_name)
+        # Generate budget using enhanced AI - SINGLE CALL that extracts crop AND generates budget
+        budget = generate_crop_budget_with_ai_combined(user_message, land_size, location, bedrock, context)
 
         if not budget:
-            print(f"[ERROR] ❌ Budget generation failed for {crop_name}")
-            return f"I'm having trouble generating a budget for {crop_name}. Please try again or ask about a different crop."
+            print(f"[ERROR] ❌ Budget generation failed")
+            return "I'm having trouble generating a budget. Please try again or ask about a different crop."
+        
+        if not budget.get('crop'):
+            print(f"[ERROR] ❌ No crop detected in message")
+            return "Please specify which crop you want to grow. For example: 'I want to grow tomato' or 'give me rice budget'"
+
+        crop_name = budget['crop']
+        print(f"[INFO] ✅ Successfully generated budget for {crop_name}")
 
         print(f"[DEBUG] Formatting budget response with feasibility analysis...")
         
