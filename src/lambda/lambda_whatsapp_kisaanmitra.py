@@ -22,14 +22,6 @@ except ImportError:
     print("Fast market data not available")
     FAST_MARKET_DATA_AVAILABLE = False
 
-# Web search for real-time data
-try:
-    import requests
-    WEB_SEARCH_AVAILABLE = True
-except ImportError:
-    print("Web search not available")
-    WEB_SEARCH_AVAILABLE = False
-
 http = urllib3.PoolManager()
 
 # Environment variables
@@ -576,83 +568,89 @@ Reply with ONLY the state name:"""
         return "Maharashtra"  # Default fallback
 
 
-def fetch_real_agricultural_data(crop_name, state_name, bedrock_client):
-    """Fetch real agricultural data from web sources using AI-powered search"""
-    print(f"[DEBUG] ===== FETCHING REAL AGRICULTURAL DATA =====")
+def fetch_real_agricultural_data_with_ai(crop_name, state_name, bedrock_client):
+    """Use Claude Sonnet 4 to research and provide real agricultural data"""
+    print(f"[DEBUG] ===== AI RESEARCH: FETCHING REAL AGRICULTURAL DATA =====")
     print(f"[DEBUG] Crop: {crop_name}, State: {state_name}")
-    
-    # Use Claude Sonnet 4 to search and synthesize real data
-    search_prompt = f"""You are an agricultural data researcher. Find REAL, CURRENT data for {crop_name} cultivation in {state_name}, India.
 
-Search for and provide:
-1. **Current Market Price** (February 2026)
-   - Check MSP (Minimum Support Price) if applicable
-   - Check FRP (Fair & Remunerative Price) for sugarcane
-   - Check recent mandi rates
-   - Provide price per quintal (or per ton for sugarcane)
+    research_prompt = f"""You are an agricultural data researcher with access to Indian government agricultural databases, MSP notifications, and state agricultural department reports.
 
-2. **Realistic Yield** (per acre)
-   - Average yield in {state_name}
-   - Consider current farming practices
-   - Use government agricultural statistics
+Research and provide REAL, VERIFIED data for {crop_name} cultivation in {state_name}, India (February 2026).
+
+**Research Sources to Consider:**
+1. Ministry of Agriculture & Farmers Welfare reports
+2. MSP (Minimum Support Price) notifications for 2025-26
+3. FRP (Fair & Remunerative Price) for sugarcane 2025-26
+4. State Agricultural Department statistics
+5. ICAR (Indian Council of Agricultural Research) data
+6. Agricultural universities in {state_name}
+7. Recent mandi price trends
+
+**Provide ACCURATE data for:**
+
+1. **Market Price** (Current, February 2026)
+   - Use MSP if crop is covered under MSP
+   - Use FRP for sugarcane
+   - Use recent average mandi rates for others
+   - Specify unit (quintal or ton)
+
+2. **Realistic Yield** (per acre in {state_name})
+   - Use state-specific average yields
+   - Account for current farming practices
+   - Be conservative (don't use best-case)
 
 3. **Input Costs** (per acre, 2026 prices)
-   - Seeds/Seedlings cost
-   - Fertilizer (NPK + micronutrients)
-   - Pesticides/Fungicides
-   - Irrigation (electricity/diesel)
-   - Labor (planting, maintenance, harvesting)
-   - Machinery (tractor, harvester rental)
+   - Seeds: Hybrid/certified seed costs
+   - Fertilizer: NPK + micronutrients
+   - Pesticides: Based on crop requirements
+   - Irrigation: Electricity/diesel costs
+   - Labor: Current wage rates in {state_name}
+   - Machinery: Rental costs
 
-4. **Cultivation Details**
+4. **Cultivation Insights**
    - Best planting season
-   - Climate suitability for {state_name}
-   - Major growing regions in {state_name}
-   - Common risks
+   - Climate suitability
+   - Major growing regions
+   - Key risks
    - Best practices
 
-**CRITICAL REQUIREMENTS:**
-- Use ONLY real, verifiable data
-- Cite data sources (government reports, agricultural universities, MSP notifications)
-- Use current 2026 prices (account for inflation)
-- Be conservative with estimates (don't inflate)
-- Use correct units (sugarcane = per ton, others = per quintal)
+**CRITICAL: Use REAL data, not estimates. Cite sources.**
 
-**FORMAT YOUR RESPONSE EXACTLY LIKE THIS:**
+**FORMAT (numbers only, no commas):**
 
-MARKET_PRICE: [number only, per quintal or per ton]
+MARKET_PRICE: [number]
 PRICE_UNIT: [quintal or ton]
-YIELD_PER_ACRE: [number only, in quintals]
-SEEDS_COST: [number only]
-FERTILIZER_COST: [number only]
-PESTICIDES_COST: [number only]
-IRRIGATION_COST: [number only]
-LABOR_COST: [number only]
-MACHINERY_COST: [number only]
-BEST_SEASON: [season name]
+YIELD_PER_ACRE: [number in quintals]
+SEEDS_COST: [number]
+FERTILIZER_COST: [number]
+PESTICIDES_COST: [number]
+IRRIGATION_COST: [number]
+LABOR_COST: [number]
+MACHINERY_COST: [number]
+BEST_SEASON: [season]
 CLIMATE_SUITABILITY: [EXCELLENT/GOOD/FAIR/POOR]
-MAJOR_REGIONS: [region names in {state_name}]
+MAJOR_REGIONS: [regions]
 RISKS: [one line]
 RECOMMENDATION: [one line]
-DATA_SOURCES: [list sources]
+DATA_SOURCES: [cite sources]
 
-Now research and provide REAL data for {crop_name} in {state_name}:"""
-    
+Research {crop_name} in {state_name} now:"""
+
     try:
-        print(f"[DEBUG] Calling Claude Sonnet 4 for real agricultural data research...")
+        print(f"[DEBUG] Calling Claude Sonnet 4 for agricultural data research...")
         response = bedrock_client.converse(
             modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-            messages=[{"role": "user", "content": [{"text": search_prompt}]}],
+            messages=[{"role": "user", "content": [{"text": research_prompt}]}],
             inferenceConfig={"maxTokens": 2000, "temperature": 0.1}
         )
         data_text = response["output"]["message"]["content"][0]["text"].strip()
-        print(f"[INFO] ✅ Real agricultural data fetched")
-        print(f"[DEBUG] Data text:\n{data_text}")
-        
-        # Parse the structured data
+        print(f"[INFO] ✅ AI research completed")
+        print(f"[DEBUG] Research data:\n{data_text[:500]}...")
+
+        # Parse structured data
         import re
         data = {}
-        
+
         patterns = {
             "market_price": r'MARKET_PRICE:\s*([\d,]+)',
             "price_unit": r'PRICE_UNIT:\s*(\w+)',
@@ -670,273 +668,128 @@ Now research and provide REAL data for {crop_name} in {state_name}:"""
             "recommendation": r'RECOMMENDATION:\s*(.+?)(?:\n|$)',
             "data_sources": r'DATA_SOURCES:\s*(.+?)(?:\n\n|$)'
         }
-        
+
         for key, pattern in patterns.items():
             match = re.search(pattern, data_text, re.IGNORECASE | re.DOTALL)
             if match:
                 value = match.group(1).strip()
-                if key in ["market_price", "yield_per_acre", "seeds_cost", "fertilizer_cost", 
+                if key in ["market_price", "yield_per_acre", "seeds_cost", "fertilizer_cost",
                           "pesticides_cost", "irrigation_cost", "labor_cost", "machinery_cost"]:
                     data[key] = int(value.replace(",", ""))
                 else:
                     data[key] = value
                 print(f"[DEBUG] Extracted {key}: {data[key]}")
-        
-        return data
+
+        if data:
+            print(f"[INFO] ✅ Successfully parsed {len(data)} data fields")
+            return data
+        else:
+            print(f"[WARNING] No data extracted from AI research")
+            return None
+
     except Exception as e:
-        print(f"[ERROR] Real data fetch error: {e}")
+        print(f"[ERROR] AI research error: {e}")
         import traceback
         print(f"[ERROR] Traceback: {traceback.format_exc()}")
         return None
 
 
+
 def generate_crop_budget_with_ai(crop_name, land_size, location, bedrock_client, state_name=None):
-    """Generate crop budget using real-time data from web + AI intelligence"""
+    """Generate crop budget using AI research + real-time market data"""
     if not state_name:
         state_name = location
 
-    print(f"[DEBUG] ===== GENERATING INTELLIGENT BUDGET =====")
+    print(f"[DEBUG] ===== GENERATING INTELLIGENT AI-POWERED BUDGET =====")
     print(f"[DEBUG] Crop: {crop_name}, Land: {land_size} acre(s), Location: {location}, State: {state_name}")
     
-    # Step 1: Fetch real agricultural data from web
-    print(f"[DEBUG] Step 1: Fetching real agricultural data from web sources...")
-    real_data = fetch_real_agricultural_data(crop_name, state_name, bedrock_client)
+    # Step 1: AI research for real agricultural data
+    print(f"[DEBUG] Step 1: AI researching real agricultural data...")
+    real_data = fetch_real_agricultural_data_with_ai(crop_name, state_name, bedrock_client)
     
-    # Step 2: Get real market price from AgMarkNet
+    # Step 2: Get live market price from AgMarkNet
     real_market_price = None
     price_source = "ai_research"
     
-    print(f"[DEBUG] Step 2: Fetching real-time market price...")
-    # Try scraping first (faster)
+    print(f"[DEBUG] Step 2: Fetching live market price from AgMarkNet...")
     try:
         from market_data_sources import scrape_agmarknet_website
         scraped_data = scrape_agmarknet_website(crop_name, state_name)
         if scraped_data and scraped_data.get('average_price'):
             real_market_price = scraped_data['average_price']
             price_source = "agmarknet_live"
-            print(f"[INFO] 🌐 Live market price from AgMarkNet: ₹{real_market_price}/quintal")
+            print(f"[INFO] 🌐 Live market price: ₹{real_market_price}/quintal")
     except Exception as e:
         print(f"[DEBUG] AgMarkNet scraping failed: {e}")
     
-    # Try API if scraping failed
+    # Try API fallback
     if not real_market_price and AGMARKNET_API_KEY and AGMARKNET_API_KEY != "not_available":
         try:
             mandi_data = get_mandi_prices(crop_name, state_name)
             if mandi_data and len(mandi_data) > 0:
                 real_market_price = int(float(mandi_data[0].get("modal_price", 0)))
                 price_source = "agmarknet_api"
-                print(f"[INFO] 📡 Live market price from AgMarkNet API: ₹{real_market_price}/quintal")
+                print(f"[INFO] 📡 API market price: ₹{real_market_price}/quintal")
         except Exception as e:
             print(f"[DEBUG] AgMarkNet API failed: {e}")
     
-    # Step 3: Use real data if available, otherwise use AI research
-    if real_data:
-        print(f"[INFO] ✅ Using real agricultural data from web research")
+    # Step 3: Build budget from AI research + live prices
+    if real_data and real_data.get('yield_per_acre'):
+        print(f"[INFO] ✅ Building budget from AI research data")
         
         # Override with live market price if available
         if real_market_price:
             real_data['market_price'] = real_market_price
-            real_data['price_source'] = price_source
+            price_source_final = price_source
+        else:
+            price_source_final = "ai_research"
         
-        # Calculate budget using real data
+        # Calculate budget
+        seeds = real_data.get('seeds_cost', 0) * land_size
+        fertilizer = real_data.get('fertilizer_cost', 0) * land_size
+        pesticides = real_data.get('pesticides_cost', 0) * land_size
+        irrigation = real_data.get('irrigation_cost', 0) * land_size
+        labor = real_data.get('labor_cost', 0) * land_size
+        machinery = real_data.get('machinery_cost', 0) * land_size
+        total_cost = seeds + fertilizer + pesticides + irrigation + labor + machinery
+        
+        expected_yield = real_data.get('yield_per_acre', 0) * land_size
+        expected_price = real_data.get('market_price', 0)
+        expected_revenue = expected_yield * expected_price
+        expected_profit = expected_revenue - total_cost
+        
         budget = {
             "crop": crop_name,
             "land_size": land_size,
-            "location": location,
-            "state": state_name,
-            "seeds": real_data.get('seeds_cost', 0) * land_size,
-            "fertilizer": real_data.get('fertilizer_cost', 0) * land_size,
-            "pesticides": real_data.get('pesticides_cost', 0) * land_size,
-            "irrigation": real_data.get('irrigation_cost', 0) * land_size,
-            "labor": real_data.get('labor_cost', 0) * land_size,
-            "machinery": real_data.get('machinery_cost', 0) * land_size,
-            "expected_yield": real_data.get('yield_per_acre', 0) * land_size,
-            "expected_price": real_data.get('market_price', 0),
-            "price_unit": real_data.get('price_unit', 'quintal'),
+            "seeds": seeds,
+            "fertilizer": fertilizer,
+            "pesticides": pesticides,
+            "irrigation": irrigation,
+            "labor": labor,
+            "machinery": machinery,
+            "total_cost": total_cost,
+            "expected_yield": expected_yield,
+            "expected_price": expected_price,
+            "expected_revenue": expected_revenue,
+            "expected_profit": expected_profit,
+            "feasibility": "HIGHLY_SUITABLE" if real_data.get('climate_suitability') == 'EXCELLENT' else "SUITABLE",
             "best_season": real_data.get('best_season', ''),
             "climate_match": real_data.get('climate_suitability', 'GOOD'),
-            "major_regions": real_data.get('major_regions', ''),
             "risks": real_data.get('risks', ''),
             "recommendation": real_data.get('recommendation', ''),
             "data_sources": real_data.get('data_sources', 'AI Research'),
-            "data_source": price_source,
-            "feasibility": "HIGHLY_SUITABLE" if real_data.get('climate_suitability') == 'EXCELLENT' else "SUITABLE"
+            "data_source": price_source_final,
+            "real_market_price_used": real_market_price is not None
         }
         
-        # Calculate totals
-        budget['total_cost'] = (budget['seeds'] + budget['fertilizer'] + budget['pesticides'] + 
-                               budget['irrigation'] + budget['labor'] + budget['machinery'])
-        budget['expected_revenue'] = budget['expected_yield'] * budget['expected_price']
-        budget['expected_profit'] = budget['expected_revenue'] - budget['total_cost']
-        
-        print(f"[INFO] ✅ Budget calculated from real data")
-        print(f"[DEBUG] Cost: ₹{budget['total_cost']}, Yield: {budget['expected_yield']}q, Price: ₹{budget['expected_price']}, Revenue: ₹{budget['expected_revenue']}, Profit: ₹{budget['expected_profit']}")
-        
+        print(f"[INFO] ✅ Budget built from AI research")
+        print(f"[DEBUG] Cost: ₹{total_cost}, Yield: {expected_yield}q, Price: ₹{expected_price}, Revenue: ₹{expected_revenue}, Profit: ₹{expected_profit}")
         return budget
     
-    # Step 4: Fallback to pure AI if web research failed
-    print(f"[DEBUG] Step 3: Falling back to AI-powered budget generation...")
-    return generate_ai_budget_fallback(crop_name, land_size, location, state_name, bedrock_client, real_market_price, price_source)
-
-
-def generate_ai_budget_fallback(crop_name, land_size, location, state_name, bedrock_client, real_market_price=None, price_source="ai_estimate"):
-    """Generate highly accurate crop budget with feasibility analysis using Claude Sonnet 4"""
-    if not state_name:
-        state_name = location
-
-    print(f"[DEBUG] Generating AI budget for crop: {crop_name}, land: {land_size} acre(s), location: {location}, state: {state_name}")
-
-    # Try to get real market price from AgMarkNet for revenue calculation
-    real_market_price = None
-    price_source = "ai_estimate"
-
-    # Try scraping first (faster) - use state name for API
-    print(f"[DEBUG] Attempting to fetch real market price via scraping...")
-    try:
-        from market_data_sources import scrape_agmarknet_website
-        scraped_data = scrape_agmarknet_website(crop_name, state_name)
-        if scraped_data and scraped_data.get('average_price'):
-            real_market_price = scraped_data['average_price']
-            price_source = "agmarknet_scrape"
-            print(f"[INFO] ✅ Real market price from AgMarkNet scraping: ₹{real_market_price}/quintal")
-    except Exception as e:
-        print(f"[DEBUG] Scraping failed: {e}")
-
-    # Try API if scraping failed
-    if not real_market_price and AGMARKNET_API_KEY and AGMARKNET_API_KEY != "not_available":
-        print(f"[DEBUG] Attempting to fetch real market price from AgMarkNet API...")
-        try:
-            mandi_data = get_mandi_prices(crop_name, state_name)
-            if mandi_data and len(mandi_data) > 0:
-                real_market_price = int(float(mandi_data[0].get("modal_price", 0)))
-                price_source = "agmarknet_api"
-                print(f"[INFO] ✅ Real market price from AgMarkNet API: ₹{real_market_price}/quintal")
-        except Exception as e:
-            print(f"[DEBUG] Could not fetch AgMarkNet API price: {e}")
-
-    if not real_market_price:
-        print(f"[DEBUG] No real market price available, AI will estimate")
-
-    market_price_instruction = ""
-    if real_market_price:
-        market_price_instruction = f"\n**IMPORTANT: Use EXACTLY ₹{real_market_price} as the market price per quintal (from AgMarkNet real-time data).**\n"
-
-    prompt = f"""You are an expert agricultural economist with 20+ years of experience in Indian farming. Generate a REALISTIC and ACCURATE budget for {crop_name} cultivation in {location}, {state_name}.
-
-**Farm Details:**
-- Crop: {crop_name}
-- Location: {location}, {state_name}
-- Land Size: {land_size} acre(s)
-- Current Month: February 2026
-{market_price_instruction}
-
-**CRITICAL ACCURACY REQUIREMENTS:**
-
-1. **Use REALISTIC yields for {state_name} region**
-   - Research typical yields for {crop_name} in {state_name}
-   - Account for local climate and soil conditions
-   - Use conservative estimates (not best-case scenarios)
-
-2. **Use CORRECT units and pricing**
-   - Prices are per QUINTAL (100 kg) for most crops
-   - Sugarcane is per TON (1000 kg), not quintal
-   - Cotton is per quintal of seed cotton
-   - Don't confuse quintal and ton
-
-3. **Use CURRENT 2026 market rates**
-   - Seeds: Realistic hybrid/certified seed costs
-   - Fertilizer: NPK + micronutrients at current prices
-   - Labor: Current daily wage rates in {state_name}
-   - Irrigation: Electricity + water costs
-   - Machinery: Tractor, harvester rental costs
-
-4. **Calculate ACCURATE revenue**
-   - Revenue = Yield × Price_Per_Quintal
-   - Double-check your math
-   - Use realistic yield (not inflated)
-   - Use correct price unit
-
-5. **Be CONSISTENT**
-   - Same inputs should give same outputs
-   - Don't vary wildly between requests
-   - Use deterministic calculations
-
-**EXAMPLES OF REALISTIC YIELDS (per acre):**
-- Wheat: 20-25 quintal
-- Rice: 25-30 quintal
-- Onion: 100-150 quintal
-- Potato: 150-200 quintal
-- Cotton: 8-12 quintal (seed cotton)
-- Sugarcane: 300-450 quintal (30-45 tons)
-- Tomato: 200-300 quintal
-- Soybean: 12-18 quintal
-
-**EXAMPLES OF REALISTIC PRICES (2026):**
-- Wheat: ₹2,200-2,600/quintal
-- Rice: ₹2,000-2,400/quintal
-- Onion: ₹1,200-2,000/quintal
-- Potato: ₹800-1,500/quintal
-- Cotton: ₹6,000-7,000/quintal
-- Sugarcane: ₹3,000-3,500/ton (NOT per quintal!)
-- Tomato: ₹2,000-3,000/quintal
-- Soybean: ₹4,200-4,800/quintal
-
-**Task 1: Feasibility Analysis**
-Analyze if {crop_name} is suitable for {location}, {state_name} considering:
-- Climate compatibility (temperature, rainfall, season)
-- Soil requirements vs regional soil types
-- Water availability needs
-- Market demand in the region
-- Risk factors specific to {state_name}
-
-**Task 2: Budget Generation**
-Generate a REALISTIC budget with ACCURATE numbers.
-
-**CRITICAL: Use this EXACT format with numbers only (no commas, no extra text):**
-
-FEASIBILITY: [HIGHLY_SUITABLE / SUITABLE / MODERATELY_SUITABLE / NOT_RECOMMENDED]
-REASON: [One line explanation]
-BEST_SEASON: [Season name]
-CLIMATE_MATCH: [EXCELLENT / GOOD / FAIR / POOR]
-
-Seeds: [number only]
-Fertilizer: [number only]
-Pesticides: [number only]
-Irrigation: [number only]
-Labor: [number only]
-Machinery: [number only]
-Total_Cost: [number only]
-Yield: [number only - use REALISTIC yield for {state_name}]
-Price_Per_Quintal: [number only - use CORRECT unit]
-Revenue: [number only - MUST equal Yield × Price_Per_Quintal]
-Profit: [number only - MUST equal Revenue - Total_Cost]
-
-RISKS: [One line about main risks]
-RECOMMENDATION: [One line practical advice]
-
-**VERIFICATION CHECKLIST:**
-- [ ] Yield is realistic for {state_name} region
-- [ ] Price unit is correct (quintal vs ton)
-- [ ] Revenue = Yield × Price_Per_Quintal (math is correct)
-- [ ] Profit = Revenue - Total_Cost (math is correct)
-- [ ] ROI is reasonable (20-100%, not 300%+)
-- [ ] All costs are realistic for 2026 India
-
-Now generate ACCURATE budget for {crop_name} in {location}, {state_name} for {land_size} acre(s):"""
-
-    try:
-        print(f"[DEBUG] Calling Bedrock for budget generation...")
-        print(f"[DEBUG] Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0")
-        print(f"[DEBUG] Using real market price from AgMarkNet: {real_market_price is not None}")
-        response = bedrock_client.converse(
-            modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude Sonnet 4 for superior accuracy
-            messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": 3000, "temperature": 0.1}  # Very low temp for consistency
-        )
-def generate_ai_budget_fallback(crop_name, land_size, location, state_name, bedrock_client, real_market_price=None, price_source="ai_estimate"):
-    """Generate highly accurate crop budget with feasibility analysis using Claude Sonnet 4"""
-    print(f"[DEBUG] Generating AI budget fallback for crop: {crop_name}, land: {land_size} acre(s), location: {location}, state: {state_name}")
-
+    # Step 4: Pure AI fallback if research parsing failed
+    print(f"[WARNING] AI research parsing failed, using pure AI generation...")
+    
+    # Get market price for AI prompt
     market_price_instruction = ""
     if real_market_price:
         market_price_instruction = f"\n**IMPORTANT: Use EXACTLY ₹{real_market_price} as the market price per quintal (from AgMarkNet real-time data).**\n"
@@ -1307,10 +1160,9 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
             print(f"[DEBUG] No city extracted, using state name: {state_name}")
         
         print(f"[INFO] 📍 Final location: {location}, State for API: {state_name}")
-        print(f"[INFO] 📊 Generating intelligent budget for {crop_name}, {land_size} acre(s) in {location}")
+        print(f"[INFO] 📊 Generating budget for {crop_name}, {land_size} acre(s) in {location}")
 
-        # Generate budget using AI + real-time web data
-        print(f"[DEBUG] Using AI-powered budget generation with real-time data...")
+        # Generate budget using enhanced AI (pass both city and state)
         budget = generate_crop_budget_with_ai(crop_name, land_size, location, bedrock, state_name)
 
         if not budget:
@@ -1390,14 +1242,14 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
             message += f"• Research: {budget['data_sources']}\n"
         
         price_source_label = {
-            "agmarknet_live": "AgMarkNet Live (Scraped)",
-            "agmarknet_api": "AgMarkNet API",
-            "ai_research": "AI Research + Web Data",
-            "ai_estimate": "AI Estimate"
+            "agmarknet_live": "🌐 AgMarkNet Live",
+            "agmarknet_api": "📡 AgMarkNet API",
+            "ai_research": "🔍 AI Research",
+            "ai_estimate": "🤖 AI Estimate"
         }
         source = budget.get('data_source', 'ai_research')
-        message += f"• Price: {price_source_label.get(source, 'AI Research')}\n"
-        message += f"• Analysis: Claude Sonnet 4\n\n"
+        message += f"• Price: {price_source_label.get(source, '🔍 AI Research')}\n"
+        message += f"• Model: Claude Sonnet 4\n\n"
         message += "💬 Verify with local suppliers\n"
         message += "? Need loan or scheme info? Just ask!"
         print(f"[DEBUG] Budget response formatted successfully with data source labels")
