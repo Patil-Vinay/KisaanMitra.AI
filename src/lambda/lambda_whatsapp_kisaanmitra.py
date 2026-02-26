@@ -703,15 +703,11 @@ def generate_crop_budget_with_ai(crop_name, land_size, location, bedrock_client,
     print(f"[DEBUG] ===== GENERATING INTELLIGENT AI-POWERED BUDGET =====")
     print(f"[DEBUG] Crop: {crop_name}, Land: {land_size} acre(s), Location: {location}, State: {state_name}")
     
-    # Step 1: AI research for real agricultural data
-    print(f"[DEBUG] Step 1: AI researching real agricultural data...")
-    real_data = fetch_real_agricultural_data_with_ai(crop_name, state_name, bedrock_client)
-    
-    # Step 2: Get live market price from AgMarkNet
+    # Step 1: Get live market price from AgMarkNet first (faster, no Bedrock call)
     real_market_price = None
     price_source = "ai_research"
     
-    print(f"[DEBUG] Step 2: Fetching live market price from AgMarkNet...")
+    print(f"[DEBUG] Step 1: Fetching live market price from AgMarkNet...")
     try:
         from market_data_sources import scrape_agmarknet_website
         scraped_data = scrape_agmarknet_website(crop_name, state_name)
@@ -733,61 +729,155 @@ def generate_crop_budget_with_ai(crop_name, land_size, location, bedrock_client,
         except Exception as e:
             print(f"[DEBUG] AgMarkNet API failed: {e}")
     
-    # Step 3: Build budget from AI research + live prices
-    if real_data and real_data.get('yield_per_acre'):
-        print(f"[INFO] ✅ Building budget from AI research data")
-        
-        # Override with live market price if available
-        if real_market_price:
-            real_data['market_price'] = real_market_price
-            price_source_final = price_source
-        else:
-            price_source_final = "ai_research"
-        
-        # Calculate budget
-        seeds = real_data.get('seeds_cost', 0) * land_size
-        fertilizer = real_data.get('fertilizer_cost', 0) * land_size
-        pesticides = real_data.get('pesticides_cost', 0) * land_size
-        irrigation = real_data.get('irrigation_cost', 0) * land_size
-        labor = real_data.get('labor_cost', 0) * land_size
-        machinery = real_data.get('machinery_cost', 0) * land_size
-        total_cost = seeds + fertilizer + pesticides + irrigation + labor + machinery
-        
-        expected_yield = real_data.get('yield_per_acre', 0) * land_size
-        expected_price = real_data.get('market_price', 0)
-        expected_revenue = expected_yield * expected_price
-        expected_profit = expected_revenue - total_cost
-        
-        budget = {
-            "crop": crop_name,
-            "land_size": land_size,
-            "seeds": seeds,
-            "fertilizer": fertilizer,
-            "pesticides": pesticides,
-            "irrigation": irrigation,
-            "labor": labor,
-            "machinery": machinery,
-            "total_cost": total_cost,
-            "expected_yield": expected_yield,
-            "expected_price": expected_price,
-            "expected_revenue": expected_revenue,
-            "expected_profit": expected_profit,
-            "feasibility": "HIGHLY_SUITABLE" if real_data.get('climate_suitability') == 'EXCELLENT' else "SUITABLE",
-            "best_season": real_data.get('best_season', ''),
-            "climate_match": real_data.get('climate_suitability', 'GOOD'),
-            "risks": real_data.get('risks', ''),
-            "recommendation": real_data.get('recommendation', ''),
-            "data_sources": real_data.get('data_sources', 'AI Research'),
-            "data_source": price_source_final,
-            "real_market_price_used": real_market_price is not None
-        }
-        
-        print(f"[INFO] ✅ Budget built from AI research")
-        print(f"[DEBUG] Cost: ₹{total_cost}, Yield: {expected_yield}q, Price: ₹{expected_price}, Revenue: ₹{expected_revenue}, Profit: ₹{expected_profit}")
-        return budget
+    # Step 2: Single AI call for complete budget (no separate research call to avoid throttling)
+    print(f"[DEBUG] Step 2: Generating budget with single AI call...")
     
-    # Step 4: Pure AI fallback if research parsing failed
-    print(f"[WARNING] AI research parsing failed, using pure AI generation...")
+    market_price_instruction = ""
+    if real_market_price:
+        market_price_instruction = f"\n**IMPORTANT: Use EXACTLY ₹{real_market_price} as the market price per quintal (from AgMarkNet real-time data).**\n"
+
+    prompt = f"""You are an expert agricultural economist with 20+ years of experience in Indian farming. Generate a REALISTIC and ACCURATE budget for {crop_name} cultivation in {location}, {state_name}.
+
+**Farm Details:**
+- Crop: {crop_name}
+- Location: {location}, {state_name}
+- Land Size: {land_size} acre(s)
+- Current Month: February 2026
+{market_price_instruction}
+
+**CRITICAL ACCURACY REQUIREMENTS:**
+
+1. **Use REALISTIC yields for {state_name} region**
+   - Research typical yields for {crop_name} in {state_name}
+   - Account for local climate and soil conditions
+   - Use conservative estimates (not best-case scenarios)
+
+2. **Use CORRECT units and pricing**
+   - Prices are per QUINTAL (100 kg) for most crops
+   - Sugarcane is per TON (1000 kg), not quintal
+   - Cotton is per quintal of seed cotton
+   - Don't confuse quintal and ton
+
+3. **Use CURRENT 2026 market rates**
+   - Seeds: Realistic hybrid/certified seed costs
+   - Fertilizer: NPK + micronutrients at current prices
+   - Labor: Current daily wage rates in {state_name}
+   - Irrigation: Electricity + water costs
+   - Machinery: Tractor, harvester rental costs
+
+4. **Calculate ACCURATE revenue**
+   - Revenue = Yield × Price_Per_Quintal
+   - Double-check your math
+   - Use realistic yield (not inflated)
+   - Use correct price unit
+
+5. **Be CONSISTENT**
+   - Same inputs should give same outputs
+   - Don't vary wildly between requests
+   - Use deterministic calculations
+
+**EXAMPLES OF REALISTIC YIELDS (per acre):**
+- Wheat: 20-25 quintal
+- Rice: 25-30 quintal
+- Onion: 100-150 quintal
+- Potato: 150-200 quintal
+- Cotton: 8-12 quintal (seed cotton)
+- Sugarcane: 300-450 quintal (30-45 tons)
+- Tomato: 200-300 quintal
+- Soybean: 12-18 quintal
+
+**EXAMPLES OF REALISTIC PRICES (2026):**
+- Wheat: ₹2,200-2,600/quintal
+- Rice: ₹2,000-2,400/quintal
+- Onion: ₹1,200-2,000/quintal
+- Potato: ₹800-1,500/quintal
+- Cotton: ₹6,000-7,000/quintal
+- Sugarcane: ₹3,000-3,500/ton (NOT per quintal!)
+- Tomato: ₹2,000-3,000/quintal
+- Soybean: ₹4,200-4,800/quintal
+
+**Task 1: Feasibility Analysis**
+Analyze if {crop_name} is suitable for {location}, {state_name} considering:
+- Climate compatibility (temperature, rainfall, season)
+- Soil requirements vs regional soil types
+- Water availability needs
+- Market demand in the region
+- Risk factors specific to {state_name}
+
+**Task 2: Budget Generation**
+Generate a REALISTIC budget with ACCURATE numbers.
+
+**CRITICAL: Use this EXACT format with numbers only (no commas, no extra text):**
+
+FEASIBILITY: [HIGHLY_SUITABLE / SUITABLE / MODERATELY_SUITABLE / NOT_RECOMMENDED]
+REASON: [One line explanation]
+BEST_SEASON: [Season name]
+CLIMATE_MATCH: [EXCELLENT / GOOD / FAIR / POOR]
+
+Seeds: [number only]
+Fertilizer: [number only]
+Pesticides: [number only]
+Irrigation: [number only]
+Labor: [number only]
+Machinery: [number only]
+Total_Cost: [number only]
+Yield: [number only - use REALISTIC yield for {state_name}]
+Price_Per_Quintal: [number only - use CORRECT unit]
+Revenue: [number only - MUST equal Yield × Price_Per_Quintal]
+Profit: [number only - MUST equal Revenue - Total_Cost]
+
+RISKS: [One line about main risks]
+RECOMMENDATION: [One line practical advice]
+
+**VERIFICATION CHECKLIST:**
+- [ ] Yield is realistic for {state_name} region
+- [ ] Price unit is correct (quintal vs ton)
+- [ ] Revenue = Yield × Price_Per_Quintal (math is correct)
+- [ ] Profit = Revenue - Total_Cost (math is correct)
+- [ ] ROI is reasonable (20-100%, not 300%+)
+- [ ] All costs are realistic for 2026 India
+
+Now generate ACCURATE budget for {crop_name} in {location}, {state_name} for {land_size} acre(s):"""
+
+    try:
+        print(f"[DEBUG] Calling Bedrock for budget generation...")
+        print(f"[DEBUG] Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0")
+        print(f"[DEBUG] Using real market price from AgMarkNet: {real_market_price is not None}")
+        
+        # Add retry logic for throttling
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = bedrock_client.converse(
+                    modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                    messages=[{"role": "user", "content": [{"text": prompt}]}],
+                    inferenceConfig={"maxTokens": 3000, "temperature": 0.1}
+                )
+                break
+            except Exception as e:
+                if "ThrottlingException" in str(e) and attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 2  # 2, 4, 6 seconds
+                    print(f"[WARNING] Throttled, waiting {wait_time}s before retry {attempt + 2}/{max_retries}...")
+                    time.sleep(wait_time)
+                else:
+                    raise
+        
+        budget_text = response["output"]["message"]["content"][0]["text"].strip()
+        print(f"[INFO] ✅ AI generated detailed budget for {crop_name} in {location}")
+        print(f"[DEBUG] Budget text length: {len(budget_text)} chars")
+
+        parsed = parse_ai_budget_enhanced(budget_text, crop_name, land_size)
+        parsed['real_market_price_used'] = real_market_price is not None
+        parsed['data_source'] = price_source
+        print(f"[DEBUG] Budget parsed successfully")
+        print(f"[DEBUG] Market price source: {price_source}")
+        return parsed
+    except Exception as e:
+        print(f"[ERROR] Budget generation error: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return None
     
     # Get market price for AI prompt
     market_price_instruction = ""
