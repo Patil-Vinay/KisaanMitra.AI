@@ -339,39 +339,125 @@ Keep it short (2-3 sentences) and practical."""
     # Fallback to AI for general market questions
     return ask_bedrock(user_message, system_prompt)
 
-def get_crop_budget_template(crop_name, land_size_acres=1):
-    """Get budget template for specific crop"""
-    budgets = {
-        "wheat": {"seeds": 1500, "fertilizer": 3500, "pesticides": 1200, "irrigation": 2000, 
-                  "labor": 4000, "machinery": 2500, "total_cost": 15700, "expected_yield": 25, 
-                  "expected_price": 2400, "expected_revenue": 60000, "expected_profit": 44300},
-        "rice": {"seeds": 2000, "fertilizer": 4000, "pesticides": 1500, "irrigation": 3500,
-                 "labor": 5000, "machinery": 3000, "total_cost": 20200, "expected_yield": 30,
-                 "expected_price": 2200, "expected_revenue": 66000, "expected_profit": 45800},
-        "cotton": {"seeds": 3000, "fertilizer": 5000, "pesticides": 3000, "irrigation": 2500,
-                   "labor": 6000, "machinery": 3500, "total_cost": 24500, "expected_yield": 15,
-                   "expected_price": 6500, "expected_revenue": 97500, "expected_profit": 73000},
-        "soybean": {"seeds": 2500, "fertilizer": 4000, "pesticides": 2000, "irrigation": 2500,
-                    "labor": 5500, "machinery": 3000, "total_cost": 19500, "expected_yield": 20,
-                    "expected_price": 4500, "expected_revenue": 90000, "expected_profit": 70500},
-        "sugarcane": {"seeds": 8000, "fertilizer": 6000, "pesticides": 2000, "irrigation": 4000,
-                      "labor": 8000, "machinery": 5000, "total_cost": 35000, "expected_yield": 400,
-                      "expected_price": 350, "expected_revenue": 140000, "expected_profit": 105000},
-        "onion": {"seeds": 4000, "fertilizer": 4500, "pesticides": 2500, "irrigation": 3000,
-                  "labor": 7000, "machinery": 2000, "total_cost": 24500, "expected_yield": 100,
-                  "expected_price": 1500, "expected_revenue": 150000, "expected_profit": 125500},
+def extract_crop_with_ai(user_message, bedrock_client):
+    """Use AI to extract crop name from user message"""
+    prompt = f"""Extract the crop name from this farmer's message. Reply with ONLY the crop name in lowercase, nothing else.
+
+Examples:
+"I want to grow soybean" → soybean
+"give me onion budget" → onion
+"chilly farming cost" → chilly
+"mushroom cultivation" → mushroom
+"tomato price" → tomato
+
+User message: "{user_message}"
+
+Reply with ONLY the crop name:"""
+    
+    try:
+        response = bedrock_client.converse(
+            modelId="us.amazon.nova-pro-v1:0",
+            messages=[{"role": "user", "content": [{"text": prompt}]}],
+            inferenceConfig={"maxTokens": 50, "temperature": 0.3}
+        )
+        crop_name = response["output"]["message"]["content"][0]["text"].strip().lower()
+        print(f"AI extracted crop: {crop_name}")
+        return crop_name
+    except Exception as e:
+        print(f"Crop extraction error: {e}")
+        return None
+
+
+def generate_crop_budget_with_ai(crop_name, land_size, location, bedrock_client):
+    """Generate realistic crop budget using AI for ANY crop"""
+    prompt = f"""You are an agricultural finance expert in India. Generate a realistic budget breakdown for {crop_name} cultivation.
+
+Location: {location}
+Land Size: {land_size} acre(s)
+
+Provide a detailed budget with these exact categories (use realistic Indian market prices):
+1. Seeds/Planting Material cost
+2. Fertilizer cost
+3. Pesticides cost
+4. Irrigation cost
+5. Labor cost
+6. Machinery/Equipment cost
+7. Expected yield (in quintal or kg)
+8. Expected market price per unit
+9. Expected revenue
+10. Expected profit
+
+Format your response EXACTLY like this (use ₹ symbol):
+Seeds: ₹X
+Fertilizer: ₹X
+Pesticides: ₹X
+Irrigation: ₹X
+Labor: ₹X
+Machinery: ₹X
+Total Cost: ₹X
+Yield: X quintal
+Price: ₹X/quintal
+Revenue: ₹X
+Profit: ₹X
+
+Be realistic based on current Indian agricultural costs. Consider {location} region specifics."""
+    
+    try:
+        response = bedrock_client.converse(
+            modelId="us.amazon.nova-pro-v1:0",
+            messages=[{"role": "user", "content": [{"text": prompt}]}],
+            inferenceConfig={"maxTokens": 1000, "temperature": 0.5}
+        )
+        budget_text = response["output"]["message"]["content"][0]["text"].strip()
+        print(f"AI generated budget for {crop_name}")
+        return parse_ai_budget(budget_text, crop_name, land_size)
+    except Exception as e:
+        print(f"Budget generation error: {e}")
+        return None
+
+
+def parse_ai_budget(budget_text, crop_name, land_size):
+    """Parse AI-generated budget text into structured format"""
+    import re
+    
+    budget = {
+        "crop": crop_name,
+        "land_size": land_size,
+        "seeds": 0,
+        "fertilizer": 0,
+        "pesticides": 0,
+        "irrigation": 0,
+        "labor": 0,
+        "machinery": 0,
+        "total_cost": 0,
+        "expected_yield": 0,
+        "expected_price": 0,
+        "expected_revenue": 0,
+        "expected_profit": 0
     }
     
-    template = budgets.get(crop_name.lower(), budgets["wheat"])
+    # Extract numbers from budget text
+    patterns = {
+        "seeds": r"Seeds?[:\s]+₹?([\d,]+)",
+        "fertilizer": r"Fertilizer[:\s]+₹?([\d,]+)",
+        "pesticides": r"Pesticides?[:\s]+₹?([\d,]+)",
+        "irrigation": r"Irrigation[:\s]+₹?([\d,]+)",
+        "labor": r"Labor[:\s]+₹?([\d,]+)",
+        "machinery": r"Machinery[:\s]+₹?([\d,]+)",
+        "total_cost": r"Total Cost[:\s]+₹?([\d,]+)",
+        "expected_yield": r"Yield[:\s]+([\d,]+)",
+        "expected_price": r"Price[:\s]+₹?([\d,]+)",
+        "expected_revenue": r"Revenue[:\s]+₹?([\d,]+)",
+        "expected_profit": r"Profit[:\s]+₹?([\d,]+)"
+    }
     
-    # Scale by land size
-    scaled = {}
-    for key, value in template.items():
-        scaled[key] = int(value * land_size_acres)
+    for key, pattern in patterns.items():
+        match = re.search(pattern, budget_text, re.IGNORECASE)
+        if match:
+            value = match.group(1).replace(",", "")
+            budget[key] = int(value)
     
-    scaled["crop"] = crop_name
-    scaled["land_size"] = land_size_acres
-    return scaled
+    return budget
 
 def match_government_schemes(crop, land_size):
     """Match farmer with eligible schemes"""
@@ -421,7 +507,7 @@ def calculate_loan_eligibility(total_cost, farmer_income):
     }
 
 def handle_finance_query(user_message, user_id="unknown"):
-    """Handle finance-related queries with calculations and memory"""
+    """Handle finance-related queries with AI-powered crop detection and budget generation"""
     system_prompt = """You are a finance advisor for farmers in India.
 Help with budgets, loans, and government schemes.
 Reply in simple English. Keep it short (2-3 sentences) and clear.
@@ -434,46 +520,37 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
     message_lower = user_message.lower()
     
     # Check for budget request
-    if any(word in message_lower for word in ["budget", "cost", "expense", "finance", "model", "planting", "structure", "grow"]):
-        # Extract crop - PRIORITIZE CURRENT MESSAGE FIRST
-        common_crops = ["soybean", "soya", "wheat", "rice", "cotton", "onion", "sugarcane", "sugar"]
-        detected_crop = None
+    if any(word in message_lower for word in ["budget", "cost", "expense", "finance", "model", "planting", "structure", "grow", "cultivation"]):
         
-        # Check current message FIRST (highest priority)
-        for crop in common_crops:
-            if crop in message_lower:
-                detected_crop = "soybean" if crop == "soya" else ("sugarcane" if crop == "sugar" else crop)
-                print(f"Detected crop from current message: {detected_crop}")
-                break
+        # Extract crop using AI (works for ANY crop)
+        crop_name = extract_crop_with_ai(user_message, bedrock)
         
-        # Only check conversation history if no crop in current message
-        if not detected_crop:
-            for item in history:
-                msg = item.get('message', '').lower()
-                for crop in common_crops:
-                    if crop in msg:
-                        detected_crop = "soybean" if crop == "soya" else ("sugarcane" if crop == "sugar" else crop)
-                        print(f"Detected crop from history: {detected_crop}")
-                        break
-                if detected_crop:
-                    break
+        if not crop_name:
+            return "Please specify which crop you want to grow. For example: 'I want to grow tomato' or 'give me chilly budget'"
         
-        # Default to wheat if no crop found
-        if not detected_crop:
-            detected_crop = "wheat"
-            print(f"No crop detected, defaulting to: {detected_crop}")
-        
-        # Extract land size from message or history
+        # Extract land size
         land_size = 1
         import re
         size_match = re.search(r'(\d+)\s*(acre|एकड़)', message_lower)
         if size_match:
             land_size = int(size_match.group(1))
         
-        budget = get_crop_budget_template(detected_crop, land_size)
+        # Extract location
+        location = "Maharashtra"
+        location_match = re.search(r'in\s+(\w+)', message_lower, re.IGNORECASE)
+        if location_match:
+            location = location_match.group(1)
         
+        # Generate budget using AI (works for ANY crop)
+        budget = generate_crop_budget_with_ai(crop_name, land_size, location, bedrock)
+        
+        if not budget:
+            return f"I'm having trouble generating a budget for {crop_name}. Please try again or ask about a different crop."
+        
+        # Format response
         message = f"💰 *{budget['crop'].title()} Budget Plan*\n"
-        message += f"*Land*: {budget['land_size']} acre\n\n"
+        message += f"*Land*: {budget['land_size']} acre\n"
+        message += f"*Location*: {location}\n\n"
         message += "*📊 Cost Breakdown*\n"
         message += f"Seeds: ₹{budget['seeds']:,}\n"
         message += f"Fertilizer: ₹{budget['fertilizer']:,}\n"
@@ -487,6 +564,7 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
         message += f"Price: ₹{budget['expected_price']}/quintal\n"
         message += f"Revenue: ₹{budget['expected_revenue']:,}\n"
         message += f"*Profit*: ₹{budget['expected_profit']:,}\n\n"
+        message += "💡 Note: Prices may vary by region and season\n"
         message += "Need loan or scheme info? Just ask!"
         return message
     
