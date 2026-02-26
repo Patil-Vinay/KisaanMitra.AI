@@ -31,10 +31,15 @@ Available agents:
 1. GREETING - For greetings like "hi", "hello", "hey"
 2. CROP - For crop diseases, pests, plant health issues
 3. MARKET - For market prices, mandi rates, selling advice
-4. FINANCE - For budgets, loans, government schemes, costs
+4. FINANCE - For budgets, loans, government schemes, costs, financial planning, planting models, investment structure, growing crops
 5. GENERAL - For general farming questions or casual conversation
 
 User message: "{user_message}"
+
+IMPORTANT RULES:
+- If message mentions "grow", "finance", "budget", "structure", "model", "planting cost", or "investment" → route to FINANCE
+- If message asks about specific crop with "grow" or "want to grow" → route to FINANCE
+- If message mentions crop name with financial context → route to FINANCE
 
 Reply with ONLY ONE WORD - the agent name (GREETING, CROP, MARKET, FINANCE, or GENERAL).
 """

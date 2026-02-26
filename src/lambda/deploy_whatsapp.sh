@@ -19,11 +19,11 @@ if [ -d "package" ]; then
     cd package
     zip -r -q ../whatsapp_deployment.zip .
     cd ..
-    zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py
+    zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py market_data_sources.py
 else
     echo "⚠️  No package directory found. LangGraph will use fallback routing."
     echo "   Run: bash install_langgraph.sh to enable AI routing"
-    zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py
+    zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py market_data_sources.py
 fi
 
 echo "✅ Package created"
@@ -63,6 +63,7 @@ cat > /tmp/bedrock-policy.json <<EOF
                 "bedrock:InvokeModelWithResponseStream"
             ],
             "Resource": [
+                "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-pro-v1:0",
                 "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0",
                 "arn:aws:bedrock:*::foundation-model/*"
             ]

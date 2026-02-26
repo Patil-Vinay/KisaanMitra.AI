@@ -14,6 +14,14 @@ except ImportError:
     print("LangGraph not available, using fallback routing")
     LANGGRAPH_AVAILABLE = False
 
+# Import fast market data sources
+try:
+    from market_data_sources import get_fast_market_prices, format_market_response_fast
+    FAST_MARKET_DATA_AVAILABLE = True
+except ImportError:
+    print("Fast market data not available")
+    FAST_MARKET_DATA_AVAILABLE = False
+
 http = urllib3.PoolManager()
 
 # Environment variables
@@ -88,9 +96,9 @@ def ask_bedrock(prompt, system_prompt=None, conversation_context=""):
         messages = [{"role": "user", "content": [{"text": full_prompt}]}]
         
         kwargs = {
-            "modelId": "us.amazon.nova-micro-v1:0",  # Cross-region inference profile
+            "modelId": "us.amazon.nova-pro-v1:0",  # Upgraded to Nova Pro for better accuracy
             "messages": messages,
-            "inferenceConfig": {"maxTokens": 800, "temperature": 0.7}  # Increased tokens
+            "inferenceConfig": {"maxTokens": 1500, "temperature": 0.7}  # Increased tokens for detailed responses
         }
         
         if system_prompt:
@@ -209,8 +217,10 @@ def fallback_keyword_routing(user_message):
     if any(kw in msg_lower for kw in market_keywords):
         return "market"
     
-    # Finance - budget, loan, schemes
-    finance_keywords = ["budget", "loan", "scheme", "money", "cost", "बजट", "लोन", "योजना", "खर्च"]
+    # Finance - budget, loan, schemes, structure, model, planting
+    finance_keywords = ["budget", "loan", "scheme", "money", "cost", "finance", "financial", 
+                        "structure", "model", "planting", "investment", "expense",
+                        "बजट", "लोन", "योजना", "खर्च", "वित्त"]
     if any(kw in msg_lower for kw in finance_keywords):
         return "finance"
     
@@ -304,7 +314,7 @@ def analyze_price_trend(prices):
     }
 
 def handle_market_query(user_message):
-    """Handle market-related queries with real data"""
+    """Handle market-related queries with FAST static data"""
     system_prompt = """You are a market expert helping farmers.
 Provide market prices and trends in simple English.
 Keep it short (2-3 sentences) and practical."""
@@ -319,51 +329,15 @@ Keep it short (2-3 sentences) and practical."""
             detected_crop = crop
             break
     
-    context = {}
-    
-    if detected_crop:
-        cached_data = get_cached_market_data(detected_crop)
-        
-        if cached_data:
-            market_data = cached_data.get("data")
-        else:
-            market_data = get_mandi_prices(detected_crop)
-            if market_data:
-                cache_market_data(detected_crop, market_data)
+    if detected_crop and FAST_MARKET_DATA_AVAILABLE:
+        # Use FAST static market data (instant response)
+        market_data = get_fast_market_prices(detected_crop)
         
         if market_data:
-            trend = analyze_price_trend(market_data)
-            context["market_data"] = {
-                "crop": detected_crop,
-                "trend": trend,
-                "recent_prices": market_data[:5]
-            }
-            
-            # Format response with data in English
-            message = f"📊 *{detected_crop.title()} Market Prices*\n\n"
-            
-            if trend["trend"] != "insufficient_data":
-                trend_emoji = "📈" if trend["trend"] == "increasing" else "📉" if trend["trend"] == "decreasing" else "➡️"
-                message += f"{trend_emoji} *Trend*: {trend['trend']}\n"
-                message += f"💰 *Average Price*: ₹{trend['recent_avg']}/quintal\n"
-                message += f"📊 *Change*: {trend['change_percent']:+.1f}%\n\n"
-            
-            if len(market_data) > 0:
-                message += "*🏪 प्रमुख मंडियां*:\n"
-                for i, record in enumerate(market_data[:3], 1):
-                    mandi = record.get("market", "Unknown")
-                    price = record.get("modal_price", "N/A")
-                    message += f"{i}. {mandi}: ₹{price}\n"
-            
-            message += "\n💡 Tip: Check multiple mandis before selling"
-            return message
+            return format_market_response_fast(detected_crop, market_data)
     
-    # Fallback to AI
-    if context:
-        context_text = f"Market Context:\n{json.dumps(context, indent=2, ensure_ascii=False)}\n\nFarmer Query: {user_message}"
-        return ask_bedrock(context_text, system_prompt)
-    else:
-        return ask_bedrock(user_message, system_prompt)
+    # Fallback to AI for general market questions
+    return ask_bedrock(user_message, system_prompt)
 
 def get_crop_budget_template(crop_name, land_size_acres=1):
     """Get budget template for specific crop"""
@@ -377,6 +351,9 @@ def get_crop_budget_template(crop_name, land_size_acres=1):
         "cotton": {"seeds": 3000, "fertilizer": 5000, "pesticides": 3000, "irrigation": 2500,
                    "labor": 6000, "machinery": 3500, "total_cost": 24500, "expected_yield": 15,
                    "expected_price": 6500, "expected_revenue": 97500, "expected_profit": 73000},
+        "soybean": {"seeds": 2500, "fertilizer": 4000, "pesticides": 2000, "irrigation": 2500,
+                    "labor": 5500, "machinery": 3000, "total_cost": 19500, "expected_yield": 20,
+                    "expected_price": 4500, "expected_revenue": 90000, "expected_profit": 70500},
         "sugarcane": {"seeds": 8000, "fertilizer": 6000, "pesticides": 2000, "irrigation": 4000,
                       "labor": 8000, "machinery": 5000, "total_cost": 35000, "expected_yield": 400,
                       "expected_price": 350, "expected_revenue": 140000, "expected_profit": 105000},
@@ -457,31 +434,34 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
     message_lower = user_message.lower()
     
     # Check for budget request
-    if any(word in message_lower for word in ["budget", "cost", "expense", "finance", "model", "planting"]):
-        # Extract crop - check for sugarcane and other crops
-        common_crops = ["wheat", "rice", "cotton", "onion", "sugarcane", "sugar"]
+    if any(word in message_lower for word in ["budget", "cost", "expense", "finance", "model", "planting", "structure", "grow"]):
+        # Extract crop - PRIORITIZE CURRENT MESSAGE FIRST
+        common_crops = ["soybean", "soya", "wheat", "rice", "cotton", "onion", "sugarcane", "sugar"]
         detected_crop = None
         
-        # Check conversation history for crop mention
-        for item in history:
-            msg = item.get('message', '').lower()
-            for crop in common_crops:
-                if crop in msg:
-                    detected_crop = "sugarcane" if crop == "sugar" else crop
-                    break
-            if detected_crop:
+        # Check current message FIRST (highest priority)
+        for crop in common_crops:
+            if crop in message_lower:
+                detected_crop = "soybean" if crop == "soya" else ("sugarcane" if crop == "sugar" else crop)
+                print(f"Detected crop from current message: {detected_crop}")
                 break
         
-        # Check current message
+        # Only check conversation history if no crop in current message
         if not detected_crop:
-            for crop in common_crops:
-                if crop in message_lower:
-                    detected_crop = "sugarcane" if crop == "sugar" else crop
+            for item in history:
+                msg = item.get('message', '').lower()
+                for crop in common_crops:
+                    if crop in msg:
+                        detected_crop = "soybean" if crop == "soya" else ("sugarcane" if crop == "sugar" else crop)
+                        print(f"Detected crop from history: {detected_crop}")
+                        break
+                if detected_crop:
                     break
         
         # Default to wheat if no crop found
         if not detected_crop:
             detected_crop = "wheat"
+            print(f"No crop detected, defaulting to: {detected_crop}")
         
         # Extract land size from message or history
         land_size = 1
