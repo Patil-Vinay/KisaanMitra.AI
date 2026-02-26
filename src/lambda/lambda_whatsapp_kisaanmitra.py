@@ -637,7 +637,19 @@ def lambda_handler(event, context):
     
     try:
         body = json.loads(event["body"])
-        msg = body["entry"][0]["changes"][0]["value"]["messages"][0]
+        value = body["entry"][0]["changes"][0]["value"]
+        
+        # Check if this is a status update (sent/delivered/read) - ignore these
+        if "statuses" in value:
+            print("Status update received, ignoring")
+            return {'statusCode': 200, 'body': 'ok'}
+        
+        # Check if messages exist
+        if "messages" not in value:
+            print("No messages in webhook, ignoring")
+            return {'statusCode': 200, 'body': 'ok'}
+        
+        msg = value["messages"][0]
         from_number = msg["from"]
         msg_type = msg.get("type")
         
