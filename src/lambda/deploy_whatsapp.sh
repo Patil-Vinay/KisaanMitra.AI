@@ -20,10 +20,40 @@ if [ -d "package" ]; then
     zip -r -q ../whatsapp_deployment.zip .
     cd ..
     zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py market_data_sources.py
+    
+    # Add onboarding and knowledge_graph modules
+    if [ -d "deployment_package/onboarding" ]; then
+        echo "📦 Including onboarding module..."
+        cd deployment_package
+        zip -r -q ../whatsapp_deployment.zip onboarding/
+        cd ..
+    fi
+    
+    if [ -d "deployment_package/knowledge_graph" ]; then
+        echo "📦 Including knowledge_graph module..."
+        cd deployment_package
+        zip -r -q ../whatsapp_deployment.zip knowledge_graph/
+        cd ..
+    fi
 else
     echo "⚠️  No package directory found. LangGraph will use fallback routing."
     echo "   Run: bash install_langgraph.sh to enable AI routing"
     zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py market_data_sources.py
+    
+    # Add onboarding and knowledge_graph modules
+    if [ -d "deployment_package/onboarding" ]; then
+        echo "📦 Including onboarding module..."
+        cd deployment_package
+        zip -r -q ../whatsapp_deployment.zip onboarding/
+        cd ..
+    fi
+    
+    if [ -d "deployment_package/knowledge_graph" ]; then
+        echo "📦 Including knowledge_graph module..."
+        cd deployment_package
+        zip -r -q ../whatsapp_deployment.zip knowledge_graph/
+        cd ..
+    fi
 fi
 
 echo "✅ Package created"
