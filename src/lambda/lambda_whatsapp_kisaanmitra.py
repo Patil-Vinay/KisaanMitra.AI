@@ -581,9 +581,19 @@ Current Month: February 2026
 
 **YOUR TASK (Complete in ONE response):**
 
-1. **Extract the crop name** from the farmer's message
+1. **Extract the crop name** from the farmer's message (if multiple crops mentioned, extract the LAST one)
 2. **Analyze feasibility** for that crop in {location}, {state_name}
 3. **Generate realistic budget** with accurate costs and yields
+
+**CRITICAL: CROP EXTRACTION RULES:**
+- If message says "I want to grow X in Y", extract Y (the crop after "in")
+- If message says "give me X budget", extract X
+- If multiple crops mentioned, extract the LAST crop mentioned
+- Examples:
+  * "I want to grow rice in tomatoes" → tomato (last crop mentioned)
+  * "I want to grow rice in soybean" → soybean (last crop mentioned)
+  * "I want to grow tomato" → tomato
+  * "give me sugarcane budget" → sugarcane
 
 **CRITICAL ACCURACY REQUIREMENTS:**
 
@@ -591,6 +601,7 @@ Current Month: February 2026
 - Use CORRECT units (quintal for most crops, ton for sugarcane)
 - Use CURRENT 2026 market rates for all inputs
 - Calculate ACCURATE revenue (Yield × Price_Per_Quintal)
+- Calculate ACCURATE profit (Revenue - Total_Cost) - CAN BE NEGATIVE
 - Be CONSISTENT (same inputs = same outputs)
 
 **EXAMPLES OF REALISTIC YIELDS (per acre):**
@@ -615,7 +626,7 @@ Current Month: February 2026
 
 **OUTPUT FORMAT (Use EXACT format with numbers only, no commas):**
 
-CROP: [crop name extracted from message]
+CROP: [crop name extracted from message - LAST crop if multiple mentioned]
 FEASIBILITY: [HIGHLY_SUITABLE / SUITABLE / MODERATELY_SUITABLE / NOT_RECOMMENDED]
 REASON: [One line explanation]
 BEST_SEASON: [Season name]
@@ -631,18 +642,18 @@ Total_Cost: [number only]
 Yield: [number only - use REALISTIC yield for {state_name}]
 Price_Per_Quintal: [number only - use CORRECT unit]
 Revenue: [number only - MUST equal Yield × Price_Per_Quintal]
-Profit: [number only - MUST equal Revenue - Total_Cost]
+Profit: [number only - MUST equal Revenue - Total_Cost, CAN BE NEGATIVE]
 
 RISKS: [One line about main risks]
 RECOMMENDATION: [One line practical advice]
 DATA_SOURCES: [Government sources you researched]
 
 **VERIFICATION CHECKLIST:**
-- [ ] Crop name extracted correctly
+- [ ] Crop name extracted correctly (LAST crop if multiple)
 - [ ] Yield is realistic for {state_name} region
 - [ ] Price unit is correct (quintal vs ton)
 - [ ] Revenue = Yield × Price_Per_Quintal (math is correct)
-- [ ] Profit = Revenue - Total_Cost (math is correct)
+- [ ] Profit = Revenue - Total_Cost (math is correct, can be negative)
 - [ ] ROI is reasonable (20-100%, not 300%+)
 - [ ] All costs are realistic for 2026 India
 
@@ -652,9 +663,9 @@ Now generate the complete analysis:"""
         print(f"[DEBUG] Calling Bedrock for COMBINED crop extraction + budget generation...")
         print(f"[DEBUG] Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0")
         
-        # Add retry logic for throttling
+        # Add retry logic for throttling with exponential backoff
         import time
-        max_retries = 3
+        max_retries = 4
         for attempt in range(max_retries):
             try:
                 response = bedrock_client.converse(
@@ -665,7 +676,7 @@ Now generate the complete analysis:"""
                 break
             except Exception as e:
                 if "ThrottlingException" in str(e) and attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 2  # 2, 4, 6 seconds
+                    wait_time = (2 ** attempt) * 3  # 3, 6, 12, 24 seconds (exponential backoff)
                     print(f"[WARNING] Throttled, waiting {wait_time}s before retry {attempt + 2}/{max_retries}...")
                     time.sleep(wait_time)
                 else:
