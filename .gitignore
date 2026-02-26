@@ -33,6 +33,9 @@ package/
 lambda_deployment.zip
 trust-policy.json
 response.json
+response_*.json
+test_*.json
+test_crop_engine.py
 
 # IDE
 .vscode/
