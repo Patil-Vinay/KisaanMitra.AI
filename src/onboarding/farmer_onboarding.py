@@ -16,6 +16,7 @@ bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 # Tables
 ONBOARDING_TABLE = "kisaanmitra-onboarding"
 USER_PROFILE_TABLE = "kisaanmitra-user-profiles"
+CONVERSATION_TABLE = "kisaanmitra-conversations"
 
 
 class OnboardingState(Enum):
@@ -34,6 +35,23 @@ class FarmerOnboarding:
     def __init__(self):
         self.onboarding_table = dynamodb.Table(ONBOARDING_TABLE)
         self.profile_table = dynamodb.Table(USER_PROFILE_TABLE)
+        self.conversation_table = dynamodb.Table(CONVERSATION_TABLE)
+    
+    def get_user_language(self, user_id: str) -> str:
+        """Get user's language preference from conversation table"""
+        try:
+            response = self.conversation_table.get_item(
+                Key={
+                    "user_id": user_id,
+                    "timestamp": "language_preference"
+                }
+            )
+            if "Item" in response:
+                return response["Item"].get("language", "hindi")
+            return "hindi"  # Default to Hindi
+        except Exception as e:
+            print(f"Error getting language: {e}")
+            return "hindi"
     
     def is_new_user(self, user_id: str) -> bool:
         """Check if user is new (no profile exists)"""
@@ -155,11 +173,14 @@ Reply with ONLY location name:"""
         Returns: (response_message, is_completed)
         """
         state, data = self.get_onboarding_state(user_id)
+        lang = self.get_user_language(user_id)
         
-        # State machine for onboarding flow
-        if state == OnboardingState.NEW.value:
-            # Welcome message
-            response = """🙏 नमस्ते! KisaanMitra में आपका स्वागत है!
+        print(f"[ONBOARDING] User: {user_id}, State: {state}, Language: {lang}")
+        
+        # Bilingual messages
+        messages = {
+            "welcome": {
+                "hindi": """🙏 नमस्ते! KisaanMitra में आपका स्वागत है!
 
 मैं आपका कृषि सहायक हूं। मैं आपकी मदद कर सकता हूं:
 🌾 फसल रोग पहचान
@@ -168,58 +189,133 @@ Reply with ONLY location name:"""
 
 पहले मुझे आपके बारे में कुछ जानकारी चाहिए।
 
-*आपका नाम क्या है?*"""
-            
+*आपका नाम क्या है?*""",
+                "english": """🙏 Welcome to KisaanMitra!
+
+I'm your agricultural assistant. I can help you with:
+🌾 Crop disease detection
+📊 Market prices
+💰 Budget planning
+
+First, I need some information about you.
+
+*What is your name?*"""
+            },
+            "ask_crops": {
+                "hindi": """धन्यवाद {name} जी! 🙏
+
+*आप कौन सी फसलें उगाते हैं?*
+(उदाहरण: गेहूं, धान, कपास)""",
+                "english": """Thank you {name}! 🙏
+
+*Which crops do you grow?*
+(Example: wheat, rice, cotton)"""
+            },
+            "ask_land": {
+                "hindi": """बढ़िया! आप {crops} उगाते हैं। 🌾
+
+*आपके पास कितनी जमीन है? (एकड़ में)*
+(उदाहरण: 5 एकड़)""",
+                "english": """Great! You grow {crops}. 🌾
+
+*How much land do you have? (in acres)*
+(Example: 5 acres)"""
+            },
+            "ask_village": {
+                "hindi": """अच्छा! {land} एकड़ जमीन। 📏
+
+*आप किस गांव/शहर से हैं?*
+(उदाहरण: पुणे, नाशिक)""",
+                "english": """Good! {land} acres of land. 📏
+
+*Which village/city are you from?*
+(Example: Pune, Nashik)"""
+            },
+            "completion": {
+                "hindi": """✅ *रजिस्ट्रेशन पूरा हुआ!*
+
+📋 *आपकी जानकारी:*
+👤 नाम: {name}
+🌾 फसलें: {crops}
+📏 जमीन: {land_acres} एकड़
+📍 गांव: {village}
+
+अब आप मुझसे कुछ भी पूछ सकते हैं:
+• फसल की बीमारी के लिए फोटो भेजें
+• बाजार भाव पूछें
+• बजट योजना के लिए पूछें
+
+कैसे मदद करूं? 😊""",
+                "english": """✅ *Registration Complete!*
+
+📋 *Your Information:*
+👤 Name: {name}
+🌾 Crops: {crops}
+📏 Land: {land_acres} acres
+📍 Village: {village}
+
+Now you can ask me anything:
+• Send crop photo for disease detection
+• Ask for market prices
+• Request budget planning
+
+How can I help? 😊"""
+            },
+            "retry_name": {
+                "hindi": "कृपया अपना नाम बताएं। उदाहरण: 'मेरा नाम राजेश है'",
+                "english": "Please tell me your name. Example: 'My name is Rajesh'"
+            },
+            "retry_crops": {
+                "hindi": "कृपया फसलों के नाम बताएं। उदाहरण: 'गेहूं और धान'",
+                "english": "Please tell me crop names. Example: 'wheat and rice'"
+            },
+            "retry_land": {
+                "hindi": "कृपया जमीन का आकार बताएं। उदाहरण: '5 एकड़' या '2 हेक्टेयर'",
+                "english": "Please tell me land size. Example: '5 acres' or '2 hectares'"
+            },
+            "retry_village": {
+                "hindi": "कृपया अपना गांव/शहर बताएं। उदाहरण: 'पुणे' या 'नाशिक जिला'",
+                "english": "Please tell me your village/city. Example: 'Pune' or 'Nashik district'"
+            }
+        }
+        
+        # State machine for onboarding flow
+        if state == OnboardingState.NEW.value:
+            response = messages["welcome"][lang]
             self.update_onboarding_state(user_id, OnboardingState.ASKED_NAME.value, data)
             return response, False
         
         elif state == OnboardingState.ASKED_NAME.value:
-            # Extract name
             name = self.extract_info_with_ai(user_message, "name")
             if name:
                 data["name"] = name
-                response = f"""धन्यवाद {name} जी! 🙏
-
-*आप कौन सी फसलें उगाते हैं?*
-(उदाहरण: गेहूं, धान, कपास)"""
-                
+                response = messages["ask_crops"][lang].format(name=name)
                 self.update_onboarding_state(user_id, OnboardingState.ASKED_CROPS.value, data)
                 return response, False
             else:
-                return "कृपया अपना नाम बताएं। उदाहरण: 'मेरा नाम राजेश है'", False
+                return messages["retry_name"][lang], False
         
         elif state == OnboardingState.ASKED_CROPS.value:
-            # Extract crops
             crops = self.extract_info_with_ai(user_message, "crops")
             if crops:
                 data["crops"] = crops
-                response = f"""बढ़िया! आप {crops} उगाते हैं। 🌾
-
-*आपके पास कितनी जमीन है? (एकड़ में)*
-(उदाहरण: 5 एकड़)"""
-                
+                response = messages["ask_land"][lang].format(crops=crops)
                 self.update_onboarding_state(user_id, OnboardingState.ASKED_LAND.value, data)
                 return response, False
             else:
-                return "कृपया फसलों के नाम बताएं। उदाहरण: 'गेहूं और धान'", False
+                return messages["retry_crops"][lang], False
         
         elif state == OnboardingState.ASKED_LAND.value:
-            # Extract land size
             land = self.extract_info_with_ai(user_message, "land")
             if land:
                 data["land_acres"] = land
-                response = f"""अच्छा! {land} एकड़ जमीन। 📏
-
-*आप किस गांव/शहर से हैं?*
-(उदाहरण: पुणे, नाशिक)"""
-                
+                response = messages["ask_village"][lang].format(land=land)
                 self.update_onboarding_state(user_id, OnboardingState.ASKED_VILLAGE.value, data)
                 return response, False
             else:
-                return "कृपया जमीन का आकार बताएं। उदाहरण: '5 एकड़' या '2 हेक्टेयर'", False
+                return messages["retry_land"][lang], False
         
         elif state == OnboardingState.ASKED_VILLAGE.value:
-            # Extract village
             village = self.extract_info_with_ai(user_message, "village")
             if village:
                 data["village"] = village
@@ -232,26 +328,13 @@ Reply with ONLY location name:"""
                 # Mark onboarding as completed
                 self.update_onboarding_state(user_id, OnboardingState.COMPLETED.value, data)
                 
-                response = f"""✅ *रजिस्ट्रेशन पूरा हुआ!*
-
-📋 *आपकी जानकारी:*
-👤 नाम: {data['name']}
-🌾 फसलें: {data['crops']}
-📏 जमीन: {data['land_acres']} एकड़
-📍 गांव: {data['village']}
-
-अब आप मुझसे कुछ भी पूछ सकते हैं:
-• फसल की बीमारी के लिए फोटो भेजें
-• बाजार भाव पूछें
-• बजट योजना के लिए पूछें
-
-कैसे मदद करूं? 😊"""
-                
+                response = messages["completion"][lang].format(**data)
                 return response, True
             else:
-                return "कृपया अपना गांव/शहर बताएं। उदाहरण: 'पुणे' या 'नाशिक जिला'", False
+                return messages["retry_village"][lang], False
         
-        return "कुछ गलत हो गया। कृपया फिर से शुरू करें।", False
+        error_msg = "कुछ गलत हो गया। कृपया फिर से शुरू करें।" if lang == "hindi" else "Something went wrong. Please start again."
+        return error_msg, False
     
     def save_user_profile(self, user_id: str, data: Dict):
         """Save complete user profile to DynamoDB"""

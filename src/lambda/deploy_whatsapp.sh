@@ -21,6 +21,10 @@ if [ -d "package" ]; then
     cd ..
     zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py market_data_sources.py
     
+    # Add new hackathon feature modules
+    echo "🚀 Including hackathon feature modules..."
+    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py 2>/dev/null || echo "⚠️  Some feature modules not found"
+    
     # Add onboarding and knowledge_graph modules
     if [ -d "deployment_package/onboarding" ]; then
         echo "📦 Including onboarding module..."
@@ -39,6 +43,10 @@ else
     echo "⚠️  No package directory found. LangGraph will use fallback routing."
     echo "   Run: bash install_langgraph.sh to enable AI routing"
     zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py market_data_sources.py
+    
+    # Add new hackathon feature modules
+    echo "🚀 Including hackathon feature modules..."
+    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py 2>/dev/null || echo "⚠️  Some feature modules not found"
     
     # Add onboarding and knowledge_graph modules
     if [ -d "deployment_package/onboarding" ]; then
@@ -67,10 +75,12 @@ aws lambda update-function-code \
 echo "⏳ Waiting for update to complete..."
 aws lambda wait function-updated --function-name $FUNCTION_NAME --region $REGION
 
-# Update handler to new file
+# Update handler and increase timeout for Claude 3.5 Sonnet
 aws lambda update-function-configuration \
     --function-name $FUNCTION_NAME \
     --handler lambda_whatsapp_kisaanmitra.lambda_handler \
+    --timeout 120 \
+    --memory-size 1536 \
     --region $REGION
 
 echo "⏳ Waiting for configuration update..."
@@ -90,11 +100,14 @@ cat > /tmp/bedrock-policy.json <<EOF
             "Effect": "Allow",
             "Action": [
                 "bedrock:InvokeModel",
-                "bedrock:InvokeModelWithResponseStream"
+                "bedrock:InvokeModelWithResponseStream",
+                "bedrock:Converse",
+                "bedrock:ConverseStream"
             ],
             "Resource": [
                 "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-pro-v1:0",
                 "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0",
+                "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0",
                 "arn:aws:bedrock:*::foundation-model/*"
             ]
         }

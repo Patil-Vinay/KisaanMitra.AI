@@ -41,6 +41,77 @@ except Exception as e:
     traceback.print_exc()
     ONBOARDING_AVAILABLE = False
 
+# Import new hackathon features
+try:
+    from whatsapp_interactive import (
+        create_main_menu, create_crop_selection_list, create_back_button,
+        create_quick_actions, send_interactive_message, create_language_selection
+    )
+    INTERACTIVE_MESSAGES_AVAILABLE = True
+    print("✅ WhatsApp Interactive Messages loaded successfully")
+except ImportError as e:
+    print(f"❌ Interactive messages not available: {e}")
+    INTERACTIVE_MESSAGES_AVAILABLE = False
+
+try:
+    from ai_orchestrator import get_orchestrator
+    AI_ORCHESTRATOR_AVAILABLE = True
+    print("✅ AI Orchestrator loaded successfully")
+except ImportError as e:
+    print(f"❌ AI Orchestrator not available: {e}")
+    AI_ORCHESTRATOR_AVAILABLE = False
+
+try:
+    from enhanced_disease_detection import (
+        detect_disease_with_confidence, format_disease_response,
+        save_disease_detection
+    )
+    ENHANCED_DISEASE_DETECTION_AVAILABLE = True
+    print("✅ Enhanced Disease Detection loaded successfully")
+except ImportError as e:
+    print(f"❌ Enhanced disease detection not available: {e}")
+    ENHANCED_DISEASE_DETECTION_AVAILABLE = False
+
+try:
+    from reminder_manager import get_crop_calendar, format_reminders_message
+    REMINDERS_AVAILABLE = True
+    print("✅ Smart Reminders loaded successfully")
+except ImportError as e:
+    print(f"❌ Reminders not available: {e}")
+    REMINDERS_AVAILABLE = False
+
+try:
+    from sos_handler import handle_sos, get_helpline_numbers
+    SOS_AVAILABLE = True
+    print("✅ Emergency SOS loaded successfully")
+except ImportError as e:
+    print(f"❌ SOS handler not available: {e}")
+    SOS_AVAILABLE = False
+
+try:
+    from voice_handler import handle_voice_message
+    VOICE_AVAILABLE = True
+    print("✅ Voice Handler loaded successfully")
+except ImportError as e:
+    print(f"❌ Voice handler not available: {e}")
+    VOICE_AVAILABLE = False
+
+try:
+    from weather_service import get_weather_forecast, analyze_weather_for_farming, format_weather_response
+    WEATHER_AVAILABLE = True
+    print("✅ Weather Service loaded successfully")
+except ImportError as e:
+    print(f"❌ Weather service not available: {e}")
+    WEATHER_AVAILABLE = False
+
+try:
+    from crop_comparison import compare_crops, format_comparison_table, suggest_crop_rotation
+    COMPARISON_AVAILABLE = True
+    print("✅ Crop Comparison loaded successfully")
+except ImportError as e:
+    print(f"❌ Crop comparison not available: {e}")
+    COMPARISON_AVAILABLE = False
+
 http = urllib3.PoolManager()
 
 # Environment variables
@@ -59,6 +130,42 @@ s3 = boto3.client("s3", region_name="ap-south-1")
 conversation_table = dynamodb.Table("kisaanmitra-conversations")
 market_data_table = dynamodb.Table("kisaanmitra-market-data")
 finance_table = dynamodb.Table("kisaanmitra-finance")
+
+# Language preferences (in-memory cache)
+user_language_preferences = {}
+
+def get_user_language(user_id):
+    """Get user's language preference"""
+    if user_id in user_language_preferences:
+        return user_language_preferences[user_id]
+    
+    # Try to get from DynamoDB
+    try:
+        response = conversation_table.get_item(
+            Key={'user_id': user_id, 'timestamp': 'language_preference'}
+        )
+        if 'Item' in response:
+            lang = response['Item'].get('language', 'hindi')
+            user_language_preferences[user_id] = lang
+            return lang
+    except:
+        pass
+    
+    return 'hindi'  # Default
+
+def set_user_language(user_id, language):
+    """Set user's language preference"""
+    user_language_preferences[user_id] = language
+    
+    # Save to DynamoDB
+    try:
+        conversation_table.put_item(Item={
+            'user_id': user_id,
+            'timestamp': 'language_preference',
+            'language': language
+        })
+    except Exception as e:
+        print(f"[ERROR] Failed to save language preference: {e}")
 
 # City to State mapping for accurate location detection
 CITY_TO_STATE = {
@@ -188,8 +295,9 @@ def build_context_from_history(history):
         agent = item.get('agent', 'general')
         
         context += f"User: {msg}\n"
-        # Include more of the response for better context
-        context += f"Assistant ({agent}): {resp[:200]}...\n"
+        # Include MORE of the response for better context (especially menu prompts)
+        # This helps AI understand if user just clicked Budget Planning menu
+        context += f"Assistant ({agent}): {resp[:500]}...\n"
     
     context += "\nBased on this conversation history, provide contextually relevant responses.\n"
     context += "Current query:\n"
@@ -199,9 +307,9 @@ def build_context_from_history(history):
 # ─── Bedrock with Cross-Region Inference ────────────────────────────────────
 
 def ask_bedrock(prompt, system_prompt=None, conversation_context=""):
-    """Call Bedrock using cross-region inference profile with context"""
+    """Call Bedrock using cross-region inference profile with context and retry logic"""
     try:
-        print(f"[DEBUG] Calling Bedrock - Model: us.amazon.nova-pro-v1:0")
+        print(f"[DEBUG] Calling Bedrock - Model: Claude 3.5 Sonnet")
         print(f"[DEBUG] Prompt length: {len(prompt)} chars")
         print(f"[DEBUG] Context length: {len(conversation_context)} chars")
         print(f"[DEBUG] System prompt: {system_prompt[:100] if system_prompt else 'None'}...")
@@ -212,19 +320,33 @@ def ask_bedrock(prompt, system_prompt=None, conversation_context=""):
         messages = [{"role": "user", "content": [{"text": full_prompt}]}]
         
         kwargs = {
-            "modelId": "us.amazon.nova-pro-v1:0",  # Upgraded to Nova Pro for better accuracy
+            "modelId": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude 3.5 Sonnet - Best for conversations
             "messages": messages,
-            "inferenceConfig": {"maxTokens": 1500, "temperature": 0.7}  # Increased tokens for detailed responses
+            "inferenceConfig": {"maxTokens": 2000, "temperature": 0.6}  # Balanced for natural responses
         }
         
         if system_prompt:
             kwargs["system"] = [{"text": system_prompt}]
         
         print(f"[DEBUG] Sending request to Bedrock...")
-        response = bedrock.converse(**kwargs)
-        result = response["output"]["message"]["content"][0]["text"]
-        print(f"[DEBUG] Bedrock response received, length: {len(result)} chars")
-        return result
+        
+        # Retry logic with exponential backoff
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = bedrock.converse(**kwargs)
+                result = response["output"]["message"]["content"][0]["text"]
+                print(f"[DEBUG] Bedrock response received, length: {len(result)} chars")
+                return result
+            except Exception as e:
+                if "ThrottlingException" in str(e) and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 2  # 2, 4, 8 seconds
+                    print(f"[WARNING] Throttled, waiting {wait_time}s before retry {attempt + 2}/{max_retries}...")
+                    time.sleep(wait_time)
+                else:
+                    raise
+        
     except Exception as e:
         print(f"[ERROR] Bedrock error: {e}")
         import traceback
@@ -358,18 +480,17 @@ def fallback_keyword_routing(user_message):
     # Default - friendly chat
     return "general"
 
-def handle_greeting():
-    """Handle greetings with a friendly response"""
+def handle_greeting(user_id=None):
+    """Handle greetings with language selection"""
     print(f"[DEBUG] ===== GREETING AGENT =====")
-    greetings = [
-        "Hello! I'm Kisaan Mitra, your farming assistant. How can I help you today?",
-        "Hi there! I'm here to help with your farming questions. What's on your mind?",
-        "Hey! I'm Kisaan Mitra. I can help with crop problems, market prices, or farming advice. What do you need?",
-    ]
-    import random
-    selected = random.choice(greetings)
-    print(f"[DEBUG] Selected greeting: {selected[:50]}...")
-    return selected
+    
+    # If interactive messages available, send language selection
+    if INTERACTIVE_MESSAGES_AVAILABLE:
+        print(f"[DEBUG] Sending language selection menu")
+        return "language_selection"  # Special flag
+    
+    # Fallback to text greeting
+    return "Hello! I'm Kisaan Mitra. Send 'English' or 'Hindi' to choose your language."
 
 def handle_crop_query(user_message):
     """Handle crop-related text queries"""
@@ -737,11 +858,26 @@ Reply with ONLY the state name:"""
     
     try:
         print(f"[DEBUG] Calling Bedrock for state extraction...")
-        response = bedrock_client.converse(
-            modelId="us.amazon.nova-pro-v1:0",
-            messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": 30, "temperature": 0.1}  # Very low temp for precision
-        )
+        
+        # Retry logic with exponential backoff
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = bedrock_client.converse(
+                    modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude 3.5 Sonnet - Best accuracy
+                    messages=[{"role": "user", "content": [{"text": prompt}]}],
+                    inferenceConfig={"maxTokens": 50, "temperature": 0.05}  # Ultra-low temp for precision
+                )
+                break
+            except Exception as e:
+                if "ThrottlingException" in str(e) and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 2  # 2, 4, 8 seconds
+                    print(f"[WARNING] Throttled, waiting {wait_time}s before retry {attempt + 2}/{max_retries}...")
+                    time.sleep(wait_time)
+                else:
+                    raise
+        
         state_name = response["output"]["message"]["content"][0]["text"].strip()
         print(f"[INFO] ✅ AI extracted state: {state_name}")
         return state_name
@@ -1547,6 +1683,31 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
         message += "💬 Verify with local suppliers\n"
         message += "? Need loan or scheme info? Just ask!"
         print(f"[DEBUG] Budget response formatted successfully with data source labels")
+        
+        # ═══════════════════════════════════════════════════════════════
+        # FEATURE 5: Add Weather Forecast
+        # ═══════════════════════════════════════════════════════════════
+        if WEATHER_AVAILABLE:
+            try:
+                print(f"[WEATHER] Fetching forecast for {location}")
+                weather = get_weather_forecast(location)
+                weather_analysis = analyze_weather_for_farming(weather)
+                message += format_weather_response(location, weather_analysis)
+            except Exception as e:
+                print(f"[WEATHER] Error: {e}")
+        
+        # ═══════════════════════════════════════════════════════════════
+        # FEATURE 8: Add Smart Reminders
+        # ═══════════════════════════════════════════════════════════════
+        if REMINDERS_AVAILABLE:
+            try:
+                print(f"[REMINDERS] Setting up calendar for {crop_name}")
+                calendar = get_crop_calendar(crop_name)
+                if calendar:
+                    message += format_reminders_message(crop_name, calendar)
+            except Exception as e:
+                print(f"[REMINDERS] Error: {e}")
+        
         return message
         if budget.get('recommendation'):
             message += f"💡 *Tip*: {budget['recommendation']}\n\n"
@@ -1605,22 +1766,41 @@ If they ask about farming problems, guide them to be specific."""
 
 # ─── WhatsApp ─────────────────────────────────────────────────────────────────
 
-def send_whatsapp_message(to, message):
-    """Send WhatsApp message"""
+def send_whatsapp_message(to, message, interactive_payload=None):
+    """
+    Send WhatsApp message (text or interactive)
+    
+    Args:
+        to: Recipient phone number
+        message: Text message (used if interactive_payload is None)
+        interactive_payload: Optional interactive message payload (buttons/lists)
+    """
     print(f"[DEBUG] Sending WhatsApp message to: {to}")
-    print(f"[DEBUG] Message length: {len(message)} chars")
-    print(f"[DEBUG] Message preview: {message[:100]}...")
     
     url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
         "Content-Type": "application/json"
     }
-    data = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "text": {"body": message}
-    }
+    
+    # Use interactive message if available
+    if interactive_payload and INTERACTIVE_MESSAGES_AVAILABLE:
+        print(f"[DEBUG] Sending interactive message: {interactive_payload.get('interactive', {}).get('type')}")
+        data = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            **interactive_payload
+        }
+    else:
+        print(f"[DEBUG] Sending text message, length: {len(message)} chars")
+        print(f"[DEBUG] Message preview: {message[:100]}...")
+        data = {
+            "messaging_product": "whatsapp",
+            "to": to,
+            "text": {"body": message}
+        }
+    
     response = http.request("POST", url, body=json.dumps(data), headers=headers)
     print(f"[INFO] ✅ WhatsApp API response: {response.status}")
     if response.status != 200:
@@ -1710,6 +1890,185 @@ def lambda_handler(event, context):
         print(f"[INFO] 📝 Message type: {msg_type}")
         
         # ═══════════════════════════════════════════════════════════════
+        # FEATURE 1: Handle Interactive Button/List Responses
+        # ═══════════════════════════════════════════════════════════════
+        if msg_type == "interactive":
+            print(f"[INTERACTIVE] Button/List response received")
+            interactive_response = msg.get("interactive", {})
+            response_type = interactive_response.get("type")  # button_reply or list_reply
+            
+            if response_type == "button_reply":
+                button_id = interactive_response.get("button_reply", {}).get("id")
+                print(f"[INTERACTIVE] Button clicked: {button_id}")
+                
+                # Handle language selection
+                if button_id == "lang_english":
+                    set_user_language(from_number, 'english')
+                    print(f"[LANGUAGE] User selected English")
+                    
+                    # Delete existing profile and onboarding state to restart
+                    if ONBOARDING_AVAILABLE:
+                        try:
+                            # Delete from both tables
+                            onboarding_manager.onboarding_table.delete_item(Key={"user_id": from_number})
+                            onboarding_manager.profile_table.delete_item(Key={"user_id": from_number})
+                            print(f"[ONBOARDING] Deleted profile and state for re-onboarding in English")
+                        except Exception as e:
+                            print(f"[ONBOARDING] Delete error: {e}")
+                    
+                    # Start onboarding (without language parameter)
+                    if ONBOARDING_AVAILABLE:
+                        response, _ = onboarding_manager.process_onboarding_message(from_number, "start")
+                        send_whatsapp_message(from_number, response)
+                    else:
+                        send_whatsapp_message(from_number, None, create_main_menu('english'))
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                elif button_id == "lang_hindi":
+                    set_user_language(from_number, 'hindi')
+                    print(f"[LANGUAGE] User selected Hindi")
+                    
+                    # Delete existing profile and onboarding state to restart
+                    if ONBOARDING_AVAILABLE:
+                        try:
+                            # Delete from both tables
+                            onboarding_manager.onboarding_table.delete_item(Key={"user_id": from_number})
+                            onboarding_manager.profile_table.delete_item(Key={"user_id": from_number})
+                            print(f"[ONBOARDING] Deleted profile and state for re-onboarding in Hindi")
+                        except Exception as e:
+                            print(f"[ONBOARDING] Delete error: {e}")
+                    
+                    # Start onboarding (without language parameter)
+                    if ONBOARDING_AVAILABLE:
+                        response, _ = onboarding_manager.process_onboarding_message(from_number, "start")
+                        send_whatsapp_message(from_number, response)
+                    else:
+                        send_whatsapp_message(from_number, None, create_main_menu('hindi'))
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                # Get user's language preference
+                user_lang = get_user_language(from_number)
+                
+                # Handle button actions
+                if button_id == "main_menu":
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                    return {'statusCode': 200, 'body': 'ok'}
+                elif button_id == "crop_health":
+                    if user_lang == 'english':
+                        send_whatsapp_message(from_number, "🌿 Crop Health Check\n\nPlease send a photo of your crop or describe the problem.")
+                    else:
+                        send_whatsapp_message(from_number, "🌿 फसल स्वास्थ्य जांच\n\nकृपया अपनी फसल की तस्वीर भेजें या समस्या का वर्णन करें।")
+                    return {'statusCode': 200, 'body': 'ok'}
+                elif button_id == "market_price":
+                    send_whatsapp_message(from_number, None, create_crop_selection_list())
+                    return {'statusCode': 200, 'body': 'ok'}
+                elif button_id == "budget_plan":
+                    if user_lang == 'english':
+                        send_whatsapp_message(from_number, "💰 Budget Planning\n\nPlease tell me:\n• Which crop?\n• How much land (acres)?\n• Where?\n\nExample: 'I need tomato budget for 2 acres in Kolhapur'")
+                    else:
+                        send_whatsapp_message(from_number, "💰 बजट योजना\n\nकृपया बताएं:\n• कौन सी फसल?\n• कितनी जमीन (एकड़)?\n• कहाँ?\n\nउदाहरण: 'मुझे टमाटर के लिए 2 एकड़ कोल्हापुर में बजट चाहिए'")
+                    return {'statusCode': 200, 'body': 'ok'}
+                elif button_id == "help":
+                    if user_lang == 'english':
+                        help_msg = "❓ Help\n\nI can help you with:\n\n🌿 Crop Disease Detection - Send photo\n📊 Market Prices - Tell crop name\n💰 Budget Planning - Tell crop, land, location\n\nAsk me anything!"
+                    else:
+                        help_msg = "❓ मदद\n\nमैं आपकी मदद कर सकता हूं:\n\n🌿 फसल रोग पहचान - तस्वीर भेजें\n📊 बाजार भाव - फसल का नाम बताएं\n💰 बजट योजना - फसल, जमीन, स्थान बताएं\n\nकुछ भी पूछें!"
+                    send_whatsapp_message(from_number, help_msg, create_back_button(user_lang))
+                    return {'statusCode': 200, 'body': 'ok'}
+                elif button_id == "sos":
+                    if SOS_AVAILABLE:
+                        sos_msg = handle_sos(from_number, "Button pressed", user_profile if not is_new_user else None)
+                        send_whatsapp_message(from_number, sos_msg)
+                    else:
+                        if user_lang == 'english':
+                            sos_msg = "🆘 Emergency Help\n\nPlease describe your problem. We'll help immediately.\n\nOr call:\n📞 Kisan Helpline: 1800-180-1551"
+                        else:
+                            sos_msg = "🆘 आपातकालीन सहायता\n\nकृपया अपनी समस्या का वर्णन करें। हम तुरंत मदद करेंगे।\n\nया कॉल करें:\n📞 किसान हेल्पलाइन: 1800-180-1551"
+                        send_whatsapp_message(from_number, sos_msg)
+                    return {'statusCode': 200, 'body': 'ok'}
+            
+            elif response_type == "list_reply":
+                list_id = interactive_response.get("list_reply", {}).get("id")
+                print(f"[INTERACTIVE] List item selected: {list_id}")
+                
+                # Get user's language preference
+                user_lang = get_user_language(from_number)
+                
+                # Handle main menu selections
+                if list_id == "crop_health":
+                    if user_lang == 'english':
+                        prompt_msg = "🌿 *Crop Health Check*\n\nPlease send a photo of your crop or describe the problem in detail."
+                    else:
+                        prompt_msg = "🌿 *फसल स्वास्थ्य जांच*\n\nकृपया अपनी फसल की तस्वीर भेजें या समस्या का विस्तार से वर्णन करें।"
+                    
+                    # Save this prompt to conversation history
+                    save_conversation(from_number, "🔍 Crop Health", prompt_msg, "menu")
+                    
+                    send_whatsapp_message(from_number, prompt_msg)
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                elif list_id == "market_price":
+                    send_whatsapp_message(from_number, None, create_crop_selection_list())
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                elif list_id == "budget_plan":
+                    if user_lang == 'english':
+                        prompt_msg = "💰 *Budget Planning*\n\nPlease tell me:\n• Which crop?\n• How much land (acres)?\n• Location?\n\nExample: 'I need tomato budget for 2 acres in Kolhapur'"
+                    else:
+                        prompt_msg = "💰 *बजट योजना*\n\nकृपया बताएं:\n• कौन सी फसल?\n• कितनी जमीन (एकड़)?\n• स्थान?\n\nउदाहरण: 'मुझे टमाटर के लिए 2 एकड़ कोल्हापुर में बजट चाहिए'"
+                    
+                    # Save this prompt to conversation history so AI knows context
+                    save_conversation(from_number, "💰 Budget Planning", prompt_msg, "menu")
+                    
+                    send_whatsapp_message(from_number, prompt_msg)
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                elif list_id == "weather":
+                    # Get user's location from profile
+                    location = user_profile.get('village', 'Maharashtra') if user_profile else 'Maharashtra'
+                    
+                    if WEATHER_AVAILABLE:
+                        try:
+                            weather = get_weather_forecast(location)
+                            weather_analysis = analyze_weather_for_farming(weather)
+                            reply = format_weather_response(location, weather_analysis)
+                            send_whatsapp_message(from_number, reply, create_back_button(user_lang))
+                        except:
+                            if user_lang == 'english':
+                                send_whatsapp_message(from_number, "Weather service temporarily unavailable. Please try again later.")
+                            else:
+                                send_whatsapp_message(from_number, "मौसम सेवा अस्थायी रूप से अनुपलब्ध है। कृपया बाद में पुनः प्रयास करें।")
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                elif list_id == "sos":
+                    if SOS_AVAILABLE:
+                        sos_msg = handle_sos(from_number, "Menu selection", user_profile if not is_new_user else None)
+                        send_whatsapp_message(from_number, sos_msg)
+                    else:
+                        if user_lang == 'english':
+                            sos_msg = "🆘 *Emergency Help*\n\nPlease describe your problem. We'll help immediately.\n\n*Call Now*:\n📞 Kisan Helpline: 1800-180-1551\n📞 Agriculture Dept: 1800-180-1551"
+                        else:
+                            sos_msg = "🆘 *आपातकालीन सहायता*\n\nकृपया अपनी समस्या का वर्णन करें। हम तुरंत मदद करेंगे।\n\n*अभी कॉल करें*:\n📞 किसान हेल्पलाइन: 1800-180-1551\n📞 कृषि विभाग: 1800-180-1551"
+                        send_whatsapp_message(from_number, sos_msg)
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                # Handle crop selection for market prices
+                elif list_id in ["rice", "wheat", "maize", "tomato", "onion", "potato", "sugarcane", "cotton", "soybean"]:
+                    # Trigger market query
+                    user_message = f"What is the price of {list_id}?"
+                    reply = handle_market_query(user_message)
+                    send_whatsapp_message(from_number, reply, create_back_button(user_lang))
+                    return {'statusCode': 200, 'body': 'ok'}
+            
+            # If we reach here, unknown button/list action
+            user_lang = get_user_language(from_number)
+            if user_lang == 'english':
+                send_whatsapp_message(from_number, "I didn't understand. Please try again.", create_main_menu(user_lang))
+            else:
+                send_whatsapp_message(from_number, "मुझे समझ नहीं आया। कृपया फिर से कोशिश करें।", create_main_menu(user_lang))
+            return {'statusCode': 200, 'body': 'ok'}
+        
+        # ═══════════════════════════════════════════════════════════════
         # STEP 1: CHECK USER STATUS (ALWAYS FIRST)
         # ═══════════════════════════════════════════════════════════════
         is_new_user, onboarding_state, user_profile = check_user_status(from_number)
@@ -1780,14 +2139,93 @@ def lambda_handler(event, context):
             user_message = msg["text"]["body"]
             print(f"[INFO] 📨 User message: {user_message}")
             
-            # Route to appropriate agent using LangGraph AI
-            print(f"[DEBUG] Starting agent routing...")
-            agent = route_message(user_message, from_number)
-            print(f"[INFO] 🎯 SELECTED AGENT: {agent.upper()}")
+            # ═══════════════════════════════════════════════════════════════
+            # SPECIAL CASE: "Hi" ALWAYS shows language selection & resets
+            # ═══════════════════════════════════════════════════════════════
+            if user_message.strip().lower() in ['hi', 'hello', 'hey', 'start']:
+                print(f"[GREETING] User said '{user_message}' - Showing language selection")
+                
+                # Delete existing profile and onboarding state to restart
+                if ONBOARDING_AVAILABLE:
+                    try:
+                        # Delete from both tables
+                        onboarding_manager.onboarding_table.delete_item(Key={"user_id": from_number})
+                        onboarding_manager.profile_table.delete_item(Key={"user_id": from_number})
+                        print(f"[ONBOARDING] Deleted profile and state for re-onboarding")
+                    except Exception as e:
+                        print(f"[ONBOARDING] Delete error: {e}")
+                
+                # Show language selection
+                if INTERACTIVE_MESSAGES_AVAILABLE:
+                    send_whatsapp_message(from_number, None, create_language_selection())
+                else:
+                    send_whatsapp_message(from_number, "Welcome! Send 'English' or 'Hindi' to choose language.")
+                
+                print(f"[INFO] ✅ Language selection sent")
+                return {'statusCode': 200, 'body': 'ok'}
+            
+            # ═══════════════════════════════════════════════════════════════
+            # FEATURE 2: AI ORCHESTRATION - Think before responding
+            # ═══════════════════════════════════════════════════════════════
+            if AI_ORCHESTRATOR_AVAILABLE:
+                print(f"[AI ORCHESTRATOR] Analyzing intent with deep reasoning...")
+                orchestrator = get_orchestrator(bedrock)
+                
+                # Get conversation history for context
+                history = get_conversation_history(from_number, limit=5)
+                context = build_context_from_history(history)
+                
+                # Deep intent analysis
+                intent_analysis = orchestrator.analyze_intent(user_message, context)
+                print(f"[AI ORCHESTRATOR] Intent: {intent_analysis['primary_intent']}, Confidence: {intent_analysis['confidence']}")
+                
+                # Check if clarification needed
+                if orchestrator.should_ask_clarification(intent_analysis):
+                    print(f"[AI ORCHESTRATOR] Low confidence, asking for clarification")
+                    clarification_msg = intent_analysis.get('suggested_question', 
+                        "क्या आप फसल की जांच, बाजार भाव, या बजट योजना के बारे में पूछना चाहते हैं?")
+                    
+                    # Send interactive menu for clarification
+                    if INTERACTIVE_MESSAGES_AVAILABLE:
+                        send_whatsapp_message(from_number, clarification_msg, create_main_menu())
+                    else:
+                        send_whatsapp_message(from_number, clarification_msg)
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                # Map intent to agent
+                intent_to_agent = {
+                    "crop_health": "crop",
+                    "market_price": "market",
+                    "budget": "finance",
+                    "general": "general",
+                    "emergency": "crop"  # SOS goes to crop agent
+                }
+                agent = intent_to_agent.get(intent_analysis['primary_intent'], "general")
+                print(f"[AI ORCHESTRATOR] Mapped to agent: {agent.upper()}")
+            else:
+                # Fallback to original routing
+                print(f"[DEBUG] Starting agent routing...")
+                agent = route_message(user_message, from_number)
+                print(f"[INFO] 🎯 SELECTED AGENT: {agent.upper()}")
             
             print(f"[DEBUG] Executing {agent} agent handler...")
             if agent == "greeting":
-                reply = handle_greeting()
+                reply = handle_greeting(from_number)
+                # Special handling for language selection
+                if reply == "language_selection" and INTERACTIVE_MESSAGES_AVAILABLE:
+                    # Delete existing profile and onboarding state to restart
+                    if ONBOARDING_AVAILABLE:
+                        try:
+                            # Delete from both tables
+                            onboarding_manager.onboarding_table.delete_item(Key={"user_id": from_number})
+                            onboarding_manager.profile_table.delete_item(Key={"user_id": from_number})
+                            print(f"[ONBOARDING] Deleted profile and state - user said Hi")
+                        except Exception as e:
+                            print(f"[ONBOARDING] Delete error: {e}")
+                    
+                    send_whatsapp_message(from_number, None, create_language_selection())
+                    print(f"[INFO] ✅ Language selection sent")
+                    return {'statusCode': 200, 'body': 'ok'}
             elif agent == "crop":
                 reply = handle_crop_query(user_message)
             elif agent == "market":
@@ -1799,10 +2237,29 @@ def lambda_handler(event, context):
             
             print(f"[DEBUG] Agent execution complete, reply length: {len(reply)} chars")
             
+            # ═══════════════════════════════════════════════════════════════
+            # FEATURE 2: Add reasoning layer to response
+            # ═══════════════════════════════════════════════════════════════
+            if AI_ORCHESTRATOR_AVAILABLE and agent in ["finance", "crop"]:
+                print(f"[AI ORCHESTRATOR] Adding reasoning layer to response...")
+                reply = orchestrator.generate_reasoning_response(user_message, reply, context)
+            
             # Save conversation with response
             save_conversation(from_number, user_message, reply, agent)
             
-            send_whatsapp_message(from_number, reply)
+            # ═══════════════════════════════════════════════════════════════
+            # FEATURE 1: Send with back button for better UX
+            # ═══════════════════════════════════════════════════════════════
+            user_lang = get_user_language(from_number)
+            
+            if INTERACTIVE_MESSAGES_AVAILABLE and agent != "greeting":
+                # Send reply as text first
+                send_whatsapp_message(from_number, reply)
+                # Then send back button
+                send_whatsapp_message(from_number, None, create_back_button(user_lang))
+            else:
+                send_whatsapp_message(from_number, reply)
+            
             print(f"[INFO] ✅ Request completed successfully")
             
         elif msg_type == "image":
@@ -1816,15 +2273,53 @@ def lambda_handler(event, context):
             image_bytes = download_whatsapp_image(media_id)
             print(f"[DEBUG] Image downloaded, size: {len(image_bytes)} bytes")
             
-            print(f"[DEBUG] Analyzing image with Kindwise API...")
-            result = analyze_crop_image(image_bytes)
-            print(f"[DEBUG] Image analysis complete")
-            
-            print(f"[DEBUG] Formatting crop analysis result...")
-            reply = format_crop_result(result)
+            # ═══════════════════════════════════════════════════════════════
+            # FEATURE 4: Enhanced Disease Detection with Confidence Scores
+            # ═══════════════════════════════════════════════════════════════
+            if ENHANCED_DISEASE_DETECTION_AVAILABLE:
+                print(f"[ENHANCED DETECTION] Using advanced disease detection with confidence scoring...")
+                
+                # Detect disease with confidence
+                diagnosis = detect_disease_with_confidence(image_bytes, bedrock)
+                
+                # Format response
+                reply = format_disease_response(diagnosis)
+                
+                # Save to history for tracking
+                save_disease_detection(from_number, diagnosis, conversation_table)
+                
+                print(f"[ENHANCED DETECTION] Disease: {diagnosis['primary_disease']}, Confidence: {diagnosis['confidence']}")
+            else:
+                # Fallback to original Kindwise API
+                print(f"[DEBUG] Analyzing image with Kindwise API...")
+                result = analyze_crop_image(image_bytes)
+                print(f"[DEBUG] Image analysis complete")
+                
+                print(f"[DEBUG] Formatting crop analysis result...")
+                reply = format_crop_result(result)
             
             send_whatsapp_message(from_number, reply)
+            
+            # Add back button for better UX
+            user_lang = get_user_language(from_number)
+            if INTERACTIVE_MESSAGES_AVAILABLE:
+                send_whatsapp_message(from_number, None, create_back_button(user_lang))
+            
             print(f"[INFO] ✅ Image analysis completed successfully")
+            
+        elif msg_type == "audio" or msg_type == "voice":
+            print(f"[VOICE] Voice/audio message received")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # FEATURE 3: Voice Message Support
+            # ═══════════════════════════════════════════════════════════════
+            if VOICE_AVAILABLE:
+                reply = handle_voice_message(from_number)
+                send_whatsapp_message(from_number, reply)
+            else:
+                send_whatsapp_message(from_number, "कृपया अपना सवाल टेक्स्ट में लिखें या फसल की तस्वीर भेजें।")
+            
+            print(f"[INFO] ✅ Voice message handled")
             
         else:
             print(f"[DEBUG] Unsupported message type: {msg_type}")
