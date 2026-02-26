@@ -46,8 +46,8 @@ conversation_memory = {}
 
 # ─── Conversation Memory ────────────────────────────────────────────────────
 
-def get_conversation_history(user_id, limit=5):
-    """Get recent conversation history from DynamoDB"""
+def get_conversation_history(user_id, limit=10):
+    """Get recent conversation history from DynamoDB with enhanced context"""
     try:
         response = conversation_table.query(
             KeyConditionExpression="user_id = :uid",
@@ -74,15 +74,22 @@ def save_conversation(user_id, message, response, agent_type):
         print(f"Error saving conversation: {e}")
 
 def build_context_from_history(history):
-    """Build context string from conversation history"""
+    """Build enhanced context string from conversation history"""
     if not history:
         return ""
     
-    context = "Previous conversation:\n"
-    for item in reversed(history[-3:]):  # Last 3 messages
-        context += f"User: {item.get('message', '')}\n"
-        context += f"Bot: {item.get('response', '')[:100]}...\n"
-    context += "\nCurrent conversation:\n"
+    context = "Previous conversation context:\n"
+    for item in reversed(history[-5:]):  # Last 5 messages for better context
+        msg = item.get('message', '')
+        resp = item.get('response', '')
+        agent = item.get('agent', 'general')
+        
+        context += f"User: {msg}\n"
+        # Include more of the response for better context
+        context += f"Assistant ({agent}): {resp[:200]}...\n"
+    
+    context += "\nBased on this conversation history, provide contextually relevant responses.\n"
+    context += "Current query:\n"
     return context
 
 # ─── Bedrock with Cross-Region Inference ────────────────────────────────────
@@ -339,77 +346,92 @@ Keep it short (2-3 sentences) and practical."""
     # Fallback to AI for general market questions
     return ask_bedrock(user_message, system_prompt)
 
-def extract_crop_with_ai(user_message, bedrock_client):
-    """Use AI to extract crop name from user message"""
-    prompt = f"""Extract the crop name from this farmer's message. Reply with ONLY the crop name in lowercase, nothing else.
+def extract_crop_with_ai(user_message, bedrock_client, conversation_history=""):
+    """Use AI to extract crop name from user message with conversation context"""
+    prompt = f"""You are an expert agricultural assistant. Extract the crop name from the farmer's message.
+
+{conversation_history}
+
+Current message: "{user_message}"
+
+Instructions:
+- Extract ONLY the crop name mentioned
+- If multiple crops mentioned, extract the primary one
+- Return lowercase crop name
+- Handle common variations (e.g., "chilli" → "chilly", "brinjal" → "eggplant")
+- If no crop mentioned, return "unknown"
 
 Examples:
 "I want to grow soybean" → soybean
 "give me onion budget" → onion
 "chilly farming cost" → chilly
 "mushroom cultivation" → mushroom
-"tomato price" → tomato
-
-User message: "{user_message}"
+"what about tomatoes?" → tomato
+"brinjal" → brinjal
 
 Reply with ONLY the crop name:"""
     
     try:
         response = bedrock_client.converse(
-            modelId="us.amazon.nova-pro-v1:0",
+            modelId="us.amazon.nova-pro-v1:0",  # Using Pro for better accuracy
             messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": 50, "temperature": 0.3}
+            inferenceConfig={"maxTokens": 50, "temperature": 0.2}  # Lower temp for precision
         )
         crop_name = response["output"]["message"]["content"][0]["text"].strip().lower()
         print(f"AI extracted crop: {crop_name}")
-        return crop_name
+        return crop_name if crop_name != "unknown" else None
     except Exception as e:
         print(f"Crop extraction error: {e}")
         return None
 
 
 def generate_crop_budget_with_ai(crop_name, land_size, location, bedrock_client):
-    """Generate realistic crop budget using AI for ANY crop"""
-    prompt = f"""You are an agricultural finance expert in India. Generate a realistic budget breakdown for {crop_name} cultivation.
+    """Generate highly accurate crop budget using advanced AI with Indian agricultural expertise"""
+    prompt = f"""You are an expert agricultural economist specializing in Indian farming. Generate a comprehensive, realistic budget for {crop_name} cultivation in India.
 
-Location: {location}
-Land Size: {land_size} acre(s)
+**Farm Details:**
+- Crop: {crop_name}
+- Location: {location}
+- Land Size: {land_size} acre(s)
 
-Provide a detailed budget with these exact categories (use realistic Indian market prices):
-1. Seeds/Planting Material cost
-2. Fertilizer cost
-3. Pesticides cost
-4. Irrigation cost
-5. Labor cost
-6. Machinery/Equipment cost
-7. Expected yield (in quintal or kg)
-8. Expected market price per unit
-9. Expected revenue
-10. Expected profit
+**Instructions:**
+1. Provide realistic costs based on current Indian agricultural market rates for {location} region
+2. Consider regional variations in costs and yields
+3. Include all major cost categories
+4. Provide realistic yield expectations for {crop_name} in {location}
+5. Use current market prices for {crop_name}
+6. Calculate accurate profit margins
 
-Format your response EXACTLY like this (use ₹ symbol):
-Seeds: ₹X
-Fertilizer: ₹X
-Pesticides: ₹X
-Irrigation: ₹X
-Labor: ₹X
-Machinery: ₹X
-Total Cost: ₹X
-Yield: X quintal
-Price: ₹X/quintal
-Revenue: ₹X
-Profit: ₹X
+**Required Format (use exact labels):**
+Seeds: ₹[amount]
+Fertilizer: ₹[amount]
+Pesticides: ₹[amount]
+Irrigation: ₹[amount]
+Labor: ₹[amount]
+Machinery: ₹[amount]
+Total Cost: ₹[sum of all above]
+Yield: [number] quintal
+Price: ₹[amount]/quintal
+Revenue: ₹[yield × price]
+Profit: ₹[revenue - total cost]
 
-Be realistic based on current Indian agricultural costs. Consider {location} region specifics."""
+**Important:**
+- All amounts in Indian Rupees (₹)
+- Be realistic and accurate for {crop_name} in {location}
+- Consider seasonal variations
+- Account for {land_size} acre(s) of land
+- Provide practical, achievable numbers
+
+Generate the budget now:"""
     
     try:
         response = bedrock_client.converse(
-            modelId="us.amazon.nova-pro-v1:0",
+            modelId="us.amazon.nova-pro-v1:0",  # Pro model for superior accuracy
             messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": 1000, "temperature": 0.5}
+            inferenceConfig={"maxTokens": 2000, "temperature": 0.4}  # Higher tokens for detailed response
         )
         budget_text = response["output"]["message"]["content"][0]["text"].strip()
-        print(f"AI generated budget for {crop_name}")
+        print(f"AI generated detailed budget for {crop_name} in {location}")
         return parse_ai_budget(budget_text, crop_name, land_size)
     except Exception as e:
         print(f"Budget generation error: {e}")
@@ -507,14 +529,14 @@ def calculate_loan_eligibility(total_cost, farmer_income):
     }
 
 def handle_finance_query(user_message, user_id="unknown"):
-    """Handle finance-related queries with AI-powered crop detection and budget generation"""
-    system_prompt = """You are a finance advisor for farmers in India.
-Help with budgets, loans, and government schemes.
-Reply in simple English. Keep it short (2-3 sentences) and clear.
+    """Handle finance-related queries with enhanced AI and memory"""
+    system_prompt = """You are an expert agricultural finance advisor for Indian farmers.
+Provide accurate, practical financial advice for farming operations.
+Reply in simple, clear English. Be specific and actionable.
 IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
     
-    # Get conversation history for context
-    history = get_conversation_history(user_id)
+    # Get enhanced conversation history
+    history = get_conversation_history(user_id, limit=10)
     context = build_context_from_history(history)
     
     message_lower = user_message.lower()
@@ -522,8 +544,8 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
     # Check for budget request
     if any(word in message_lower for word in ["budget", "cost", "expense", "finance", "model", "planting", "structure", "grow", "cultivation"]):
         
-        # Extract crop using AI (works for ANY crop)
-        crop_name = extract_crop_with_ai(user_message, bedrock)
+        # Extract crop using AI with conversation context
+        crop_name = extract_crop_with_ai(user_message, bedrock, context)
         
         if not crop_name:
             return "Please specify which crop you want to grow. For example: 'I want to grow tomato' or 'give me chilly budget'"
@@ -531,68 +553,80 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
         # Extract land size
         land_size = 1
         import re
-        size_match = re.search(r'(\d+)\s*(acre|एकड़)', message_lower)
+        size_match = re.search(r'(\d+)\s*(acre|एकड़|hectare)', message_lower)
         if size_match:
             land_size = int(size_match.group(1))
         
-        # Extract location
+        # Extract location with better detection
         location = "Maharashtra"
-        location_match = re.search(r'in\s+(\w+)', message_lower, re.IGNORECASE)
-        if location_match:
-            location = location_match.group(1)
+        location_patterns = [
+            r'in\s+(\w+)',
+            r'from\s+(\w+)',
+            r'at\s+(\w+)',
+            r'(\w+)\s+region',
+            r'(\w+)\s+area'
+        ]
+        for pattern in location_patterns:
+            location_match = re.search(pattern, message_lower, re.IGNORECASE)
+            if location_match:
+                location = location_match.group(1).title()
+                break
         
-        # Generate budget using AI (works for ANY crop)
+        print(f"Generating budget for {crop_name}, {land_size} acre(s) in {location}")
+        
+        # Generate budget using enhanced AI
         budget = generate_crop_budget_with_ai(crop_name, land_size, location, bedrock)
         
         if not budget:
             return f"I'm having trouble generating a budget for {crop_name}. Please try again or ask about a different crop."
         
-        # Format response
+        # Format enhanced response
         message = f"💰 *{budget['crop'].title()} Budget Plan*\n"
-        message += f"*Land*: {budget['land_size']} acre\n"
-        message += f"*Location*: {location}\n\n"
+        message += f"📍 *Location*: {location}\n"
+        message += f"🌾 *Land*: {budget['land_size']} acre\n\n"
         message += "*📊 Cost Breakdown*\n"
-        message += f"Seeds: ₹{budget['seeds']:,}\n"
-        message += f"Fertilizer: ₹{budget['fertilizer']:,}\n"
-        message += f"Pesticides: ₹{budget['pesticides']:,}\n"
-        message += f"Irrigation: ₹{budget['irrigation']:,}\n"
-        message += f"Labor: ₹{budget['labor']:,}\n"
-        message += f"Machinery: ₹{budget['machinery']:,}\n"
-        message += f"*Total Cost*: ₹{budget['total_cost']:,}\n\n"
-        message += "*💵 Expected Returns*\n"
-        message += f"Yield: {budget['expected_yield']} quintal\n"
-        message += f"Price: ₹{budget['expected_price']}/quintal\n"
-        message += f"Revenue: ₹{budget['expected_revenue']:,}\n"
-        message += f"*Profit*: ₹{budget['expected_profit']:,}\n\n"
-        message += "💡 Note: Prices may vary by region and season\n"
-        message += "Need loan or scheme info? Just ask!"
+        message += f"• Seeds: ₹{budget['seeds']:,}\n"
+        message += f"• Fertilizer: ₹{budget['fertilizer']:,}\n"
+        message += f"• Pesticides: ₹{budget['pesticides']:,}\n"
+        message += f"• Irrigation: ₹{budget['irrigation']:,}\n"
+        message += f"• Labor: ₹{budget['labor']:,}\n"
+        message += f"• Machinery: ₹{budget['machinery']:,}\n"
+        message += f"*💵 Total Cost*: ₹{budget['total_cost']:,}\n\n"
+        message += "*📈 Expected Returns*\n"
+        message += f"• Yield: {budget['expected_yield']} quintal\n"
+        message += f"• Market Price: ₹{budget['expected_price']}/quintal\n"
+        message += f"• Revenue: ₹{budget['expected_revenue']:,}\n"
+        message += f"*✨ Net Profit*: ₹{budget['expected_profit']:,}\n\n"
+        message += f"💡 *ROI*: {int((budget['expected_profit']/budget['total_cost'])*100)}%\n\n"
+        message += "� Need loan or scheme info? Just ask!"
         return message
     
     # Check for schemes
     elif any(word in message_lower for word in ["scheme", "subsidy", "government"]):
         schemes = match_government_schemes("wheat", 1)
         
-        message = "🎁 *Government Schemes*\n\n"
+        message = "� *Government Schemes for Farmers*\n\n"
         for i, scheme in enumerate(schemes[:4], 1):
             message += f"{i}. *{scheme['name']}*\n"
-            message += f"   Benefit: {scheme['benefit']}\n"
-            message += f"   Eligibility: {scheme['eligibility']}\n\n"
-        message += "💡 Visit nearest agriculture office for more details"
+            message += f"   💰 Benefit: {scheme['benefit']}\n"
+            message += f"   ✅ Eligibility: {scheme['eligibility']}\n\n"
+        message += "💡 Visit nearest Krishi Vigyan Kendra for more details"
         return message
     
     # Check for loan
     elif any(word in message_lower for word in ["loan", "credit", "borrow"]):
         loan = calculate_loan_eligibility(20000, 50000)
         
-        message = "🏦 *Loan Eligibility*\n\n"
-        message += f"Max Loan: ₹{loan['max_loan']:,}\n"
-        message += f"Interest Rate: {loan['interest_rate']}%\n"
-        message += f"Monthly EMI: ₹{loan['monthly_emi']:,}\n"
-        message += f"Total Repayment: ₹{loan['total_repayment']:,}\n\n"
-        message += "💡 Apply for Kisan Credit Card at your bank"
+        message = "🏦 *Kisan Credit Card (KCC) Eligibility*\n\n"
+        message += f"💰 Max Loan: ₹{loan['max_loan']:,}\n"
+        message += f"📊 Interest Rate: {loan['interest_rate']}% per annum\n"
+        message += f"💳 Monthly EMI: ₹{loan['monthly_emi']:,}\n"
+        message += f"💵 Total Repayment: ₹{loan['total_repayment']:,}\n"
+        message += f"📈 Total Interest: ₹{loan['total_interest']:,}\n\n"
+        message += "💡 Apply at your nearest bank branch with land documents"
         return message
     
-    # Fallback to AI with context
+    # Fallback to AI with enhanced context
     return ask_bedrock(user_message, system_prompt, context)
 
 def handle_general_query(user_message):
