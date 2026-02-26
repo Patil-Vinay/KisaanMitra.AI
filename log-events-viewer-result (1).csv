@@ -1,0 +1,17 @@
+timestamp,message
+1772117317082,"INIT_START Runtime Version: python:3.14.v35	Runtime Version ARN: arn:aws:lambda:ap-south-1::runtime:6e4c2a8804e47c3599d89c0a896af2312961578a5546d2d9a288c0d93e6b1a2d
+"
+1772117317770,"START RequestId: 4490e8ad-f818-4c27-b64d-0a0f264ec608 Version: $LATEST
+"
+1772117317771,"Event received: {'resource': '/', 'path': '/', 'httpMethod': 'POST', 'headers': {'Accept': '*/*', 'Accept-Encoding': 'deflate, gzip', 'Content-Type': 'application/json', 'Host': 'sz3thcce4i.execute-api.ap-south-1.amazonaws.com', 'User-Agent': 'facebookexternalua', 'X-Amzn-Trace-Id': 'Root=1-69a05d44-74fa03e216774063281f8e7b', 'X-Forwarded-For': '173.252.107.2', 'X-Forwarded-Port': '443', 'X-Forwarded-Proto': 'https', 'X-Hub-Signature': 'sha1=e1251e7d06df60172beadc22f285458c56cc3b54', 'X-Hub-Signature-256': 'sha256=5b7278da67ba7421240772d9e578980927b605ead6dc642f13829006c427e64a'}, 'multiValueHeaders': {'Accept': ['*/*'], 'Accept-Encoding': ['deflate, gzip'], 'Content-Type': ['application/json'], 'Host': ['sz3thcce4i.execute-api.ap-south-1.amazonaws.com'], 'User-Agent': ['facebookexternalua'], 'X-Amzn-Trace-Id': ['Root=1-69a05d44-74fa03e216774063281f8e7b'], 'X-Forwarded-For': ['173.252.107.2'], 'X-Forwarded-Port': ['443'], 'X-Forwarded-Proto': ['https'], 'X-Hub-Signature': ['sha1=e1251e7d06df60172beadc22f285458c56cc3b54'], 'X-Hub-Signature-256': ['sha256=5b7278da67ba7421240772d9e578980927b605ead6dc642f13829006c427e64a']}, 'queryStringParameters': None, 'multiValueQueryStringParameters': None, 'pathParameters': None, 'stageVariables': None, 'requestContext': {'resourceId': 'buuefafe70', 'resourcePath': '/', 'httpMethod': 'POST', 'extendedRequestId': 'ZZOC1FiBhcwEPHA=', 'requestTime': '26/Feb/2026:14:48:36 +0000', 'path': '/test2', 'accountId': '482548785371', 'protocol': 'HTTP/1.1', 'stage': 'test2', 'domainPrefix': 'sz3thcce4i', 'requestTimeEpoch': 1772117316932, 'requestId': '50ce9871-10c5-4bd9-a512-cf30b3370f3d', 'identity': {'cognitoIdentityPoolId': None, 'accountId': None, 'cognitoIdentityId': None, 'caller': None, 'sourceIp': '173.252.107.2', 'principalOrgId': None, 'accessKey': None, 'cognitoAuthenticationType': None, 'cognitoAuthenticationProvider': None, 'userArn': None, 'userAgent': 'facebookexternalua', 'user': None}, 'domainName': 'sz3thcce4i.execute-api.ap-south-1.amazonaws.com', 'deploymentId': 'rwh69i', 'apiId': 'sz3thcce4i'}, 'body': '{""object"":""whatsapp_business_account"",""entry"":[{""id"":""1460763002175471"",""changes"":[{""value"":{""messaging_product"":""whatsapp"",""metadata"":{""display_phone_number"":""15551411052"",""phone_number_id"":""1049535664900621""},""contacts"":[{""profile"":{""name"":""Aditya Rane""},""wa_id"":""919000000003""}],""messages"":[{""from"":""919000000003"",""id"":""wamid.HBgMOTE5ODQ5MzA5ODMzFQIAEhgWM0VCMDUwQTExODdEMzVBNjMzMDI1RQA="",""timestamp"":""1772117315"",""text"":{""body"":""Hi""},""type"":""text""}]},""field"":""messages""}]}]}', 'isBase64Encoded': False}
+"
+1772117317771,"Message type: text
+"
+1772117317771,"User message: Hi
+"
+1772117318042,"Error: An error occurred (ValidationException) when calling the Converse operation: Invocation of model ID amazon.nova-micro-v1:0 with on-demand throughput isn’t supported. Retry your request with the ID or ARN of an inference profile that contains this model.
+"
+1772117318076,"END RequestId: 4490e8ad-f818-4c27-b64d-0a0f264ec608
+"
+1772117318077,"REPORT RequestId: 4490e8ad-f818-4c27-b64d-0a0f264ec608	Duration: 305.66 ms	Billed Duration: 991 ms	Memory Size: 128 MB	Max Memory Used: 90 MB	Init Duration: 685.24 ms	
+"
