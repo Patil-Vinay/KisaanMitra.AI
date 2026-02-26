@@ -123,62 +123,305 @@ def get_static_market_data(crop_name):
     return None
 
 
+def get_agmarknet_prices(crop_name, state="Maharashtra"):
+    """
+    Fetch real-time prices from AgMarkNet API
+    Returns formatted data matching static data structure
+    """
+    import urllib3
+    import os
+    
+    api_key = os.environ.get("AGMARKNET_API_KEY")
+    if not api_key or api_key == "not_available":
+        print(f"[DEBUG] AgMarkNet API key not configured")
+        return None
+    
+    try:
+        print(f"[DEBUG] Calling AgMarkNet API for {crop_name} in {state}...")
+        http = urllib3.PoolManager()
+        
+        # AgMarkNet API endpoint
+        url = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
+        params = {
+            "api-key": api_key,
+            "format": "json",
+            "limit": "10",
+            "filters[commodity]": crop_name.title(),
+            "filters[state]": state
+        }
+        
+        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        full_url = f"{url}?{query_string}"
+        
+        response = http.request("GET", full_url, timeout=5.0)
+        
+        if response.status != 200:
+            print(f"[DEBUG] AgMarkNet API returned status: {response.status}")
+            return None
+        
+        data = json.loads(response.data)
+        records = data.get("records", [])
+        
+        if not records:
+            print(f"[DEBUG] No records found in AgMarkNet response")
+            return None
+        
+        print(f"[DEBUG] AgMarkNet returned {len(records)} records")
+        
+        # Calculate statistics from records
+        prices = [float(r.get("modal_price", 0)) for r in records if r.get("modal_price")]
+        
+        if not prices:
+            print(f"[DEBUG] No valid prices in AgMarkNet data")
+            return None
+        
+        avg_price = int(sum(prices) / len(prices))
+        min_price = int(min(prices))
+        max_price = int(max(prices))
+        
+        # Determine trend (simple: compare first vs last)
+        trend = "stable"
+        if len(prices) >= 2:
+            if prices[0] > prices[-1] * 1.05:
+                trend = "increasing"
+            elif prices[0] < prices[-1] * 0.95:
+                trend = "decreasing"
+        
+        # Get top mandis
+        top_mandis = []
+        for record in records[:3]:
+            mandi_name = record.get("market", "Unknown")
+            price = int(float(record.get("modal_price", 0)))
+            top_mandis.append({"name": mandi_name, "price": price})
+        
+        result = {
+            "crop": crop_name,
+            "average_price": avg_price,
+            "min_price": min_price,
+            "max_price": max_price,
+            "trend": trend,
+            "top_mandis": top_mandis,
+            "last_updated": datetime.now().strftime("%Y-%m-%d"),
+            "source": "agmarknet"
+        }
+        
+        print(f"[INFO] ✅ AgMarkNet data processed: Avg ₹{avg_price}, Trend: {trend}")
+        return result
+        
+    except Exception as e:
+        print(f"[ERROR] AgMarkNet API error: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return None
+
+
 def scrape_agmarknet_website(crop_name, state="Maharashtra"):
     """
-    Scrape AgMarkNet website directly - FASTER than API
-    Falls back to static data if scraping fails
+    Scrape AgMarkNet website for real-time prices
+    Uses AI-extracted state for accurate data fetching
     """
     try:
         import urllib3
+        import re
+        from datetime import datetime
+        
+        print(f"[DEBUG] 🌐 Scraping AgMarkNet for {crop_name} in {state}...")
         http = urllib3.PoolManager()
         
-        # AgMarkNet website URL (faster than API)
-        url = f"https://agmarknet.gov.in/SearchCmmMkt.aspx?Tx_Commodity={crop_name}&Tx_State={state}"
+        # AgMarkNet search endpoint
+        url = "https://agmarknet.gov.in/SearchCmmMkt.aspx"
         
-        response = http.request("GET", url, timeout=3.0)
+        # Proper headers to mimic browser
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0'
+        }
         
-        if response.status == 200:
-            # Parse HTML to extract prices
-            # This is a simplified version - you'd need proper HTML parsing
-            html = response.data.decode('utf-8')
-            
-            # For now, return static data as scraping needs proper implementation
-            return get_static_market_data(crop_name)
+        # Build query - try different state formats
+        state_param = state.replace(" ", "%20")
+        crop_param = crop_name.title().replace(" ", "%20")
+        
+        # Try the search URL format
+        params = f"Tx_Commodity={crop_param}&Tx_State={state_param}&Tx_District=All&Tx_Market=All&DateFrom=&DateTo=&Fr_Date=&To_Date=&Tx_Trend=0&Tx_CommodityHead="
+        full_url = f"{url}?{params}"
+        
+        print(f"[DEBUG] Fetching: {full_url[:100]}...")
+        response = http.request("GET", full_url, headers=headers, timeout=8.0)
+        
+        if response.status != 200:
+            print(f"[DEBUG] HTTP status: {response.status}")
+            return None
+        
+        html = response.data.decode('utf-8', errors='ignore')
+        print(f"[DEBUG] HTML received: {len(html)} chars")
+        
+        # Debug: Log first 500 chars to see what we got
+        print(f"[DEBUG] HTML preview: {html[:500]}")
+        
+        # Multiple price extraction patterns
+        patterns = [
+            r'<td[^>]*>\s*₹?\s*([\d,]+\.?\d*)\s*</td>',  # Standard table cell
+            r'<span[^>]*>\s*₹?\s*([\d,]+\.?\d*)\s*</span>',  # Span elements
+            r'₹\s*([\d,]+\.?\d*)',  # Any rupee symbol followed by number
+            r'Rs\.?\s*([\d,]+\.?\d*)',  # Rs. followed by number
+            r'>\s*([\d,]+\.?\d*)\s*<',  # Number between tags
+        ]
+        
+        all_prices = []
+        for pattern in patterns:
+            matches = re.findall(pattern, html)
+            all_prices.extend(matches)
+        
+        print(f"[DEBUG] Found {len(all_prices)} potential price values")
+        
+        if not all_prices:
+            print(f"[DEBUG] ❌ No prices found in HTML")
+            # Log more HTML for debugging
+            print(f"[DEBUG] HTML sample (chars 500-1000): {html[500:1000]}")
+            return None
+        
+        # Convert to numbers and filter
+        price_values = []
+        for p in all_prices:
+            try:
+                val = float(p.replace(',', ''))
+                # Reasonable price range for agricultural commodities (₹10 to ₹100,000 per quintal)
+                if 10 <= val <= 100000:
+                    price_values.append(val)
+                    print(f"[DEBUG] Valid price: ₹{val}")
+            except:
+                continue
+        
+        if not price_values:
+            print(f"[DEBUG] ❌ No valid prices after filtering")
+            return None
+        
+        print(f"[INFO] ✅ Extracted {len(price_values)} valid prices")
+        
+        # Calculate statistics
+        avg_price = int(sum(price_values) / len(price_values))
+        min_price = int(min(price_values))
+        max_price = int(max(price_values))
+        
+        # Determine trend
+        trend = "stable"
+        if len(price_values) >= 4:
+            recent_avg = sum(price_values[:len(price_values)//2]) / (len(price_values)//2)
+            older_avg = sum(price_values[len(price_values)//2:]) / (len(price_values) - len(price_values)//2)
+            if recent_avg > older_avg * 1.05:
+                trend = "increasing"
+            elif recent_avg < older_avg * 0.95:
+                trend = "decreasing"
+        
+        # Extract market names
+        market_patterns = [
+            r'<td[^>]*>([A-Za-z\s]+(?:APMC|Mandi|Market|Krishi)[^<]*)</td>',
+            r'<td[^>]*>([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*</td>',
+        ]
+        
+        markets = []
+        for pattern in market_patterns:
+            found = re.findall(pattern, html)
+            markets.extend(found)
+            if len(markets) >= 3:
+                break
+        
+        # Clean market names
+        markets = [m.strip() for m in markets if len(m.strip()) > 3][:3]
+        
+        # Build top mandis list
+        top_mandis = []
+        for i, market in enumerate(markets):
+            if i < len(price_values):
+                top_mandis.append({
+                    "name": market,
+                    "price": int(price_values[i])
+                })
+        
+        # If no markets found, create generic ones
+        if not top_mandis and len(price_values) >= 3:
+            top_mandis = [
+                {"name": f"{state} Market 1", "price": int(price_values[0])},
+                {"name": f"{state} Market 2", "price": int(price_values[1])},
+                {"name": f"{state} Market 3", "price": int(price_values[2])}
+            ]
+        
+        result = {
+            "crop": crop_name,
+            "average_price": avg_price,
+            "min_price": min_price,
+            "max_price": max_price,
+            "trend": trend,
+            "top_mandis": top_mandis,
+            "last_updated": datetime.now().strftime("%Y-%m-%d"),
+            "source": "agmarknet_scrape"
+        }
+        
+        print(f"[INFO] ✅ Scraping successful: Avg ₹{avg_price}, Min ₹{min_price}, Max ₹{max_price}, Trend: {trend}")
+        return result
         
     except Exception as e:
-        print(f"Scraping failed: {e}")
-    
-    # Fallback to static data
-    return get_static_market_data(crop_name)
+        print(f"[ERROR] AgMarkNet scraping failed: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return None
 
 
 def get_fast_market_prices(crop_name, state="Maharashtra"):
     """
     Get market prices using fastest available method
-    Priority: Static Data (instant) > Scraping (fast) > API (slow)
-    """
+    Priority: Web Scraping (1-3s) > API (2-5s) > Static Data (instant)
     
-    # Method 1: Static data (INSTANT - 0ms)
+    Now uses AI-extracted state for accurate data fetching
+    """
+    print(f"[DEBUG] get_fast_market_prices called for: {crop_name}, state: {state}")
+    
+    # Method 1: Try web scraping (FAST - 1-3 seconds, real-time)
+    print(f"[DEBUG] Attempting AgMarkNet website scraping for {state}...")
+    scraped_data = scrape_agmarknet_website(crop_name, state)
+    if scraped_data:
+        print(f"[INFO] ✅ Using AgMarkNet scraped data for {crop_name}")
+        return scraped_data
+    
+    # Method 2: Try AgMarkNet API (if key available) (2-5 seconds, real-time)
+    try:
+        import os
+        api_key = os.environ.get("AGMARKNET_API_KEY")
+        if api_key and api_key != "not_available":
+            print(f"[DEBUG] AgMarkNet API key available, fetching real-time data...")
+            agmarknet_data = get_agmarknet_prices(crop_name, state)
+            if agmarknet_data:
+                print(f"[INFO] ✅ Using AgMarkNet API data for {crop_name}")
+                return agmarknet_data
+            else:
+                print(f"[DEBUG] AgMarkNet API returned no data, falling back to static")
+        else:
+            print(f"[DEBUG] AgMarkNet API key not available, falling back to static")
+    except Exception as e:
+        print(f"[DEBUG] AgMarkNet API error: {e}, falling back to static")
+    
+    # Method 3: Static data (INSTANT - 0ms, reliable fallback)
     static_data = get_static_market_data(crop_name)
     if static_data:
-        print(f"Using static market data for {crop_name}")
+        print(f"[INFO] ✅ Using static market data for {crop_name}")
+        print(f"[DEBUG] Price: ₹{static_data.get('average_price')}, Trend: {static_data.get('trend')}")
         return static_data
     
-    # Method 2: Web scraping (FAST - 500ms)
-    # Disabled for now, needs proper HTML parsing
-    # scraped_data = scrape_agmarknet_website(crop_name, state)
-    # if scraped_data:
-    #     return scraped_data
-    
-    # Method 3: API call (SLOW - 2-5 seconds)
-    # This is handled by the main code
+    print(f"[DEBUG] ❌ No data found for {crop_name}")
     return None
 
 
 def format_market_response_fast(crop_name, market_data):
     """Format market data into WhatsApp message"""
+    print(f"[DEBUG] Formatting market response for: {crop_name}")
     
     if not market_data:
+        print(f"[DEBUG] ❌ No market data to format")
         return f"Sorry, I don't have current market data for {crop_name}. Try wheat, rice, cotton, onion, or potato."
     
     message = f"📊 *{crop_name.title()} Market Prices*\n\n"
@@ -207,8 +450,19 @@ def format_market_response_fast(crop_name, market_data):
     # Last updated
     last_updated = market_data.get("last_updated", "")
     message += f"\n📅 Updated: {last_updated}\n"
-    message += "💡 Tip: Check multiple mandis before selling"
     
+    # Data source transparency
+    source = market_data.get("source", "static_data")
+    if source == "agmarknet":
+        message += "📡 Source: AgMarkNet API (Real-time)\n"
+    elif source == "agmarknet_scrape":
+        message += "🌐 Source: AgMarkNet Website (Real-time)\n"
+    else:
+        message += "📌 Source: Static Data (Weekly Update)\n"
+    
+    message += "\n💡 Tip: Check multiple mandis before selling"
+    
+    print(f"[DEBUG] Market response formatted successfully")
     return message
 
 
