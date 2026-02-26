@@ -528,11 +528,15 @@ def extract_state_with_ai(user_message, bedrock_client):
     
     prompt = f"""Extract the Indian state or city name from this farmer's message: "{user_message}"
 
+CRITICAL: Ignore month names and time references! Only extract geographic locations.
+
 Instructions:
 - Extract the state name if mentioned (e.g., "Maharashtra", "Punjab", "Gujarat")
-- If city mentioned, return the state it belongs to (e.g., "Mumbai" → "Maharashtra", "Amritsar" → "Punjab")
+- If city mentioned, return the state it belongs to (e.g., "Mumbai" → "Maharashtra", "Amritsar" → "Punjab", "Kolhapur" → "Maharashtra")
 - Return proper case state name (e.g., "Maharashtra" not "maharashtra")
 - If no location mentioned, return "Maharashtra" (default)
+- IGNORE month names: January, February, March, April, May, June, July, August, September, October, November, December
+- IGNORE time references: "in March", "during summer", "next month"
 - Return ONLY the state name, nothing else
 
 Examples:
@@ -541,6 +545,8 @@ Examples:
 "Cotton farming in Gujarat" → Gujarat
 "Tomato budget for 1 acre in Kolhapur" → Maharashtra
 "Rice cultivation in Ludhiana" → Punjab
+"I want to grow onion in March in Kolhapur" → Maharashtra
+"Wheat in March" → Maharashtra
 "What is wheat price?" → Maharashtra
 
 Reply with ONLY the state name:"""
@@ -604,23 +610,76 @@ def generate_crop_budget_with_ai(crop_name, land_size, location, bedrock_client,
     if real_market_price:
         market_price_instruction = f"\n**IMPORTANT: Use EXACTLY ₹{real_market_price} as the market price per quintal (from AgMarkNet real-time data).**\n"
 
-    prompt = f"""You are an expert agricultural economist specializing in Indian farming. Analyze the feasibility and generate a detailed budget for {crop_name} cultivation.
+    prompt = f"""You are an expert agricultural economist with 20+ years of experience in Indian farming. Generate a REALISTIC and ACCURATE budget for {crop_name} cultivation in {location}, {state_name}.
 
 **Farm Details:**
 - Crop: {crop_name}
-- Location: {location}
+- Location: {location}, {state_name}
 - Land Size: {land_size} acre(s)
+- Current Month: February 2026
 {market_price_instruction}
+
+**CRITICAL ACCURACY REQUIREMENTS:**
+
+1. **Use REALISTIC yields for {state_name} region**
+   - Research typical yields for {crop_name} in {state_name}
+   - Account for local climate and soil conditions
+   - Use conservative estimates (not best-case scenarios)
+
+2. **Use CORRECT units and pricing**
+   - Prices are per QUINTAL (100 kg) for most crops
+   - Sugarcane is per TON (1000 kg), not quintal
+   - Cotton is per quintal of seed cotton
+   - Don't confuse quintal and ton
+
+3. **Use CURRENT 2026 market rates**
+   - Seeds: Realistic hybrid/certified seed costs
+   - Fertilizer: NPK + micronutrients at current prices
+   - Labor: Current daily wage rates in {state_name}
+   - Irrigation: Electricity + water costs
+   - Machinery: Tractor, harvester rental costs
+
+4. **Calculate ACCURATE revenue**
+   - Revenue = Yield × Price_Per_Quintal
+   - Double-check your math
+   - Use realistic yield (not inflated)
+   - Use correct price unit
+
+5. **Be CONSISTENT**
+   - Same inputs should give same outputs
+   - Don't vary wildly between requests
+   - Use deterministic calculations
+
+**EXAMPLES OF REALISTIC YIELDS (per acre):**
+- Wheat: 20-25 quintal
+- Rice: 25-30 quintal
+- Onion: 100-150 quintal
+- Potato: 150-200 quintal
+- Cotton: 8-12 quintal (seed cotton)
+- Sugarcane: 300-450 quintal (30-45 tons)
+- Tomato: 200-300 quintal
+- Soybean: 12-18 quintal
+
+**EXAMPLES OF REALISTIC PRICES (2026):**
+- Wheat: ₹2,200-2,600/quintal
+- Rice: ₹2,000-2,400/quintal
+- Onion: ₹1,200-2,000/quintal
+- Potato: ₹800-1,500/quintal
+- Cotton: ₹6,000-7,000/quintal
+- Sugarcane: ₹3,000-3,500/ton (NOT per quintal!)
+- Tomato: ₹2,000-3,000/quintal
+- Soybean: ₹4,200-4,800/quintal
+
 **Task 1: Feasibility Analysis**
-First, analyze if {crop_name} is suitable for {location} region considering:
+Analyze if {crop_name} is suitable for {location}, {state_name} considering:
 - Climate compatibility (temperature, rainfall, season)
 - Soil requirements vs regional soil types
 - Water availability needs
 - Market demand in the region
-- Risk factors specific to {location}
+- Risk factors specific to {state_name}
 
 **Task 2: Budget Generation**
-Generate a realistic budget with current 2026 Indian market rates.
+Generate a REALISTIC budget with ACCURATE numbers.
 
 **CRITICAL: Use this EXACT format with numbers only (no commas, no extra text):**
 
@@ -636,36 +695,23 @@ Irrigation: [number only]
 Labor: [number only]
 Machinery: [number only]
 Total_Cost: [number only]
-Yield: [number only]
-Price_Per_Quintal: [number only]
-Revenue: [number only]
-Profit: [number only]
+Yield: [number only - use REALISTIC yield for {state_name}]
+Price_Per_Quintal: [number only - use CORRECT unit]
+Revenue: [number only - MUST equal Yield × Price_Per_Quintal]
+Profit: [number only - MUST equal Revenue - Total_Cost]
 
 RISKS: [One line about main risks]
 RECOMMENDATION: [One line practical advice]
 
-**Example for reference:**
-FEASIBILITY: SUITABLE
-REASON: Good climate match for mushroom cultivation in March
-BEST_SEASON: Winter to Spring
-CLIMATE_MATCH: GOOD
+**VERIFICATION CHECKLIST:**
+- [ ] Yield is realistic for {state_name} region
+- [ ] Price unit is correct (quintal vs ton)
+- [ ] Revenue = Yield × Price_Per_Quintal (math is correct)
+- [ ] Profit = Revenue - Total_Cost (math is correct)
+- [ ] ROI is reasonable (20-100%, not 300%+)
+- [ ] All costs are realistic for 2026 India
 
-Seeds: 15000
-Fertilizer: 25000
-Pesticides: 8000
-Irrigation: 12000
-Labor: 35000
-Machinery: 10000
-Total_Cost: 105000
-Yield: 80
-Price_Per_Quintal: 4000
-Revenue: 320000
-Profit: 215000
-
-RISKS: Temperature control critical for mushroom cultivation
-RECOMMENDATION: Use controlled environment for better yields
-
-Now generate for {crop_name} in {location} for {land_size} acre(s):"""
+Now generate ACCURATE budget for {crop_name} in {location}, {state_name} for {land_size} acre(s):"""
 
     try:
         print(f"[DEBUG] Calling Bedrock for budget generation...")
@@ -674,7 +720,7 @@ Now generate for {crop_name} in {location} for {land_size} acre(s):"""
         response = bedrock_client.converse(
             modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude Sonnet 4 for superior accuracy
             messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": 3000, "temperature": 0.3}
+            inferenceConfig={"maxTokens": 3000, "temperature": 0.1}  # Very low temp for consistency
         )
         budget_text = response["output"]["message"]["content"][0]["text"].strip()
         print(f"[INFO] ✅ AI generated detailed budget for {crop_name} in {location}")
@@ -779,6 +825,28 @@ def parse_ai_budget_enhanced(budget_text, crop_name, land_size):
 
     print(f"[DEBUG] Budget parsing complete - Total Cost: ₹{budget['total_cost']}, Profit: ₹{budget['expected_profit']}")
     print(f"[DEBUG] Feasibility: {budget['feasibility']}, Climate: {budget['climate_match']}")
+    
+    # Validate math accuracy
+    calculated_revenue = budget['expected_yield'] * budget['expected_price']
+    calculated_profit = calculated_revenue - budget['total_cost']
+    
+    if budget['expected_revenue'] > 0 and abs(budget['expected_revenue'] - calculated_revenue) > 1000:
+        print(f"[WARNING] ⚠️  Revenue mismatch! AI: ₹{budget['expected_revenue']}, Calculated: ₹{calculated_revenue}")
+        print(f"[DEBUG] Correcting revenue to calculated value")
+        budget['expected_revenue'] = calculated_revenue
+    
+    if budget['expected_profit'] > 0 and abs(budget['expected_profit'] - calculated_profit) > 1000:
+        print(f"[WARNING] ⚠️  Profit mismatch! AI: ₹{budget['expected_profit']}, Calculated: ₹{calculated_profit}")
+        print(f"[DEBUG] Correcting profit to calculated value")
+        budget['expected_profit'] = calculated_profit
+    
+    # Validate reasonable ROI (should be 20-150%, not 300%+)
+    if budget['total_cost'] > 0:
+        roi = (budget['expected_profit'] / budget['total_cost']) * 100
+        if roi > 200:
+            print(f"[WARNING] ⚠️  Unrealistic ROI: {roi:.0f}% - AI may have inflated numbers")
+        print(f"[DEBUG] ROI: {roi:.0f}%")
+    
     return budget
 
 def match_government_schemes(crop, land_size):
@@ -875,31 +943,37 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
         print(f"[DEBUG] Using AI to extract location and state...")
         state_name = extract_state_with_ai(user_message, bedrock)
         
-        # For display purposes, try to extract city name
+        # For display purposes, try to extract city name (prioritize last match to avoid month names)
         location = state_name  # Default to state name
         
         # Try to find city name in message
         location_patterns = [
-            r'in\s+(\w+)',
-            r'from\s+(\w+)',
-            r'at\s+(\w+)',
+            r'farm\s+in\s+(\w+)',  # Most specific first
             r'location\s+is\s+(\w+)',
-            r'farm\s+in\s+(\w+)'
+            r'at\s+(\w+)',
+            r'from\s+(\w+)',
+            r'in\s+(\w+)',  # Most generic last
         ]
         
         months = ["january", "february", "march", "april", "may", "june", 
                   "july", "august", "september", "october", "november", "december",
                   "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
         
+        # Find ALL matches and use the LAST valid one (to skip "in March" and get "in Kolhapur")
+        all_matches = []
         for pattern in location_patterns:
-            location_match = re.search(pattern, message_lower, re.IGNORECASE)
-            if location_match:
-                extracted = location_match.group(1).lower()
-                # Skip month names
+            matches = re.finditer(pattern, message_lower, re.IGNORECASE)
+            for match in matches:
+                extracted = match.group(1).lower()
                 if extracted not in months:
-                    location = extracted.title()
-                    print(f"[DEBUG] ✅ Extracted city/location: {location}")
-                    break
+                    all_matches.append(extracted)
+        
+        if all_matches:
+            # Use the LAST match (most likely the actual location)
+            location = all_matches[-1].title()
+            print(f"[DEBUG] ✅ Extracted city/location: {location} (from {len(all_matches)} candidates)")
+        else:
+            print(f"[DEBUG] No city extracted, using state name: {state_name}")
         
         print(f"[INFO] 📍 Final location: {location}, State for API: {state_name}")
         print(f"[INFO] 📊 Generating budget for {crop_name}, {land_size} acre(s) in {location}")
