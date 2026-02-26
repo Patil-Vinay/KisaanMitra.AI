@@ -599,9 +599,16 @@ Current Month: February 2026
 - Use REALISTIC yields for {state_name} region (research typical yields)
 - Use CORRECT units (quintal for most crops, ton for sugarcane)
 - Use CURRENT 2026 market rates for all inputs
-- Calculate ACCURATE revenue (Yield × Price_Per_Quintal)
-- Calculate ACCURATE profit (Revenue - Total_Cost) - CAN BE NEGATIVE
+- **VERIFY YOUR MATH**: Revenue MUST equal Yield × Price (use a calculator!)
+- **VERIFY YOUR MATH**: Profit MUST equal Revenue - Total_Cost (use a calculator!)
+- If profit is NEGATIVE, feasibility CANNOT be "HIGHLY_SUITABLE"
 - Be CONSISTENT (same inputs = same outputs)
+
+**FEASIBILITY RULES:**
+- HIGHLY_SUITABLE: Good climate + Good profit (ROI > 30%)
+- SUITABLE: Good climate + Moderate profit (ROI 10-30%)
+- MODERATELY_SUITABLE: Fair climate OR Low/negative profit (ROI < 10%)
+- NOT_RECOMMENDED: Poor climate AND Negative profit
 
 **EXAMPLES OF REALISTIC YIELDS (per acre):**
 - Wheat: 20-25 quintal
@@ -1294,17 +1301,30 @@ def parse_ai_budget_enhanced(budget_text, crop_name, land_size):
     calculated_revenue = budget['expected_yield'] * budget['expected_price']
     calculated_profit = calculated_revenue - budget['total_cost']
     
-    if budget['expected_revenue'] > 0 and abs(budget['expected_revenue'] - calculated_revenue) > 1000:
+    # Always correct revenue if there's a mismatch
+    if budget['expected_revenue'] != calculated_revenue and abs(budget['expected_revenue'] - calculated_revenue) > 100:
         print(f"[WARNING] ⚠️  Revenue mismatch! AI: ₹{budget['expected_revenue']}, Calculated: ₹{calculated_revenue}")
-        print(f"[DEBUG] Correcting revenue to calculated value")
+        print(f"[DEBUG] Correcting revenue: {budget['expected_yield']} × {budget['expected_price']} = ₹{calculated_revenue}")
         budget['expected_revenue'] = calculated_revenue
     
-    if budget['expected_profit'] > 0 and abs(budget['expected_profit'] - calculated_profit) > 1000:
+    # Always correct profit if there's a mismatch
+    if budget['expected_profit'] != calculated_profit and abs(budget['expected_profit'] - calculated_profit) > 100:
         print(f"[WARNING] ⚠️  Profit mismatch! AI: ₹{budget['expected_profit']}, Calculated: ₹{calculated_profit}")
-        print(f"[DEBUG] Correcting profit to calculated value")
+        print(f"[DEBUG] Correcting profit: ₹{calculated_revenue} - ₹{budget['total_cost']} = ₹{calculated_profit}")
         budget['expected_profit'] = calculated_profit
     
-    # Validate reasonable ROI (should be 20-150%, not 300%+)
+    # Adjust feasibility based on profit
+    if budget['expected_profit'] < 0:
+        print(f"[WARNING] ⚠️  Negative profit detected! Adjusting feasibility from {budget['feasibility']}")
+        if budget['feasibility'] == 'HIGHLY_SUITABLE':
+            budget['feasibility'] = 'MODERATELY_SUITABLE'
+            budget['reason'] = f"High costs make this crop financially challenging in current conditions. {budget.get('reason', '')}"
+            print(f"[DEBUG] Adjusted feasibility to MODERATELY_SUITABLE due to negative profit")
+        elif budget['feasibility'] == 'SUITABLE':
+            budget['feasibility'] = 'MODERATELY_SUITABLE'
+            print(f"[DEBUG] Adjusted feasibility to MODERATELY_SUITABLE due to negative profit")
+    
+    # Validate reasonable ROI
     if budget['total_cost'] > 0:
         roi = (budget['expected_profit'] / budget['total_cost']) * 100
         if roi > 200:
