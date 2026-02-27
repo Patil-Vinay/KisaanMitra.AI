@@ -454,11 +454,13 @@ def handle_crop_query(user_message, language='hindi'):
     if language == 'english':
         system_prompt = """You are a helpful farming assistant. 
 Help farmers with crop diseases, pests, and treatments.
-Reply in simple English. Keep it short (2-3 sentences) and practical."""
+Reply in simple English. Keep it short (2-3 sentences) and practical.
+CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     else:
         system_prompt = """आप एक सहायक कृषि सलाहकार हैं।
 किसानों को फसल रोग, कीट और उपचार में मदद करें।
-सरल हिंदी में जवाब दें। संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।"""
+सरल हिंदी में जवाब दें। संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।
+अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
     result = ask_bedrock(user_message, system_prompt)
     print(f"[DEBUG] Crop agent response generated")
@@ -540,11 +542,13 @@ def handle_market_query(user_message, language='hindi'):
     if language == 'english':
         system_prompt = """You are a market expert helping farmers.
 Provide market prices and trends in simple English.
-Keep it short (2-3 sentences) and practical."""
+Keep it short (2-3 sentences) and practical.
+CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     else:
         system_prompt = """आप एक बाजार विशेषज्ञ हैं जो किसानों की मदद कर रहे हैं।
 सरल हिंदी में बाजार भाव और रुझान बताएं।
-संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।"""
+संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।
+अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
     # Extract crop name
     common_crops = ["wheat", "rice", "cotton", "soybean", "onion", "potato", "tomato", "sugarcane"]
@@ -1499,16 +1503,24 @@ def calculate_loan_eligibility(total_cost, farmer_income):
         "total_interest": (emi * months) - max_loan
     }
 
-def handle_finance_query(user_message, user_id="unknown"):
+def handle_finance_query(user_message, user_id="unknown", language='hindi'):
     """Handle finance-related queries with enhanced AI and memory"""
     print(f"[DEBUG] ===== FINANCE AGENT =====")
-    print(f"[DEBUG] Processing finance query: {user_message}")
+    print(f"[DEBUG] Processing finance query: {user_message}, Language: {language}")
     print(f"[DEBUG] User ID: {user_id}")
 
-    system_prompt = """You are an expert agricultural finance advisor for Indian farmers.
+    if language == 'english':
+        system_prompt = """You are an expert agricultural finance advisor for Indian farmers.
 Provide accurate, practical financial advice for farming operations.
 Reply in simple, clear English. Be specific and actionable.
-IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
+IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $.
+CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
+    else:
+        system_prompt = """आप भारतीय किसानों के लिए एक विशेषज्ञ कृषि वित्त सलाहकार हैं।
+कृषि कार्यों के लिए सटीक, व्यावहारिक वित्तीय सलाह प्रदान करें।
+सरल, स्पष्ट हिंदी में जवाब दें। विशिष्ट और कार्रवाई योग्य रहें।
+महत्वपूर्ण: भारतीय मुद्रा के लिए हमेशा ₹ (रुपये का प्रतीक) का उपयोग करें।
+अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
 
     # Get enhanced conversation history
     print(f"[DEBUG] Fetching conversation history...")
@@ -1743,12 +1755,14 @@ def handle_general_query(user_message, language='hindi'):
         system_prompt = """You are Kisaan Mitra, a friendly farming assistant.
 Have a natural conversation in simple English.
 Be helpful and warm. Keep responses short (2-3 sentences).
-If they ask about farming problems, guide them to be specific."""
+If they ask about farming problems, guide them to be specific.
+CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     else:
         system_prompt = """आप किसान मित्र हैं, एक मित्रवत कृषि सहायक।
 सरल हिंदी में स्वाभाविक बातचीत करें।
 सहायक और गर्मजोशी से रहें। जवाब संक्षिप्त (2-3 वाक्य) रखें।
-यदि वे खेती की समस्याओं के बारे में पूछें, तो उन्हें विशिष्ट होने के लिए मार्गदर्शन करें।"""
+यदि वे खेती की समस्याओं के बारे में पूछें, तो उन्हें विशिष्ट होने के लिए मार्गदर्शन करें।
+अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
     result = ask_bedrock(user_message, system_prompt)
     print(f"[DEBUG] General agent response generated")
@@ -2279,7 +2293,8 @@ def lambda_handler(event, context):
                 user_lang = get_user_language(from_number)
                 reply = handle_market_query(user_message, user_lang)
             elif agent == "finance":
-                reply = handle_finance_query(user_message, from_number)
+                user_lang = get_user_language(from_number)
+                reply = handle_finance_query(user_message, from_number, user_lang)
             else:
                 user_lang = get_user_language(from_number)
                 reply = handle_general_query(user_message, user_lang)
