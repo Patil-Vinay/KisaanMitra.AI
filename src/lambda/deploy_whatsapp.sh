@@ -23,7 +23,7 @@ if [ -d "package" ]; then
     
     # Add new hackathon feature modules
     echo "🚀 Including hackathon feature modules..."
-    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py 2>/dev/null || echo "⚠️  Some feature modules not found"
+    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py user_state_manager.py navigation_controller.py 2>/dev/null || echo "⚠️  Some feature modules not found"
     
     # Add onboarding and knowledge_graph modules
     if [ -d "deployment_package/onboarding" ]; then
@@ -46,7 +46,7 @@ else
     
     # Add new hackathon feature modules
     echo "🚀 Including hackathon feature modules..."
-    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py 2>/dev/null || echo "⚠️  Some feature modules not found"
+    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py user_state_manager.py navigation_controller.py 2>/dev/null || echo "⚠️  Some feature modules not found"
     
     # Add onboarding and knowledge_graph modules
     if [ -d "deployment_package/onboarding" ]; then

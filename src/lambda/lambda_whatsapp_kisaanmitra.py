@@ -3,6 +3,7 @@ import urllib3
 import os
 import boto3
 import base64
+import time
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -223,8 +224,8 @@ conversation_memory = {}
 
 # ─── Conversation Memory ────────────────────────────────────────────────────
 
-def get_conversation_history(user_id, limit=10):
-    """Get recent conversation history from DynamoDB with enhanced context"""
+def get_conversation_history(user_id, limit=3):
+    """Get recent conversation history from DynamoDB (reduced limit for speed)"""
     try:
         print(f"[DEBUG] Fetching conversation history for user: {user_id}, limit: {limit}")
         response = conversation_table.query(
@@ -257,45 +258,46 @@ def save_conversation(user_id, message, response, agent_type):
         print(f"[ERROR] Error saving conversation: {e}")
 
 def build_context_from_history(history):
-    """Build enhanced context string from conversation history"""
-    if not history:
+    """Build enhanced context string from conversation history (optimized)"""
+    if not history or len(history) == 0:
         print("[DEBUG] No conversation history available")
         return ""
     
     print(f"[DEBUG] Building context from {len(history)} history items")
-    context = "Previous conversation context:\n"
-    for item in reversed(history[-5:]):  # Last 5 messages for better context
+    context = "Previous conversation:\n"
+    for item in reversed(history[-2:]):  # Only last 2 messages for speed
         msg = item.get('message', '')
-        resp = item.get('response', '')
-        agent = item.get('agent', 'general')
+        resp = item.get('response', '')[:200]  # Truncate responses
         
         context += f"User: {msg}\n"
-        # Include MORE of the response for better context (especially menu prompts)
-        # This helps AI understand if user just clicked Budget Planning menu
-        context += f"Assistant ({agent}): {resp[:500]}...\n"
+        context += f"Bot: {resp}...\n"
     
-    context += "\nBased on this conversation history, provide contextually relevant responses.\n"
-    context += "Current query:\n"
-    print(f"[DEBUG] Context built successfully, length: {len(context)} chars")
+    print(f"[DEBUG] Context built, length: {len(context)} chars")
     return context
 
 # ─── Bedrock with Cross-Region Inference ────────────────────────────────────
 
-def ask_bedrock(prompt, system_prompt=None, conversation_context=""):
+def ask_bedrock(prompt, system_prompt=None, conversation_context="", skip_context=False):
     """Call Bedrock using cross-region inference profile with context and retry logic"""
     try:
-        print(f"[DEBUG] Calling Bedrock - Model: Claude 3.5 Sonnet")
+        print(f"[DEBUG] Calling Bedrock - Model: Nova Pro")
         print(f"[DEBUG] Prompt length: {len(prompt)} chars")
-        print(f"[DEBUG] Context length: {len(conversation_context)} chars")
-        print(f"[DEBUG] System prompt: {system_prompt[:100] if system_prompt else 'None'}...")
         
-        # Add conversation context if available
-        full_prompt = conversation_context + prompt if conversation_context else prompt
+        # OPTIMIZATION: Skip context for simple queries (saves tokens and time)
+        if skip_context:
+            full_prompt = prompt
+            print(f"[DEBUG] Skipping context for speed")
+        else:
+            full_prompt = conversation_context + prompt if conversation_context else prompt
+            print(f"[DEBUG] Context length: {len(conversation_context)} chars")
+        
+        if system_prompt:
+            print(f"[DEBUG] System prompt: {system_prompt[:100] if system_prompt else 'None'}...")
         
         messages = [{"role": "user", "content": [{"text": full_prompt}]}]
         
         kwargs = {
-            "modelId": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude 3.5 Sonnet - Best for conversations
+            "modelId": "us.amazon.nova-pro-v1:0",  # Amazon Nova Pro - High throughput, great quality
             "messages": messages,
             "inferenceConfig": {"maxTokens": 2000, "temperature": 0.6}  # Balanced for natural responses
         }
@@ -305,9 +307,10 @@ def ask_bedrock(prompt, system_prompt=None, conversation_context=""):
         
         print(f"[DEBUG] Sending request to Bedrock...")
         
-        # Retry logic with exponential backoff
-        import time
+        # OPTIMIZED: Faster retry logic
         max_retries = 3
+        base_wait = 2  # Reduced from 5
+        
         for attempt in range(max_retries):
             try:
                 response = bedrock.converse(**kwargs)
@@ -316,7 +319,7 @@ def ask_bedrock(prompt, system_prompt=None, conversation_context=""):
                 return result
             except Exception as e:
                 if "ThrottlingException" in str(e) and attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 2  # 2, 4, 8 seconds
+                    wait_time = base_wait * (attempt + 1)  # 2, 4, 6 seconds
                     print(f"[WARNING] Throttled, waiting {wait_time}s before retry {attempt + 2}/{max_retries}...")
                     time.sleep(wait_time)
                 else:
@@ -736,7 +739,7 @@ Current Month: February 2026
 - NOT_RECOMMENDED: Poor climate AND Negative profit
 
 **CRITICAL DATA RESEARCH INSTRUCTIONS:**
-- Research REAL current data for {crop_name} in {state_name}
+- Research REAL current data for the crop in the specified state
 - Use government agricultural databases and MSP/FRP notifications
 - Use recent mandi price trends from AgMarkNet
 - Use state agricultural department statistics
@@ -790,7 +793,7 @@ Now generate the complete analysis:"""
 
     try:
         print(f"[DEBUG] Calling Bedrock for COMBINED crop extraction + budget generation...")
-        print(f"[DEBUG] Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0")
+        print(f"[DEBUG] Model: us.amazon.nova-lite-v1:0 (optimized for speed)")
         
         # Add retry logic for throttling with exponential backoff
         import time
@@ -798,7 +801,7 @@ Now generate the complete analysis:"""
         for attempt in range(max_retries):
             try:
                 response = bedrock_client.converse(
-                    modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                    modelId="us.amazon.nova-lite-v1:0",  # Nova Lite - Fast and cost-effective
                     messages=[{"role": "user", "content": [{"text": prompt}]}],
                     inferenceConfig={"maxTokens": 3000, "temperature": 0.1}
                 )
@@ -830,64 +833,30 @@ Now generate the complete analysis:"""
 
 
 def extract_state_with_ai(user_message, bedrock_client):
-    """Use AI to extract state name from user message"""
-    print(f"[DEBUG] Extracting state/location using AI...")
+    """Extract state name from user message using keyword matching (optimized for speed)"""
+    print(f"[DEBUG] Extracting state/location using keyword matching...")
     
-    prompt = f"""Extract the Indian state or city name from this farmer's message: "{user_message}"
-
-CRITICAL: Ignore month names and time references! Only extract geographic locations.
-
-Instructions:
-- Extract the state name if mentioned (e.g., "Maharashtra", "Punjab", "Gujarat")
-- If city mentioned, return the state it belongs to (e.g., "Mumbai" → "Maharashtra", "Amritsar" → "Punjab", "Kolhapur" → "Maharashtra")
-- Return proper case state name (e.g., "Maharashtra" not "maharashtra")
-- If no location mentioned, return "Maharashtra" (default)
-- IGNORE month names: January, February, March, April, May, June, July, August, September, October, November, December
-- IGNORE time references: "in March", "during summer", "next month"
-- Return ONLY the state name, nothing else
-
-Examples:
-"Give me wheat budget in Mumbai" → Maharashtra
-"Onion price in Amritsar" → Punjab
-"Cotton farming in Gujarat" → Gujarat
-"Tomato budget for 1 acre in Kolhapur" → Maharashtra
-"Rice cultivation in Ludhiana" → Punjab
-"I want to grow onion in March in Kolhapur" → Maharashtra
-"Wheat in March" → Maharashtra
-"What is wheat price?" → Maharashtra
-
-Reply with ONLY the state name:"""
+    message_lower = user_message.lower()
     
-    try:
-        print(f"[DEBUG] Calling Bedrock for state extraction...")
-        
-        # Retry logic with exponential backoff
-        import time
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = bedrock_client.converse(
-                    modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude 3.5 Sonnet - Best accuracy
-                    messages=[{"role": "user", "content": [{"text": prompt}]}],
-                    inferenceConfig={"maxTokens": 50, "temperature": 0.05}  # Ultra-low temp for precision
-                )
-                break
-            except Exception as e:
-                if "ThrottlingException" in str(e) and attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 2  # 2, 4, 8 seconds
-                    print(f"[WARNING] Throttled, waiting {wait_time}s before retry {attempt + 2}/{max_retries}...")
-                    time.sleep(wait_time)
-                else:
-                    raise
-        
-        state_name = response["output"]["message"]["content"][0]["text"].strip()
-        print(f"[INFO] ✅ AI extracted state: {state_name}")
-        return state_name
-    except Exception as e:
-        print(f"[ERROR] State extraction error: {e}")
-        import traceback
-        print(f"[ERROR] Traceback: {traceback.format_exc()}")
-        return "Maharashtra"  # Default fallback
+    # Check CITY_TO_STATE mapping first (fastest)
+    for city, state in CITY_TO_STATE.items():
+        if city in message_lower:
+            print(f"[INFO] ✅ Extracted state from city: {city} → {state}")
+            return state
+    
+    # Check for direct state mentions
+    states = ["maharashtra", "punjab", "haryana", "uttar pradesh", "gujarat", "rajasthan",
+              "madhya pradesh", "karnataka", "tamil nadu", "andhra pradesh", "telangana",
+              "west bengal", "kerala", "bihar", "odisha"]
+    
+    for state in states:
+        if state in message_lower:
+            print(f"[INFO] ✅ Extracted state: {state.title()}")
+            return state.title()
+    
+    # Default fallback
+    print(f"[INFO] No location found, using default: Maharashtra")
+    return "Maharashtra"
 
 
 def fetch_real_agricultural_data_with_ai(crop_name, state_name, bedrock_client):
@@ -959,9 +928,9 @@ DATA_SOURCES: [cite sources]
 Research {crop_name} in {state_name} now:"""
 
     try:
-        print(f"[DEBUG] Calling Claude Sonnet 4 for agricultural data research...")
+        print(f"[DEBUG] Calling Amazon Nova Pro for agricultural data research...")
         response = bedrock_client.converse(
-            modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+            modelId="us.amazon.nova-pro-v1:0",  # Amazon Nova Pro
             messages=[{"role": "user", "content": [{"text": research_prompt}]}],
             inferenceConfig={"maxTokens": 2000, "temperature": 0.1}
         )
@@ -1163,7 +1132,7 @@ Now generate ACCURATE budget for {crop_name} in {location}, {state_name} for {la
         for attempt in range(max_retries):
             try:
                 response = bedrock_client.converse(
-                    modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                    modelId="us.amazon.nova-pro-v1:0",  # Amazon Nova Pro
                     messages=[{"role": "user", "content": [{"text": prompt}]}],
                     inferenceConfig={"maxTokens": 3000, "temperature": 0.1}
                 )
@@ -1296,7 +1265,7 @@ Now generate ACCURATE budget for {crop_name} in {location}, {state_name} for {la
         print(f"[DEBUG] Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0")
         print(f"[DEBUG] Using real market price from AgMarkNet: {real_market_price is not None}")
         response = bedrock_client.converse(
-            modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude Sonnet 4 for superior accuracy
+            modelId="us.amazon.nova-pro-v1:0",  # Amazon Nova Pro for superior accuracy
             messages=[{"role": "user", "content": [{"text": prompt}]}],
             inferenceConfig={"maxTokens": 3000, "temperature": 0.1}  # Very low temp for consistency
         )
@@ -1724,46 +1693,23 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     return result
 
 def handle_general_query(user_message, language='hindi'):
-    """Handle general queries - friendly conversation with language support"""
+    """Handle general queries - friendly conversation with language support (optimized)"""
     print(f"[DEBUG] ===== GENERAL AGENT =====")
     print(f"[DEBUG] Processing general query: {user_message}, Language: {language}")
     
     if language == 'english':
-        system_prompt = """You are Kisaan Mitra, a friendly and knowledgeable farming assistant.
-Have a natural conversation in simple English.
-Be helpful, warm, and provide practical farming advice.
-
-For crop recommendation questions:
-- Consider the season, location, and farmer's needs
-- Suggest 2-3 suitable crops with brief reasons
-- Mention profitability, ease of cultivation, and market demand
-- Keep it practical and actionable
-
-For general farming questions:
-- Provide clear, helpful answers
-- Keep responses concise (3-4 sentences)
-- Be encouraging and supportive
-
-CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
+        system_prompt = """You are Kisaan Mitra, a friendly farming assistant.
+Provide practical farming advice in simple English.
+Keep responses concise (3-4 sentences).
+CRITICAL: Respond ONLY in English."""
     else:
-        system_prompt = """आप किसान मित्र हैं, एक मित्रवत और जानकार कृषि सहायक।
-सरल हिंदी में स्वाभाविक बातचीत करें।
-सहायक, गर्मजोशी से रहें और व्यावहारिक कृषि सलाह दें।
-
-फसल सिफारिश प्रश्नों के लिए:
-- मौसम, स्थान और किसान की जरूरतों पर विचार करें
-- संक्षिप्त कारणों के साथ 2-3 उपयुक्त फसलें सुझाएं
-- लाभप्रदता, खेती में आसानी और बाजार मांग का उल्लेख करें
-- व्यावहारिक और कार्रवाई योग्य रखें
-
-सामान्य कृषि प्रश्नों के लिए:
-- स्पष्ट, सहायक उत्तर दें
-- जवाब संक्षिप्त (3-4 वाक्य) रखें
-- प्रोत्साहित करने वाले और सहायक रहें
-
-अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
+        system_prompt = """आप किसान मित्र हैं, एक मित्रवत कृषि सहायक।
+सरल हिंदी में व्यावहारिक कृषि सलाह दें।
+जवाब संक्षिप्त (3-4 वाक्य) रखें।
+अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें।"""
     
-    result = ask_bedrock(user_message, system_prompt)
+    # OPTIMIZATION: Skip context for speed
+    result = ask_bedrock(user_message, system_prompt, skip_context=True)
     
     # Add navigation text
     if INTERACTIVE_MESSAGES_AVAILABLE:
@@ -2328,48 +2274,31 @@ def lambda_handler(event, context):
                 user_state = None
             
             # ═══════════════════════════════════════════════════════════════
-            # FEATURE 2: AI ORCHESTRATION - Think before responding
+            # ULTRA-FAST ROUTING: Skip AI for 95% of queries (0.01s vs 2s)
             # ═══════════════════════════════════════════════════════════════
-            if AI_ORCHESTRATOR_AVAILABLE and not skip_orchestrator:
-                print(f"[AI ORCHESTRATOR] Analyzing intent with deep reasoning...")
-                orchestrator = get_orchestrator(bedrock)
-                
-                # Get conversation history for context
-                history = get_conversation_history(from_number, limit=5)
-                context = build_context_from_history(history)
-                
-                # Deep intent analysis
-                intent_analysis = orchestrator.analyze_intent(user_message, context)
-                print(f"[AI ORCHESTRATOR] Intent: {intent_analysis['primary_intent']}, Confidence: {intent_analysis['confidence']}")
-                
-                # Check if clarification needed
-                if orchestrator.should_ask_clarification(intent_analysis):
-                    print(f"[AI ORCHESTRATOR] Low confidence, asking for clarification")
-                    clarification_msg = intent_analysis.get('suggested_question', 
-                        "क्या आप फसल की जांच, बाजार भाव, या बजट योजना के बारे में पूछना चाहते हैं?")
-                    
-                    # Send interactive menu for clarification
-                    if INTERACTIVE_MESSAGES_AVAILABLE:
-                        send_whatsapp_message(from_number, clarification_msg, create_main_menu())
-                    else:
-                        send_whatsapp_message(from_number, clarification_msg)
-                    return {'statusCode': 200, 'body': 'ok'}
-                
-                # Map intent to agent
-                intent_to_agent = {
-                    "crop_health": "crop",
-                    "market_price": "market",
-                    "budget": "finance",
-                    "general": "general",
-                    "emergency": "crop"  # SOS goes to crop agent
-                }
-                agent = intent_to_agent.get(intent_analysis['primary_intent'], "general")
-                print(f"[AI ORCHESTRATOR] Mapped to agent: {agent.upper()}")
+            print(f"[FAST ROUTE] Using keyword-based routing (no AI)")
+            msg_lower = user_message.lower()
+            agent = None
+            
+            # Budget/Finance keywords (highest priority)
+            if any(kw in msg_lower for kw in ['budget', 'cost', 'finance', 'loan', 'scheme', 'expense', 'sheet', 'बजट', 'खर्च', 'योजना', 'लागत']):
+                agent = "finance"
+                print(f"[FAST ROUTE] ✅ Finance agent (keyword match)")
+            
+            # Market price keywords
+            elif any(kw in msg_lower for kw in ['price', 'rate', 'market', 'mandi', 'bhav', 'sell', 'भाव', 'कीमत', 'मंडी', 'बाजार']):
+                agent = "market"
+                print(f"[FAST ROUTE] ✅ Market agent (keyword match)")
+            
+            # Crop health keywords
+            elif any(kw in msg_lower for kw in ['disease', 'pest', 'sick', 'problem', 'yellow', 'spots', 'dying', 'रोग', 'बीमारी', 'कीट']):
+                agent = "crop"
+                print(f"[FAST ROUTE] ✅ Crop agent (keyword match)")
+            
+            # Default to general (crop recommendations, advice)
             else:
-                # Fallback to original routing
-                print(f"[DEBUG] Starting agent routing...")
-                agent = route_message(user_message, from_number)
-                print(f"[INFO] 🎯 SELECTED AGENT: {agent.upper()}")
+                agent = "general"
+                print(f"[FAST ROUTE] ✅ General agent (default)")
             
             print(f"[DEBUG] Executing {agent} agent handler...")
             user_lang = get_user_language(from_number)
@@ -2401,11 +2330,12 @@ def lambda_handler(event, context):
             print(f"[DEBUG] Reply preview: {reply[:200]}...")
             
             # ═══════════════════════════════════════════════════════════════
-            # FEATURE 2: Add reasoning layer to response
+            # OPTIMIZATION: Reasoning layer DISABLED for performance
+            # (was adding 14+ seconds per message)
             # ═══════════════════════════════════════════════════════════════
-            if AI_ORCHESTRATOR_AVAILABLE and agent in ["finance", "crop"]:
-                print(f"[AI ORCHESTRATOR] Adding reasoning layer to response...")
-                reply = orchestrator.generate_reasoning_response(user_message, reply, context)
+            # if AI_ORCHESTRATOR_AVAILABLE and agent in ["finance", "crop"]:
+            #     print(f"[AI ORCHESTRATOR] Adding reasoning layer to response...")
+            #     reply = orchestrator.generate_reasoning_response(user_message, reply, context)
             
             # Save conversation with response
             save_conversation(from_number, user_message, reply, agent)
