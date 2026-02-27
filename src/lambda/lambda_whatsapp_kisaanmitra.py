@@ -737,7 +737,7 @@ Current Month: February 2026
 - Onion: 100-150 quintal
 - Potato: 150-200 quintal
 - Cotton: 8-12 quintal (seed cotton)
-- Sugarcane: 300-450 quintal (30-45 tons)
+- Sugarcane: 30-45 TON (NOT quintal! Sugarcane is sold in TONS)
 - Tomato: 200-300 quintal
 - Soybean: 12-18 quintal
 
@@ -747,9 +747,15 @@ Current Month: February 2026
 - Onion: ₹1,200-2,000/quintal
 - Potato: ₹800-1,500/quintal
 - Cotton: ₹6,000-7,000/quintal
-- Sugarcane: ₹3,000-3,500/ton (NOT per quintal!)
+- Sugarcane: ₹2,800-3,500/TON (NOT per quintal! Always use TON for sugarcane)
 - Tomato: ₹2,000-3,000/quintal
 - Soybean: ₹4,200-4,800/quintal
+
+**CRITICAL UNIT RULES:**
+- Sugarcane: ALWAYS use TON (not quintal)
+- All other crops: Use quintal
+- If crop is sugarcane, Price_Unit MUST be "ton"
+- If crop is sugarcane, Yield MUST be in tons (30-45 range)
 
 **OUTPUT FORMAT (Use EXACT format with numbers only, no commas):**
 
@@ -767,8 +773,9 @@ Labor: [number only]
 Machinery: [number only]
 Total_Cost: [number only]
 Yield: [number only - use REALISTIC yield for {state_name}]
-Price_Per_Quintal: [number only - use CORRECT unit]
-Revenue: [number only - MUST equal Yield × Price_Per_Quintal]
+Price_Unit: [quintal OR ton - MUST be "ton" for sugarcane]
+Price_Per_Unit: [number only - use CORRECT unit]
+Revenue: [number only - MUST equal Yield × Price_Per_Unit]
 Profit: [number only - MUST equal Revenue - Total_Cost, CAN BE NEGATIVE]
 
 RISKS: [One line about main risks]
@@ -777,9 +784,10 @@ DATA_SOURCES: [Government sources you researched]
 
 **VERIFICATION CHECKLIST:**
 - [ ] Crop name extracted correctly (LAST crop if multiple)
+- [ ] If crop is sugarcane, Price_Unit = "ton" and Yield is 30-45
+- [ ] If crop is NOT sugarcane, Price_Unit = "quintal"
 - [ ] Yield is realistic for {state_name} region
-- [ ] Price unit is correct (quintal vs ton)
-- [ ] Revenue = Yield × Price_Per_Quintal (math is correct)
+- [ ] Revenue = Yield × Price_Per_Unit (math is correct)
 - [ ] Profit = Revenue - Total_Cost (math is correct, can be negative)
 - [ ] ROI is reasonable (20-100%, not 300%+)
 - [ ] All costs are realistic for 2026 India
@@ -1416,10 +1424,20 @@ def parse_ai_budget_enhanced(budget_text, crop_name, land_size):
         "machinery": r'Machinery[:\s]+₹?\s*([\d,]+)',
         "total_cost": r'Total[_\s]Cost[:\s]+₹?\s*([\d,]+)',
         "expected_yield": r'Yield[:\s]+([\d,]+)',
-        "expected_price": r'Price[_\s]Per[_\s]Quintal[:\s]+₹?\s*([\d,]+)',
+        "expected_price": r'Price[_\s]Per[_\s]Unit[:\s]+₹?\s*([\d,]+)',  # Changed to Price_Per_Unit
         "expected_revenue": r'Revenue[:\s]+₹?\s*([\d,]+)',
         "expected_profit": r'Profit[:\s]+₹?\s*([\d,]+)'
     }
+    
+    # Extract price unit (quintal or ton)
+    price_unit_match = re.search(r'Price[_\s]Unit[:\s]+(quintal|ton)', budget_text, re.IGNORECASE)
+    if price_unit_match:
+        budget["price_unit"] = price_unit_match.group(1).lower()
+        print(f"[DEBUG] Extracted price unit: {budget['price_unit']}")
+    else:
+        # Default to quintal if not specified
+        budget["price_unit"] = "quintal"
+        print(f"[DEBUG] Price unit not found, defaulting to quintal")
 
     for key, pattern in patterns.items():
         match = re.search(pattern, budget_text, re.IGNORECASE)
@@ -1636,7 +1654,7 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
         message += f"• Machinery: ₹{budget['machinery']:,}\n"
         message += f"*💵 Total Cost*: ₹{budget['total_cost']:,}\n\n"
         message += "*📈 Expected Returns*\n"
-        message += f"• Yield: {budget['expected_yield']} quintal\n"
+        message += f"• Yield: {budget['expected_yield']} {budget.get('price_unit', 'quintal')}\n"
         
         # Show market price with data source
         price_source_label = {
@@ -1648,7 +1666,7 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
         source = budget.get('data_source', 'ai_research')
         price_emoji = price_source_label.get(source, "🔍")
         
-        message += f"• Market Price: ₹{budget['expected_price']}/quintal {price_emoji}\n"
+        message += f"• Market Price: ₹{budget['expected_price']}/{budget.get('price_unit', 'quintal')} {price_emoji}\n"
         
         message += f"• Revenue: ₹{budget['expected_revenue']:,}\n"
         message += f"*✨ Net Profit*: ₹{budget['expected_profit']:,}\n"
@@ -2004,11 +2022,34 @@ def lambda_handler(event, context):
                     # Save this prompt to conversation history
                     save_conversation(from_number, "🔍 Crop Health", prompt_msg, "menu")
                     
+                    # Set user state
+                    try:
+                        from user_state_manager import set_user_state
+                        set_user_state(from_number, 'awaiting_crop_health', {'service': 'crop'})
+                    except:
+                        pass
+                    
                     send_whatsapp_message(from_number, prompt_msg)
                     return {'statusCode': 200, 'body': 'ok'}
                 
                 elif list_id == "market_price":
-                    send_whatsapp_message(from_number, None, create_crop_selection_list())
+                    # Don't show dropdown - ask user to type crop name
+                    if user_lang == 'english':
+                        prompt_msg = "📊 *Market Prices*\n\nWhich crop price do you want to check?\n\nJust type the crop name:\n• Tomato\n• Onion\n• Wheat\n• Rice\n• Any crop!\n\nWe support 300+ crops across India 🇮🇳"
+                    else:
+                        prompt_msg = "📊 *बाजार भाव*\n\nआप किस फसल का भाव जानना चाहते हैं?\n\nबस फसल का नाम लिखें:\n• टमाटर\n• प्याज\n• गेहूं\n• चावल\n• कोई भी फसल!\n\nहम भारत की 300+ फसलों का समर्थन करते हैं 🇮🇳"
+                    
+                    # Save to conversation history and set state
+                    save_conversation(from_number, "📊 Market Price", prompt_msg, "menu")
+                    
+                    # Import state manager
+                    try:
+                        from user_state_manager import set_user_state
+                        set_user_state(from_number, 'awaiting_market_query', {'service': 'market'})
+                    except:
+                        pass
+                    
+                    send_whatsapp_message(from_number, prompt_msg)
                     return {'statusCode': 200, 'body': 'ok'}
                 
                 elif list_id == "budget_plan":
@@ -2019,6 +2060,13 @@ def lambda_handler(event, context):
                     
                     # Save this prompt to conversation history so AI knows context
                     save_conversation(from_number, "💰 Budget Planning", prompt_msg, "menu")
+                    
+                    # Set user state to awaiting budget details
+                    try:
+                        from user_state_manager import set_user_state
+                        set_user_state(from_number, 'awaiting_budget_details', {'service': 'finance'})
+                    except:
+                        pass
                     
                     send_whatsapp_message(from_number, prompt_msg)
                     return {'statusCode': 200, 'body': 'ok'}
@@ -2163,6 +2211,26 @@ def lambda_handler(event, context):
                 
                 print(f"[INFO] ✅ Language selection sent")
                 return {'statusCode': 200, 'body': 'ok'}
+            
+            # ═══════════════════════════════════════════════════════════════
+            # FEATURE 2: STATE-BASED ROUTING - Check user state first
+            # ═══════════════════════════════════════════════════════════════
+            try:
+                from user_state_manager import get_user_state, clear_user_state, get_agent_from_state
+                user_state = get_user_state(from_number)
+                
+                if user_state and user_state.get('state'):
+                    # User has a pending state, route directly to appropriate agent
+                    agent = get_agent_from_state(user_state['state'])
+                    if agent:
+                        print(f"[STATE ROUTING] User in state '{user_state['state']}', routing to {agent.upper()} agent")
+                        # Clear state after routing
+                        clear_user_state(from_number)
+                        # Skip AI orchestrator, go directly to agent
+                        AI_ORCHESTRATOR_AVAILABLE = False  # Temporarily disable orchestrator
+            except Exception as e:
+                print(f"[STATE ERROR] Failed to check user state: {e}")
+                user_state = None
             
             # ═══════════════════════════════════════════════════════════════
             # FEATURE 2: AI ORCHESTRATION - Think before responding
