@@ -416,51 +416,55 @@ def get_fast_market_prices(crop_name, state="Maharashtra"):
     return None
 
 
-def format_market_response_fast(crop_name, market_data):
+def format_market_response_fast(crop_name, market_data, language='hindi'):
     """Format market data into WhatsApp message"""
-    print(f"[DEBUG] Formatting market response for: {crop_name}")
+    print(f"[DEBUG] Formatting market response for: {crop_name}, Language: {language}")
     
     if not market_data:
         print(f"[DEBUG] ❌ No market data to format")
-        return f"Sorry, I don't have current market data for {crop_name}. Try wheat, rice, cotton, onion, or potato."
+        if language == 'english':
+            return f"Sorry, I don't have current market data for {crop_name}. Try wheat, rice, cotton, onion, or potato."
+        else:
+            return f"क्षमा करें, मेरे पास {crop_name} के लिए वर्तमान बाजार डेटा नहीं है। गेहूं, चावल, कपास, प्याज, या आलू आज़माएं।"
     
-    message = f"📊 *{crop_name.title()} Market Prices*\n\n"
-    
-    # Trend
-    trend = market_data.get("trend", "stable")
-    trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "➡️"
-    message += f"{trend_emoji} *Trend*: {trend.title()}\n"
-    
-    # Average price
-    avg_price = market_data.get("average_price", 0)
-    message += f"💰 *Average Price*: ₹{avg_price}/quintal\n"
-    
-    # Price range
-    min_price = market_data.get("min_price", 0)
-    max_price = market_data.get("max_price", 0)
-    message += f"📊 *Range*: ₹{min_price} - ₹{max_price}\n\n"
-    
-    # Top mandis
-    top_mandis = market_data.get("top_mandis", [])
-    if top_mandis:
-        message += "*🏪 Top Mandis*:\n"
-        for i, mandi in enumerate(top_mandis[:3], 1):
-            message += f"{i}. {mandi['name']}: ₹{mandi['price']}\n"
-    
-    # Last updated
-    last_updated = market_data.get("last_updated", "")
-    message += f"\n📅 Updated: {last_updated}\n"
-    
-    # Data source transparency
-    source = market_data.get("source", "static_data")
-    if source == "agmarknet":
-        message += "📡 Source: AgMarkNet API (Real-time)\n"
-    elif source == "agmarknet_scrape":
-        message += "🌐 Source: AgMarkNet Website (Real-time)\n"
+    if language == 'english':
+        message = f"📊 *{crop_name.title()} Market Price*\n\n"
+        
+        # Average price
+        avg_price = market_data.get("average_price", 0)
+        message += f"💰 *Current Price*: ₹{avg_price}/quintal\n"
+        
+        # Trend
+        trend = market_data.get("trend", "stable")
+        trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "➡️"
+        message += f"{trend_emoji} *Trend*: {trend.title()}\n\n"
+        
+        # Top mandis
+        top_mandis = market_data.get("top_mandis", [])
+        if top_mandis:
+            message += "*Nearby Mandis*:\n"
+            for i, mandi in enumerate(top_mandis[:3], 1):
+                message += f"{i}. {mandi['name']}: ₹{mandi['price']}\n"
     else:
-        message += "📌 Source: Static Data (Weekly Update)\n"
-    
-    message += "\n💡 Tip: Check multiple mandis before selling"
+        message = f"📊 *{crop_name.title()} बाजार भाव*\n\n"
+        
+        # Average price
+        avg_price = market_data.get("average_price", 0)
+        message += f"💰 *वर्तमान भाव*: ₹{avg_price}/क्विंटल\n"
+        
+        # Trend
+        trend = market_data.get("trend", "stable")
+        trend_map = {"increasing": "बढ़ रहा", "decreasing": "घट रहा", "stable": "स्थिर"}
+        trend_hindi = trend_map.get(trend, "स्थिर")
+        trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "➡️"
+        message += f"{trend_emoji} *रुझान*: {trend_hindi}\n\n"
+        
+        # Top mandis
+        top_mandis = market_data.get("top_mandis", [])
+        if top_mandis:
+            message += "*नजदीकी मंडियां*:\n"
+            for i, mandi in enumerate(top_mandis[:3], 1):
+                message += f"{i}. {mandi['name']}: ₹{mandi['price']}\n"
     
     print(f"[DEBUG] Market response formatted successfully")
     return message

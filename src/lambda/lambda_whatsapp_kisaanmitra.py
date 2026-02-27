@@ -577,7 +577,7 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         if market_data:
             print(f"[DEBUG] Market data retrieved successfully")
             print(f"[DEBUG] Average price: ₹{market_data.get('average_price')}, Trend: {market_data.get('trend')}")
-            return format_market_response_fast(detected_crop, market_data)
+            return format_market_response_fast(detected_crop, market_data, language)
         else:
             print(f"[DEBUG] No market data found for {detected_crop}")
     
@@ -1660,57 +1660,7 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         else:
             message += "\n"
         
-        # Data source transparency
-        message += f"📌 *Data Sources*:\n"
-        
-        if budget.get('data_sources'):
-            message += f"• Research: {budget['data_sources']}\n"
-        
-        price_source_label = {
-            "agmarknet_live": "🌐 AgMarkNet Live",
-            "agmarknet_api": "📡 AgMarkNet API",
-            "ai_research": "🔍 AI Research",
-            "ai_estimate": "🤖 AI Estimate"
-        }
-        source = budget.get('data_source', 'ai_research')
-        message += f"• Price: {price_source_label.get(source, '🔍 AI Research')}\n"
-        message += f"• Model: Claude Sonnet 4\n\n"
-        message += "💬 Verify with local suppliers\n"
-        message += "? Need loan or scheme info? Just ask!"
-        print(f"[DEBUG] Budget response formatted successfully with data source labels")
-        
-        # ═══════════════════════════════════════════════════════════════
-        # FEATURE 5: Add Weather Forecast
-        # ═══════════════════════════════════════════════════════════════
-        if WEATHER_AVAILABLE:
-            try:
-                print(f"[WEATHER] Fetching forecast for {location}")
-                weather = get_weather_forecast(location)
-                weather_analysis = analyze_weather_for_farming(weather)
-                message += format_weather_response(location, weather_analysis)
-            except Exception as e:
-                print(f"[WEATHER] Error: {e}")
-        
-        # ═══════════════════════════════════════════════════════════════
-        # FEATURE 8: Add Smart Reminders
-        # ═══════════════════════════════════════════════════════════════
-        if REMINDERS_AVAILABLE:
-            try:
-                print(f"[REMINDERS] Setting up calendar for {crop_name}")
-                calendar = get_crop_calendar(crop_name)
-                if calendar:
-                    message += format_reminders_message(crop_name, calendar)
-            except Exception as e:
-                print(f"[REMINDERS] Error: {e}")
-        
-        return message
-        if budget.get('recommendation'):
-            message += f"💡 *Tip*: {budget['recommendation']}\n\n"
-        else:
-            message += "\n"
-        
-        message += "? Need loan or scheme info? Just ask!"
-        print(f"[DEBUG] Budget response formatted successfully with feasibility analysis")
+        print(f"[DEBUG] Budget response formatted successfully")
         return message
 
     # Check for schemes
@@ -2311,18 +2261,8 @@ def lambda_handler(event, context):
             # Save conversation with response
             save_conversation(from_number, user_message, reply, agent)
             
-            # ═══════════════════════════════════════════════════════════════
-            # FEATURE 1: Send with back button for better UX
-            # ═══════════════════════════════════════════════════════════════
-            user_lang = get_user_language(from_number)
-            
-            if INTERACTIVE_MESSAGES_AVAILABLE and agent != "greeting":
-                # Send reply as text first
-                send_whatsapp_message(from_number, reply)
-                # Then send back button
-                send_whatsapp_message(from_number, None, create_back_button(user_lang))
-            else:
-                send_whatsapp_message(from_number, reply)
+            # Send reply without repetitive prompts
+            send_whatsapp_message(from_number, reply)
             
             print(f"[INFO] ✅ Request completed successfully")
             
@@ -2363,11 +2303,6 @@ def lambda_handler(event, context):
                 reply = format_crop_result(result)
             
             send_whatsapp_message(from_number, reply)
-            
-            # Add back button for better UX
-            user_lang = get_user_language(from_number)
-            if INTERACTIVE_MESSAGES_AVAILABLE:
-                send_whatsapp_message(from_number, None, create_back_button(user_lang))
             
             print(f"[INFO] ✅ Image analysis completed successfully")
             
