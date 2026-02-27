@@ -117,8 +117,21 @@ conversation_table = dynamodb.Table("kisaanmitra-conversations")
 market_data_table = dynamodb.Table("kisaanmitra-market-data")
 finance_table = dynamodb.Table("kisaanmitra-finance")
 
-def get_user_language(user_id):
-    """Get user's language preference from DynamoDB (single source of truth)"""
+def get_user_language(user_id, message_text=""):
+    """Get user's language preference from DynamoDB with auto-detection"""
+    # Auto-detect English if message contains only English characters
+    if message_text:
+        # Check if message is primarily English (no Devanagari script)
+        has_hindi = any('\u0900' <= char <= '\u097F' for char in message_text)
+        is_english_greeting = message_text.lower().strip() in ['hi', 'hii', 'hiii', 'hello', 'hey', 'helo']
+        
+        if not has_hindi and (is_english_greeting or len(message_text.split()) > 2):
+            # Likely English message, auto-set language
+            print(f"[LANGUAGE] Auto-detected English from message: {message_text[:50]}")
+            set_user_language(user_id, 'english')
+            return 'english'
+    
+    # Otherwise, fetch from DynamoDB
     try:
         response = conversation_table.get_item(
             Key={'user_id': user_id, 'timestamp': 'language_preference'}
@@ -2037,8 +2050,8 @@ def lambda_handler(event, context):
                     return {'statusCode': 200, 'body': 'ok'}
                 
                 elif list_id == "weather":
-                    # Get user's location from profile
-                    location = user_profile.get('village', 'Maharashtra') if user_profile else 'Maharashtra'
+                    # Get user's location (default to Maharashtra if no profile)
+                    location = 'Maharashtra'
                     
                     if WEATHER_AVAILABLE:
                         try:
@@ -2301,7 +2314,7 @@ def lambda_handler(event, context):
                 print(f"[FAST ROUTE] ✅ General agent (default)")
             
             print(f"[DEBUG] Executing {agent} agent handler...")
-            user_lang = get_user_language(from_number)
+            user_lang = get_user_language(from_number, user_message)  # Pass message for auto-detection
             
             if agent == "greeting":
                 # For existing users, show main menu
