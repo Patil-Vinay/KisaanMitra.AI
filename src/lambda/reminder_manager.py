@@ -10,7 +10,21 @@ events = boto3.client('events', region_name='ap-south-1')
 lambda_client = boto3.client('lambda', region_name='ap-south-1')
 
 def get_crop_calendar(crop_name):
-    """Get standard crop calendar with tasks"""
+    """
+    Get standard crop calendar with tasks
+    
+    ⚠️ WARNING: FALLBACK DATA ONLY ⚠️
+    This uses static crop calendar data and should be replaced with:
+    - AI-driven crop scheduling based on location and season
+    - Integration with agricultural databases
+    - Real-time recommendations from agricultural experts
+    
+    TODO: Replace with dynamic agricultural database or AI-powered scheduling
+    """
+    print(f"[WARNING] ⚠️  Using STATIC crop calendar for {crop_name}")
+    print(f"[TODO] Replace with AI-driven or database-driven calendar")
+    
+    # FALLBACK DATA - Not real-time, not location-specific
     calendars = {
         'tomato': [
             {'task': 'पहली खाद डालें (First fertilizer)', 'days': 15},

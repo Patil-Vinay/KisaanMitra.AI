@@ -45,13 +45,22 @@ except Exception as e:
 try:
     from whatsapp_interactive import (
         create_main_menu, create_crop_selection_list, create_back_button,
-        create_quick_actions, send_interactive_message, create_language_selection
+        create_quick_actions, send_interactive_message, create_language_selection,
+        add_navigation_text
     )
     INTERACTIVE_MESSAGES_AVAILABLE = True
     print("✅ WhatsApp Interactive Messages loaded successfully")
 except ImportError as e:
     print(f"❌ Interactive messages not available: {e}")
     INTERACTIVE_MESSAGES_AVAILABLE = False
+
+try:
+    from navigation_controller import NavigationController
+    NAVIGATION_AVAILABLE = True
+    print("✅ Navigation Controller loaded successfully")
+except ImportError as e:
+    print(f"❌ Navigation Controller not available: {e}")
+    NAVIGATION_AVAILABLE = False
 
 try:
     from ai_orchestrator import get_orchestrator
@@ -427,7 +436,7 @@ def fallback_keyword_routing(user_message):
         return "greeting"
     
     # Crop problems - disease, pest, leaf issues
-    crop_keywords = ["disease", "pest", "leaf", "yellow", "spots", "dying", "बीमारी", "रोग", "पत्ती"]
+    crop_keywords = ["disease", "pest", "leaf", "yellow", "spots", "dying", "बीमारी", "रोग", "पत्ती", "कीट"]
     if any(kw in msg_lower for kw in crop_keywords):
         return "crop"
     
@@ -443,10 +452,19 @@ def fallback_keyword_routing(user_message):
     if any(kw in msg_lower for kw in finance_keywords):
         return "finance"
     
-    # Default - friendly chat
+    # Crop recommendation - which crop, what to plant, suggest crop
+    recommendation_keywords = ["which crop", "what crop", "suggest crop", "recommend crop", 
+                               "should i plant", "what to plant", "which to grow", "what to grow",
+                               "कौन सी फसल", "क्या लगाएं", "क्या उगाएं", "फसल सुझाव"]
+    if any(kw in msg_lower for kw in recommendation_keywords):
+        print(f"[DEBUG] Detected crop recommendation query")
+        return "general"
+    
+    # Default - friendly chat (general agent handles crop recommendations too)
+    print(f"[DEBUG] No specific keywords matched, routing to general agent")
     return "general"
 
-def handle_crop_query(user_message, language='hindi'):
+def handle_crop_query(user_message, user_id="unknown", language='hindi'):
     """Handle crop-related text queries with language support"""
     print(f"[DEBUG] ===== CROP AGENT =====")
     print(f"[DEBUG] Processing crop query: {user_message}, Language: {language}")
@@ -463,6 +481,11 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
 अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
     result = ask_bedrock(user_message, system_prompt)
+    
+    # Add navigation text
+    if INTERACTIVE_MESSAGES_AVAILABLE:
+        result = add_navigation_text(result, language)
+    
     print(f"[DEBUG] Crop agent response generated")
     return result
 
@@ -577,13 +600,25 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         if market_data:
             print(f"[DEBUG] Market data retrieved successfully")
             print(f"[DEBUG] Average price: ₹{market_data.get('average_price')}, Trend: {market_data.get('trend')}")
-            return format_market_response_fast(detected_crop, market_data, language)
+            result = format_market_response_fast(detected_crop, market_data, language)
+            
+            # Add navigation text
+            if INTERACTIVE_MESSAGES_AVAILABLE:
+                result = add_navigation_text(result, language)
+            
+            return result
         else:
             print(f"[DEBUG] No market data found for {detected_crop}")
     
     # Fallback to AI for general market questions
     print(f"[DEBUG] Falling back to AI for market query")
-    return ask_bedrock(user_message, system_prompt)
+    result = ask_bedrock(user_message, system_prompt)
+    
+    # Add navigation text
+    if INTERACTIVE_MESSAGES_AVAILABLE:
+        result = add_navigation_text(result, language)
+    
+    return result
 
 def extract_crop_with_ai(user_message, bedrock_client, conversation_history=""):
     """Extract crop name from user message using keyword matching (no AI call to avoid throttling)"""
@@ -700,25 +735,15 @@ Current Month: February 2026
 - MODERATELY_SUITABLE: Fair climate OR Low/negative profit (ROI < 10%)
 - NOT_RECOMMENDED: Poor climate AND Negative profit
 
-**EXAMPLES OF REALISTIC YIELDS (per acre):**
-- Wheat: 20-25 quintal
-- Rice: 25-30 quintal
-- Onion: 100-150 quintal
-- Potato: 150-200 quintal
-- Cotton: 8-12 quintal (seed cotton)
-- Sugarcane: 30-45 TON (NOT quintal! Sugarcane is sold in TONS)
-- Tomato: 200-300 quintal
-- Soybean: 12-18 quintal
-
-**EXAMPLES OF REALISTIC PRICES (2026):**
-- Wheat: ₹2,200-2,600/quintal
-- Rice: ₹2,000-2,400/quintal
-- Onion: ₹1,200-2,000/quintal
-- Potato: ₹800-1,500/quintal
-- Cotton: ₹6,000-7,000/quintal
-- Sugarcane: ₹2,800-3,500/TON (NOT per quintal! Always use TON for sugarcane)
-- Tomato: ₹2,000-3,000/quintal
-- Soybean: ₹4,200-4,800/quintal
+**CRITICAL DATA RESEARCH INSTRUCTIONS:**
+- Research REAL current data for {crop_name} in {state_name}
+- Use government agricultural databases and MSP/FRP notifications
+- Use recent mandi price trends from AgMarkNet
+- Use state agricultural department statistics
+- DO NOT use example values or estimates
+- DO NOT guess - research actual data from reliable sources
+- Verify yields are realistic for the specific region
+- Ensure prices match current market conditions (February 2026)
 
 **CRITICAL UNIT RULES:**
 - Sugarcane: ALWAYS use TON (not quintal)
@@ -1073,25 +1098,16 @@ def generate_crop_budget_with_ai(crop_name, land_size, location, bedrock_client,
    - Don't vary wildly between requests
    - Use deterministic calculations
 
-**EXAMPLES OF REALISTIC YIELDS (per acre):**
-- Wheat: 20-25 quintal
-- Rice: 25-30 quintal
-- Onion: 100-150 quintal
-- Potato: 150-200 quintal
-- Cotton: 8-12 quintal (seed cotton)
-- Sugarcane: 300-450 quintal (30-45 tons)
-- Tomato: 200-300 quintal
-- Soybean: 12-18 quintal
+**CRITICAL DATA RESEARCH INSTRUCTIONS:**
+- Research REAL current data for the crop in the specified state
+- Use government agricultural databases and MSP/FRP notifications
+- Use recent mandi price trends from AgMarkNet
+- Use state agricultural department statistics
+- DO NOT use example values or estimates
+- DO NOT guess - research actual data from reliable sources
+- Verify yields are realistic for the specific region
+- Ensure prices match current market conditions (February 2026)
 
-**EXAMPLES OF REALISTIC PRICES (2026):**
-- Wheat: ₹2,200-2,600/quintal
-- Rice: ₹2,000-2,400/quintal
-- Onion: ₹1,200-2,000/quintal
-- Potato: ₹800-1,500/quintal
-- Cotton: ₹6,000-7,000/quintal
-- Sugarcane: ₹3,000-3,500/ton (NOT per quintal!)
-- Tomato: ₹2,000-3,000/quintal
-- Soybean: ₹4,200-4,800/quintal
 
 **Task 1: Feasibility Analysis**
 Analyze if {crop_name} is suitable for {location}, {state_name} considering:
@@ -1221,25 +1237,16 @@ Now generate ACCURATE budget for {crop_name} in {location}, {state_name} for {la
    - Don't vary wildly between requests
    - Use deterministic calculations
 
-**EXAMPLES OF REALISTIC YIELDS (per acre):**
-- Wheat: 20-25 quintal
-- Rice: 25-30 quintal
-- Onion: 100-150 quintal
-- Potato: 150-200 quintal
-- Cotton: 8-12 quintal (seed cotton)
-- Sugarcane: 300-450 quintal (30-45 tons)
-- Tomato: 200-300 quintal
-- Soybean: 12-18 quintal
+**CRITICAL DATA RESEARCH INSTRUCTIONS:**
+- Research REAL current data for the crop in the specified state
+- Use government agricultural databases and MSP/FRP notifications
+- Use recent mandi price trends from AgMarkNet
+- Use state agricultural department statistics
+- DO NOT use example values or estimates
+- DO NOT guess - research actual data from reliable sources
+- Verify yields are realistic for the specific region
+- Ensure prices match current market conditions (February 2026)
 
-**EXAMPLES OF REALISTIC PRICES (2026):**
-- Wheat: ₹2,200-2,600/quintal
-- Rice: ₹2,000-2,400/quintal
-- Onion: ₹1,200-2,000/quintal
-- Potato: ₹800-1,500/quintal
-- Cotton: ₹6,000-7,000/quintal
-- Sugarcane: ₹3,000-3,500/ton (NOT per quintal!)
-- Tomato: ₹2,000-3,000/quintal
-- Soybean: ₹4,200-4,800/quintal
 
 **Task 1: Feasibility Analysis**
 Analyze if {crop_name} is suitable for {location}, {state_name} considering:
@@ -1660,6 +1667,10 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         else:
             message += "\n"
         
+        # Add navigation text
+        if INTERACTIVE_MESSAGES_AVAILABLE:
+            message = add_navigation_text(message, language)
+        
         print(f"[DEBUG] Budget response formatted successfully")
         return message
 
@@ -1674,6 +1685,11 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
             message += f"   💰 Benefit: {scheme['benefit']}\n"
             message += f"   ✅ Eligibility: {scheme['eligibility']}\n\n"
         message += "💡 Visit nearest Krishi Vigyan Kendra for more details"
+        
+        # Add navigation text
+        if INTERACTIVE_MESSAGES_AVAILABLE:
+            message = add_navigation_text(message, language)
+        
         print(f"[DEBUG] Schemes response generated")
         return message
 
@@ -1689,12 +1705,23 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         message += f"💵 Total Repayment: ₹{loan['total_repayment']:,}\n"
         message += f"📈 Total Interest: ₹{loan['total_interest']:,}\n\n"
         message += "💡 Apply at your nearest bank branch with land documents"
+        
+        # Add navigation text
+        if INTERACTIVE_MESSAGES_AVAILABLE:
+            message = add_navigation_text(message, language)
+        
         print(f"[DEBUG] Loan response generated")
         return message
 
     # Fallback to AI with enhanced context
     print(f"[DEBUG] Falling back to AI for general finance query")
-    return ask_bedrock(user_message, system_prompt, context)
+    result = ask_bedrock(user_message, system_prompt, context)
+    
+    # Add navigation text
+    if INTERACTIVE_MESSAGES_AVAILABLE:
+        result = add_navigation_text(result, language)
+    
+    return result
 
 def handle_general_query(user_message, language='hindi'):
     """Handle general queries - friendly conversation with language support"""
@@ -1702,20 +1729,47 @@ def handle_general_query(user_message, language='hindi'):
     print(f"[DEBUG] Processing general query: {user_message}, Language: {language}")
     
     if language == 'english':
-        system_prompt = """You are Kisaan Mitra, a friendly farming assistant.
+        system_prompt = """You are Kisaan Mitra, a friendly and knowledgeable farming assistant.
 Have a natural conversation in simple English.
-Be helpful and warm. Keep responses short (2-3 sentences).
-If they ask about farming problems, guide them to be specific.
+Be helpful, warm, and provide practical farming advice.
+
+For crop recommendation questions:
+- Consider the season, location, and farmer's needs
+- Suggest 2-3 suitable crops with brief reasons
+- Mention profitability, ease of cultivation, and market demand
+- Keep it practical and actionable
+
+For general farming questions:
+- Provide clear, helpful answers
+- Keep responses concise (3-4 sentences)
+- Be encouraging and supportive
+
 CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     else:
-        system_prompt = """आप किसान मित्र हैं, एक मित्रवत कृषि सहायक।
+        system_prompt = """आप किसान मित्र हैं, एक मित्रवत और जानकार कृषि सहायक।
 सरल हिंदी में स्वाभाविक बातचीत करें।
-सहायक और गर्मजोशी से रहें। जवाब संक्षिप्त (2-3 वाक्य) रखें।
-यदि वे खेती की समस्याओं के बारे में पूछें, तो उन्हें विशिष्ट होने के लिए मार्गदर्शन करें।
+सहायक, गर्मजोशी से रहें और व्यावहारिक कृषि सलाह दें।
+
+फसल सिफारिश प्रश्नों के लिए:
+- मौसम, स्थान और किसान की जरूरतों पर विचार करें
+- संक्षिप्त कारणों के साथ 2-3 उपयुक्त फसलें सुझाएं
+- लाभप्रदता, खेती में आसानी और बाजार मांग का उल्लेख करें
+- व्यावहारिक और कार्रवाई योग्य रखें
+
+सामान्य कृषि प्रश्नों के लिए:
+- स्पष्ट, सहायक उत्तर दें
+- जवाब संक्षिप्त (3-4 वाक्य) रखें
+- प्रोत्साहित करने वाले और सहायक रहें
+
 अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
     result = ask_bedrock(user_message, system_prompt)
-    print(f"[DEBUG] General agent response generated")
+    
+    # Add navigation text
+    if INTERACTIVE_MESSAGES_AVAILABLE:
+        result = add_navigation_text(result, language)
+    
+    print(f"[DEBUG] General agent response generated, length: {len(result)} chars")
     return result
 
 # ─── WhatsApp ─────────────────────────────────────────────────────────────────
@@ -1903,8 +1957,40 @@ def lambda_handler(event, context):
                 # Get user's language preference
                 user_lang = get_user_language(from_number)
                 
+                # Handle navigation button actions
+                if button_id == "nav_back":
+                    print(f"[NAV] Back button clicked")
+                    if NAVIGATION_AVAILABLE:
+                        nav = NavigationController(from_number)
+                        nav.go_back()
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                elif button_id == "nav_home":
+                    print(f"[NAV] Home button clicked")
+                    if NAVIGATION_AVAILABLE:
+                        nav = NavigationController(from_number)
+                        nav.go_home()
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                    return {'statusCode': 200, 'body': 'ok'}
+                
+                elif button_id == "nav_cancel":
+                    print(f"[NAV] Cancel button clicked")
+                    if NAVIGATION_AVAILABLE:
+                        nav = NavigationController(from_number)
+                        nav.cancel()
+                    
+                    if user_lang == 'english':
+                        msg = "❌ Cancelled. Starting fresh!"
+                    else:
+                        msg = "❌ रद्द कर दिया। नए सिरे से शुरू कर रहे हैं!"
+                    
+                    send_whatsapp_message(from_number, msg)
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                    return {'statusCode': 200, 'body': 'ok'}
+                
                 # Handle button actions
-                if button_id == "main_menu":
+                elif button_id == "main_menu":
                     send_whatsapp_message(from_number, None, create_main_menu(user_lang))
                     return {'statusCode': 200, 'body': 'ok'}
                 elif button_id == "crop_health":
@@ -2136,6 +2222,68 @@ def lambda_handler(event, context):
                 print(f"[INFO] ✅ Main menu sent to existing user")
                 return {'statusCode': 200, 'body': 'ok'}
             
+            # ═══════════════════════════════════════════════════════════════
+            # NAVIGATION COMMANDS: back, home, cancel
+            # ═══════════════════════════════════════════════════════════════
+            user_message_lower = user_message.strip().lower()
+            user_lang = get_user_language(from_number)
+            
+            if user_message_lower in ['back', 'पीछे']:
+                print(f"[NAV] User requested: BACK")
+                if NAVIGATION_AVAILABLE:
+                    nav = NavigationController(from_number)
+                    previous_screen = nav.go_back()
+                    print(f"[NAV] Navigated back to: {previous_screen}")
+                
+                # Show main menu
+                if INTERACTIVE_MESSAGES_AVAILABLE:
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                else:
+                    if user_lang == 'english':
+                        send_whatsapp_message(from_number, "Returning to main menu...")
+                    else:
+                        send_whatsapp_message(from_number, "मुख्य मेनू पर लौट रहे हैं...")
+                
+                return {'statusCode': 200, 'body': 'ok'}
+            
+            elif user_message_lower in ['home', 'menu', 'main menu', 'मुख्य मेनू', 'होम']:
+                print(f"[NAV] User requested: HOME")
+                if NAVIGATION_AVAILABLE:
+                    nav = NavigationController(from_number)
+                    nav.go_home()
+                    print(f"[NAV] Returned to home")
+                
+                # Show main menu
+                if INTERACTIVE_MESSAGES_AVAILABLE:
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                else:
+                    if user_lang == 'english':
+                        send_whatsapp_message(from_number, "Main menu")
+                    else:
+                        send_whatsapp_message(from_number, "मुख्य मेनू")
+                
+                return {'statusCode': 200, 'body': 'ok'}
+            
+            elif user_message_lower in ['cancel', 'stop', 'restart', 'रद्द करें', 'बंद करें']:
+                print(f"[NAV] User requested: CANCEL")
+                if NAVIGATION_AVAILABLE:
+                    nav = NavigationController(from_number)
+                    nav.cancel()
+                    print(f"[NAV] Cancelled and cleared state")
+                
+                # Show confirmation and main menu
+                if user_lang == 'english':
+                    msg = "❌ Cancelled. Starting fresh!"
+                else:
+                    msg = "❌ रद्द कर दिया। नए सिरे से शुरू कर रहे हैं!"
+                
+                send_whatsapp_message(from_number, msg)
+                
+                if INTERACTIVE_MESSAGES_AVAILABLE:
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                
+                return {'statusCode': 200, 'body': 'ok'}
+            
             # SPECIAL CASE: "reset" command to restart onboarding
             if user_message.strip().lower() == 'reset':
                 print(f"[RESET] User requested reset")
@@ -2223,9 +2371,10 @@ def lambda_handler(event, context):
                 print(f"[INFO] 🎯 SELECTED AGENT: {agent.upper()}")
             
             print(f"[DEBUG] Executing {agent} agent handler...")
+            user_lang = get_user_language(from_number)
+            
             if agent == "greeting":
                 # For existing users, show main menu
-                user_lang = get_user_language(from_number)
                 if INTERACTIVE_MESSAGES_AVAILABLE:
                     send_whatsapp_message(from_number, None, create_main_menu(user_lang))
                 else:
@@ -2237,19 +2386,18 @@ def lambda_handler(event, context):
                 print(f"[INFO] ✅ Greeting handled")
                 return {'statusCode': 200, 'body': 'ok'}
             elif agent == "crop":
-                user_lang = get_user_language(from_number)
-                reply = handle_crop_query(user_message, user_lang)
+                reply = handle_crop_query(user_message, from_number, user_lang)
             elif agent == "market":
-                user_lang = get_user_language(from_number)
                 reply = handle_market_query(user_message, user_lang)
             elif agent == "finance":
-                user_lang = get_user_language(from_number)
                 reply = handle_finance_query(user_message, from_number, user_lang)
             else:
-                user_lang = get_user_language(from_number)
+                # General agent - handles all other queries
+                print(f"[DEBUG] Routing to GENERAL agent for query: {user_message}")
                 reply = handle_general_query(user_message, user_lang)
             
             print(f"[DEBUG] Agent execution complete, reply length: {len(reply)} chars")
+            print(f"[DEBUG] Reply preview: {reply[:200]}...")
             
             # ═══════════════════════════════════════════════════════════════
             # FEATURE 2: Add reasoning layer to response
@@ -2264,7 +2412,8 @@ def lambda_handler(event, context):
             # Send reply without repetitive prompts
             send_whatsapp_message(from_number, reply)
             
-            print(f"[INFO] ✅ Request completed successfully")
+            print(f"[INFO] ✅ Request completed successfully - Agent: {agent.upper()}")
+            print(f"[INFO] ✅ Response sent to user")
             
         elif msg_type == "image":
             print(f"[DEBUG] ===== IMAGE ANALYSIS =====")

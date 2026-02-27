@@ -201,7 +201,7 @@ def create_crop_selection_list():
 
 
 def create_back_button(language='hindi'):
-    """Create back to menu button"""
+    """Create back to menu button with full navigation"""
     if language == 'english':
         return {
             "type": "interactive",
@@ -215,15 +215,22 @@ def create_back_button(language='hindi'):
                         {
                             "type": "reply",
                             "reply": {
-                                "id": "main_menu",
-                                "title": "🏠 Main Menu"
+                                "id": "nav_back",
+                                "title": "⬅ Back"
                             }
                         },
                         {
                             "type": "reply",
                             "reply": {
-                                "id": "help",
-                                "title": "❓ Help"
+                                "id": "nav_home",
+                                "title": "🏠 Home"
+                            }
+                        },
+                        {
+                            "type": "reply",
+                            "reply": {
+                                "id": "nav_cancel",
+                                "title": "❌ Cancel"
                             }
                         }
                     ]
@@ -236,22 +243,29 @@ def create_back_button(language='hindi'):
             "interactive": {
                 "type": "button",
                 "body": {
-                    "text": "क्या आप कुछ और करना चाहते हैं?"
+                    "text": "आप क्या करना चाहेंगे?"
                 },
                 "action": {
                     "buttons": [
                         {
                             "type": "reply",
                             "reply": {
-                                "id": "main_menu",
+                                "id": "nav_back",
+                                "title": "⬅ पीछे"
+                            }
+                        },
+                        {
+                            "type": "reply",
+                            "reply": {
+                                "id": "nav_home",
                                 "title": "🏠 मुख्य मेनू"
                             }
                         },
                         {
                             "type": "reply",
                             "reply": {
-                                "id": "help",
-                                "title": "❓ मदद"
+                                "id": "nav_cancel",
+                                "title": "❌ रद्द करें"
                             }
                         }
                     ]
@@ -342,3 +356,14 @@ def send_interactive_message(to, phone_number_id, token, interactive_payload):
     
     response = http.request("POST", url, body=json.dumps(data), headers=headers)
     return response.status == 200
+
+
+
+def add_navigation_text(message, language='hindi'):
+    """Add navigation instructions to text message"""
+    if language == 'english':
+        nav_text = "\n\n💡 Type 'back' to go back, 'home' for main menu, or 'cancel' to restart."
+    else:
+        nav_text = "\n\n💡 'back' टाइप करें पीछे जाने के लिए, 'home' मुख्य मेनू के लिए, या 'cancel' पुनः आरंभ करने के लिए।"
+    
+    return message + nav_text

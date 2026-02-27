@@ -28,13 +28,27 @@ def get_weather_forecast(location):
         return get_mock_weather(location)
 
 def get_mock_weather(location):
-    """Mock weather data for testing"""
+    """
+    FALLBACK ONLY - Mock weather data
+    
+    ⚠️ WARNING: THIS IS NOT REAL WEATHER DATA! ⚠️
+    
+    This function returns fake weather data and should NEVER be used in production.
+    Get a real OpenWeather API key and set it in environment variables.
+    
+    TODO: Get real OpenWeather API key from https://openweathermap.org/api
+    """
+    print(f"[WARNING] ⚠️⚠️⚠️  Using MOCK weather data for {location}")
+    print(f"[CRITICAL] This is NOT real weather! Get OpenWeather API key!")
+    print(f"[ACTION] Visit https://openweathermap.org/api to get API key")
+    
+    # FAKE DATA - DO NOT USE IN PRODUCTION
     return {
         'city': {'name': location},
         'list': [
             {
                 'main': {'temp': 28, 'humidity': 65},
-                'weather': [{'main': 'Clear', 'description': 'clear sky'}],
+                'weather': [{'main': 'Clear', 'description': '⚠️ MOCK DATA - NOT REAL'}],
                 'rain': None
             }
         ] * 8

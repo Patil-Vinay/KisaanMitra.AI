@@ -61,13 +61,17 @@ cat > lambda-policy.json << EOF
         "dynamodb:PutItem",
         "dynamodb:Query",
         "dynamodb:Scan",
-        "dynamodb:UpdateItem"
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem"
       ],
       "Resource": [
         "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-conversations",
         "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-market-data",
         "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-finance",
-        "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-user-preferences"
+        "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-user-preferences",
+        "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-navigation-state",
+        "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-onboarding",
+        "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/kisaanmitra-farmer-profiles"
       ]
     }
   ]
