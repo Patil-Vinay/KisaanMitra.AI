@@ -2309,6 +2309,7 @@ def lambda_handler(event, context):
             # ═══════════════════════════════════════════════════════════════
             # FEATURE 2: STATE-BASED ROUTING - Check user state first
             # ═══════════════════════════════════════════════════════════════
+            skip_orchestrator = False
             try:
                 from user_state_manager import get_user_state, clear_user_state, get_agent_from_state
                 user_state = get_user_state(from_number)
@@ -2321,7 +2322,7 @@ def lambda_handler(event, context):
                         # Clear state after routing
                         clear_user_state(from_number)
                         # Skip AI orchestrator, go directly to agent
-                        AI_ORCHESTRATOR_AVAILABLE = False  # Temporarily disable orchestrator
+                        skip_orchestrator = True
             except Exception as e:
                 print(f"[STATE ERROR] Failed to check user state: {e}")
                 user_state = None
@@ -2329,7 +2330,7 @@ def lambda_handler(event, context):
             # ═══════════════════════════════════════════════════════════════
             # FEATURE 2: AI ORCHESTRATION - Think before responding
             # ═══════════════════════════════════════════════════════════════
-            if AI_ORCHESTRATOR_AVAILABLE:
+            if AI_ORCHESTRATOR_AVAILABLE and not skip_orchestrator:
                 print(f"[AI ORCHESTRATOR] Analyzing intent with deep reasoning...")
                 orchestrator = get_orchestrator(bedrock)
                 
