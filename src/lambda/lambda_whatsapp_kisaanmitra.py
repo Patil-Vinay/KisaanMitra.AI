@@ -1409,7 +1409,24 @@ def parse_ai_budget_enhanced(budget_text, crop_name, land_size):
     print(f"[DEBUG] Budget parsing complete - Total Cost: ₹{budget['total_cost']}, Profit: ₹{budget['expected_profit']}")
     print(f"[DEBUG] Feasibility: {budget['feasibility']}, Climate: {budget['climate_match']}")
     
-    # Validate math accuracy
+    # CRITICAL FIX: Multiply all costs and yields by land size
+    # AI provides costs for 1 acre, we need to scale to actual land size
+    if land_size and land_size > 1:
+        print(f"[FIX] Multiplying costs and yields by land size: {land_size} acres")
+        budget['seeds'] *= land_size
+        budget['fertilizer'] *= land_size
+        budget['pesticides'] *= land_size
+        budget['irrigation'] *= land_size
+        budget['labor'] *= land_size
+        budget['machinery'] *= land_size
+        budget['total_cost'] *= land_size
+        budget['expected_yield'] *= land_size
+        # Price per unit stays the same (it's per quintal/ton)
+        # Revenue and profit need recalculation
+        print(f"[FIX] Scaled Total Cost: ₹{budget['total_cost']:,}")
+        print(f"[FIX] Scaled Yield: {budget['expected_yield']} {budget.get('price_unit', 'quintal')}")
+    
+    # Validate math accuracy (after scaling)
     calculated_revenue = budget['expected_yield'] * budget['expected_price']
     calculated_profit = calculated_revenue - budget['total_cost']
     
