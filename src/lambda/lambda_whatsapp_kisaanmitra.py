@@ -108,7 +108,17 @@ CROP_HEALTH_API_KEY = os.environ.get("CROP_HEALTH_API_KEY")
 AGMARKNET_API_KEY = os.environ.get("AGMARKNET_API_KEY")
 
 # AWS clients
-bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")  # Cross-region inference
+# Use direct Anthropic API for better accuracy and higher rate limits
+USE_ANTHROPIC_DIRECT = os.environ.get('USE_ANTHROPIC_DIRECT', 'true').lower() == 'true'
+
+if USE_ANTHROPIC_DIRECT:
+    print("[INIT] Using direct Anthropic Claude API")
+    from anthropic_client import get_anthropic_client
+    bedrock = get_anthropic_client()
+else:
+    print("[INIT] Using AWS Bedrock")
+    bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")  # Cross-region inference
+
 dynamodb = boto3.resource("dynamodb", region_name="ap-south-1")
 s3 = boto3.client("s3", region_name="ap-south-1")
 
@@ -722,28 +732,45 @@ Examples:
 
 You are an expert agricultural economist with 20+ years of experience in Indian farming.
 
-**TASK**: Analyze this farmer's request and generate a complete budget:
+**TASK**: Analyze this farmer's request and generate a complete budget FOR 1 ACRE ONLY:
 
 Farmer's Message: "{user_message}"
 Location: {location}, {state_name}
 Land Size: {land_size} acre(s)
 Current Month: February 2026
 
+**CRITICAL: Provide ALL costs and yields for 1 ACRE only. The system will scale to {land_size} acres automatically.**
+
 **YOUR TASK (Complete in ONE response):**
 
 1. **Extract the crop name** - If multiple crops mentioned, extract the LAST one
 2. **Analyze feasibility** for that crop in {location}, {state_name}
-3. **Generate realistic budget** with accurate costs and yields
+3. **Generate realistic budget FOR 1 ACRE** with accurate costs and yields
+
+**CRITICAL YIELD CONSTRAINTS (PER ACRE):**
+- Tur Dal/Arhar: 4-8 quintals/acre (NOT 1,500!)
+- Moong/Urad: 3-6 quintals/acre
+- Chana/Gram: 8-15 quintals/acre
+- Rice/Paddy: 20-35 quintals/acre
+- Wheat: 25-45 quintals/acre
+- Soybean: 10-20 quintals/acre
+- Cotton: 10-20 quintals/acre
+- Sugarcane: 30-45 tons/acre (300-450 quintals)
+- Tomato: 100-250 quintals/acre
+- Potato: 80-200 quintals/acre
+
+**NEVER exceed these realistic ranges. If you provide unrealistic yields, the system will reject your response.**
 
 **CRITICAL ACCURACY REQUIREMENTS:**
 
-- Use REALISTIC yields for {state_name} region (research typical yields)
+- Use REALISTIC yields for {state_name} region (see constraints above)
 - Use CORRECT units (quintal for most crops, ton for sugarcane)
 - Use CURRENT 2026 market rates for all inputs
 - **VERIFY YOUR MATH**: Revenue MUST equal Yield × Price (use a calculator!)
 - **VERIFY YOUR MATH**: Profit MUST equal Revenue - Total_Cost (use a calculator!)
 - If profit is NEGATIVE, feasibility CANNOT be "HIGHLY_SUITABLE"
 - Be CONSISTENT (same inputs = same outputs)
+- **ALL VALUES MUST BE FOR 1 ACRE ONLY**
 
 **FEASIBILITY RULES:**
 - HIGHLY_SUITABLE: Good climate + Good profit (ROI > 30%)
@@ -767,7 +794,7 @@ Current Month: February 2026
 - If crop is sugarcane, Price_Unit MUST be "ton"
 - If crop is sugarcane, Yield MUST be in tons (30-45 range)
 
-**OUTPUT FORMAT (Use EXACT format with numbers only, no commas):**
+**OUTPUT FORMAT (Use EXACT format with numbers only, no commas, FOR 1 ACRE):**
 
 CROP: [crop name extracted from message - LAST crop if multiple mentioned]
 FEASIBILITY: [HIGHLY_SUITABLE / SUITABLE / MODERATELY_SUITABLE / NOT_RECOMMENDED]
@@ -775,18 +802,18 @@ REASON: [One line explanation]
 BEST_SEASON: [Season name]
 CLIMATE_MATCH: [EXCELLENT / GOOD / FAIR / POOR]
 
-Seeds: [number only]
-Fertilizer: [number only]
-Pesticides: [number only]
-Irrigation: [number only]
-Labor: [number only]
-Machinery: [number only]
-Total_Cost: [number only]
-Yield: [number only - use REALISTIC yield for {state_name}]
+Seeds: [number only - FOR 1 ACRE]
+Fertilizer: [number only - FOR 1 ACRE]
+Pesticides: [number only - FOR 1 ACRE]
+Irrigation: [number only - FOR 1 ACRE]
+Labor: [number only - FOR 1 ACRE]
+Machinery: [number only - FOR 1 ACRE]
+Total_Cost: [number only - FOR 1 ACRE]
+Yield: [number only - FOR 1 ACRE - MUST be within realistic range above]
 Price_Unit: [quintal OR ton - MUST be "ton" for sugarcane]
 Price_Per_Unit: [number only - use CORRECT unit]
-Revenue: [number only - MUST equal Yield × Price_Per_Unit]
-Profit: [number only - MUST equal Revenue - Total_Cost, CAN BE NEGATIVE]
+Revenue: [number only - MUST equal Yield × Price_Per_Unit - FOR 1 ACRE]
+Profit: [number only - MUST equal Revenue - Total_Cost - FOR 1 ACRE, CAN BE NEGATIVE]
 
 RISKS: [One line about main risks]
 RECOMMENDATION: [One line practical advice]
@@ -794,19 +821,34 @@ DATA_SOURCES: [Government sources you researched]
 
 **VERIFICATION CHECKLIST:**
 - [ ] Crop name extracted correctly (LAST crop if multiple)
-- [ ] If crop is sugarcane, Price_Unit = "ton" and Yield is 30-45
+- [ ] ALL values are FOR 1 ACRE ONLY
+- [ ] If crop is sugarcane, Price_Unit = "ton" and Yield is 60-110 tons/acre
 - [ ] If crop is NOT sugarcane, Price_Unit = "quintal"
-- [ ] Yield is realistic for {state_name} region
+- [ ] Yield is within realistic range (e.g., Tur Dal: 4-8 quintal/acre, NOT 1,500)
 - [ ] Revenue = Yield × Price_Per_Unit (math is correct)
 - [ ] Profit = Revenue - Total_Cost (math is correct, can be negative)
-- [ ] ROI is reasonable (20-100%, not 300%+)
+- [ ] ROI is reasonable (20-120%, not 300%+)
 - [ ] All costs are realistic for 2026 India
+- [ ] Total_Cost = Seeds + Fertilizer + Pesticides + Irrigation + Labor + Machinery
 
-Now generate the complete analysis:"""
+**CRITICAL FOR SUGARCANE:**
+- Sugarcane yield: 60-110 TONS per acre (NOT quintals)
+- Sugarcane price: ₹3,500-4,500 per TON (FRP 2025-26)
+- Sugarcane costs: ₹50,000-80,000 per acre
+- DO NOT confuse tons with quintals (1 ton = 10 quintals)
+
+Now generate the complete analysis FOR 1 ACRE:"""
 
     try:
-        print(f"[DEBUG] Calling Bedrock for COMBINED crop extraction + budget generation...")
-        print(f"[DEBUG] Model: us.amazon.nova-lite-v1:0 (optimized for speed)")
+        # Choose model based on API type
+        if USE_ANTHROPIC_DIRECT:
+            model_id = "claude-sonnet-4-6"
+            print(f"[DEBUG] Calling Anthropic Claude API for COMBINED crop extraction + budget generation...")
+            print(f"[DEBUG] Model: {model_id} (Claude Sonnet 4.6 - latest - direct API - best accuracy)")
+        else:
+            model_id = "us.amazon.nova-lite-v1:0"
+            print(f"[DEBUG] Calling Bedrock for COMBINED crop extraction + budget generation...")
+            print(f"[DEBUG] Model: {model_id} (optimized for speed)")
         
         # Add retry logic for throttling with exponential backoff
         import time
@@ -814,7 +856,7 @@ Now generate the complete analysis:"""
         for attempt in range(max_retries):
             try:
                 response = bedrock_client.converse(
-                    modelId="us.amazon.nova-lite-v1:0",  # Nova Lite - Fast and cost-effective
+                    modelId=model_id,
                     messages=[{"role": "user", "content": [{"text": prompt}]}],
                     inferenceConfig={"maxTokens": 3000, "temperature": 0.1}
                 )
@@ -1409,38 +1451,162 @@ def parse_ai_budget_enhanced(budget_text, crop_name, land_size):
     print(f"[DEBUG] Budget parsing complete - Total Cost: ₹{budget['total_cost']}, Profit: ₹{budget['expected_profit']}")
     print(f"[DEBUG] Feasibility: {budget['feasibility']}, Climate: {budget['climate_match']}")
     
-    # CRITICAL FIX: Multiply all costs and yields by land size
-    # AI provides costs for 1 acre, we need to scale to actual land size
+    # STEP 1: VALIDATION - Check yield and cost are realistic BEFORE scaling
+    print(f"[VALIDATION] ===== STEP 1: PRE-SCALING VALIDATION =====")
+    print(f"[VALIDATION] Checking yield realism for {budget.get('crop', 'unknown')} - {budget['expected_yield']} {budget.get('price_unit', 'quintal')}/acre")
+    
+    try:
+        from crop_yield_database import (
+            validate_yield, validate_roi, validate_cost, get_yield_range,
+            calculate_additional_costs, enforce_mathematical_accuracy, sanity_check_budget
+        )
+        
+        # Validate cost per acre (before scaling)
+        is_valid_cost, corrected_cost, cost_message = validate_cost(budget.get('crop', ''), budget['total_cost'])
+        print(f"[VALIDATION] Cost validation: {cost_message}")
+        
+        if not is_valid_cost:
+            print(f"[CRITICAL] ⚠️  UNREALISTIC COST DETECTED! Correcting from ₹{budget['total_cost']} to ₹{corrected_cost}")
+            # Proportionally adjust all cost components
+            cost_ratio = corrected_cost / budget['total_cost'] if budget['total_cost'] > 0 else 1
+            budget['seeds'] = int(budget['seeds'] * cost_ratio)
+            budget['fertilizer'] = int(budget['fertilizer'] * cost_ratio)
+            budget['pesticides'] = int(budget['pesticides'] * cost_ratio)
+            budget['irrigation'] = int(budget['irrigation'] * cost_ratio)
+            budget['labor'] = int(budget['labor'] * cost_ratio)
+            budget['machinery'] = int(budget['machinery'] * cost_ratio)
+            budget['total_cost'] = corrected_cost
+            print(f"[VALIDATION] Corrected Total Cost: ₹{budget['total_cost']:,}")
+        
+        # Validate yield per acre (before scaling)
+        is_valid, corrected_yield, message = validate_yield(budget.get('crop', ''), budget['expected_yield'])
+        print(f"[VALIDATION] Yield validation: {message}")
+        
+        if not is_valid:
+            print(f"[CRITICAL] ⚠️  UNREALISTIC YIELD DETECTED! Correcting from {budget['expected_yield']} to {corrected_yield}")
+            budget['expected_yield'] = corrected_yield
+            print(f"[VALIDATION] Corrected Yield: {corrected_yield}")
+        
+        # Validate ROI (before scaling)
+        # First calculate revenue with corrected values
+        budget['expected_revenue'] = budget['expected_yield'] * budget['expected_price']
+        budget['expected_profit'] = budget['expected_revenue'] - budget['total_cost']
+        
+        if budget['total_cost'] > 0:
+            roi = (budget['expected_profit'] / budget['total_cost']) * 100
+            is_valid_roi, roi_message = validate_roi(budget.get('crop', ''), roi)
+            print(f"[VALIDATION] ROI validation: {roi_message}")
+            
+            if not is_valid_roi:
+                print(f"[CRITICAL] ⚠️  UNREALISTIC ROI DETECTED! {roi:.0f}%")
+                # Get realistic yield range and use average
+                yield_range = get_yield_range(budget.get('crop', ''))
+                if yield_range:
+                    avg_yield = (yield_range['min'] + yield_range['max']) // 2
+                    print(f"[VALIDATION] Using average realistic yield: {avg_yield} {yield_range['unit']}/acre")
+                    budget['expected_yield'] = avg_yield
+                    budget['expected_revenue'] = avg_yield * budget['expected_price']
+                    budget['expected_profit'] = budget['expected_revenue'] - budget['total_cost']
+                    print(f"[VALIDATION] Corrected Revenue: ₹{budget['expected_revenue']:,}")
+                    print(f"[VALIDATION] Corrected Profit: ₹{budget['expected_profit']:,}")
+    except Exception as e:
+        print(f"[WARNING] Validation error: {e}")
+        import traceback
+        print(f"[WARNING] Traceback: {traceback.format_exc()}")
+    
+    # STEP 2: ADD MISSING COST COMPONENTS (harvesting, transport, etc.)
+    print(f"[VALIDATION] ===== STEP 2: ADDING MISSING COSTS =====")
+    try:
+        additional_costs = calculate_additional_costs(
+            budget.get('crop', ''),
+            budget['expected_yield'],
+            budget['total_cost']
+        )
+        
+        print(f"[VALIDATION] Additional costs calculated:")
+        for key, value in additional_costs.items():
+            if key != "total_additional" and value > 0:
+                print(f"[VALIDATION]   {key}: ₹{value:,}")
+                budget[key] = value
+        
+        # Add additional costs to total
+        budget['total_cost'] += additional_costs['total_additional']
+        print(f"[VALIDATION] Total cost after additional components: ₹{budget['total_cost']:,}")
+        
+        # Recalculate profit with new total cost
+        budget['expected_profit'] = budget['expected_revenue'] - budget['total_cost']
+        print(f"[VALIDATION] Profit after additional costs: ₹{budget['expected_profit']:,}")
+        
+    except Exception as e:
+        print(f"[WARNING] Additional costs calculation error: {e}")
+    
+    # STEP 3: SCALE TO LAND SIZE
+    print(f"[VALIDATION] ===== STEP 3: SCALING TO LAND SIZE =====")
     if land_size and land_size > 1:
-        print(f"[FIX] Multiplying costs and yields by land size: {land_size} acres")
+        print(f"[SCALING] Multiplying costs and yields by land size: {land_size} acres")
+        
+        # Store per-acre values for reference
+        budget['cost_per_acre'] = budget['total_cost']
+        budget['yield_per_acre'] = budget['expected_yield']
+        budget['profit_per_acre'] = budget['expected_profit']
+        
+        # Scale all costs
         budget['seeds'] *= land_size
         budget['fertilizer'] *= land_size
         budget['pesticides'] *= land_size
         budget['irrigation'] *= land_size
         budget['labor'] *= land_size
         budget['machinery'] *= land_size
+        budget['harvesting'] = budget.get('harvesting', 0) * land_size
+        budget['transport'] = budget.get('transport', 0) * land_size
+        budget['electricity_diesel'] = budget.get('electricity_diesel', 0) * land_size
+        budget['miscellaneous'] = budget.get('miscellaneous', 0) * land_size
+        budget['interest'] = budget.get('interest', 0) * land_size
         budget['total_cost'] *= land_size
+        
+        # Scale yield (price per unit stays the same)
         budget['expected_yield'] *= land_size
-        # Price per unit stays the same (it's per quintal/ton)
-        # Revenue and profit need recalculation
-        print(f"[FIX] Scaled Total Cost: ₹{budget['total_cost']:,}")
-        print(f"[FIX] Scaled Yield: {budget['expected_yield']} {budget.get('price_unit', 'quintal')}")
+        
+        print(f"[SCALING] Scaled Total Cost: ₹{budget['total_cost']:,}")
+        print(f"[SCALING] Scaled Yield: {budget['expected_yield']} {budget.get('price_unit', 'quintal')}")
+    else:
+        # Even for 1 acre, store per-acre values
+        budget['cost_per_acre'] = budget['total_cost']
+        budget['yield_per_acre'] = budget['expected_yield']
+        budget['profit_per_acre'] = budget['expected_profit']
     
-    # Validate math accuracy (after scaling)
-    calculated_revenue = budget['expected_yield'] * budget['expected_price']
-    calculated_profit = calculated_revenue - budget['total_cost']
+    # STEP 4: ENFORCE MATHEMATICAL ACCURACY
+    print(f"[VALIDATION] ===== STEP 4: MATHEMATICAL ENFORCEMENT =====")
+    try:
+        budget = enforce_mathematical_accuracy(budget)
+    except Exception as e:
+        print(f"[ERROR] Mathematical enforcement error: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
     
-    # Always correct revenue if there's a mismatch
-    if budget['expected_revenue'] != calculated_revenue and abs(budget['expected_revenue'] - calculated_revenue) > 100:
-        print(f"[WARNING] ⚠️  Revenue mismatch! AI: ₹{budget['expected_revenue']}, Calculated: ₹{calculated_revenue}")
-        print(f"[DEBUG] Correcting revenue: {budget['expected_yield']} × {budget['expected_price']} = ₹{calculated_revenue}")
-        budget['expected_revenue'] = calculated_revenue
-    
-    # Always correct profit if there's a mismatch
-    if budget['expected_profit'] != calculated_profit and abs(budget['expected_profit'] - calculated_profit) > 100:
-        print(f"[WARNING] ⚠️  Profit mismatch! AI: ₹{budget['expected_profit']}, Calculated: ₹{calculated_profit}")
-        print(f"[DEBUG] Correcting profit: ₹{calculated_revenue} - ₹{budget['total_cost']} = ₹{calculated_profit}")
-        budget['expected_profit'] = calculated_profit
+    # STEP 5: FINAL SANITY CHECK
+    print(f"[VALIDATION] ===== STEP 5: FINAL SANITY CHECK =====")
+    try:
+        is_sane, issues = sanity_check_budget(budget)
+        
+        if not is_sane:
+            print(f"[CRITICAL] ⚠️  SANITY CHECK FAILED!")
+            print(f"[CRITICAL] Issues: {', '.join(issues)}")
+            print(f"[CRITICAL] Using conservative estimates...")
+            
+            # Use conservative estimates
+            yield_range = get_yield_range(budget.get('crop', ''))
+            if yield_range:
+                # Use minimum yield for conservative estimate
+                conservative_yield_per_acre = yield_range['min']
+                budget['expected_yield'] = conservative_yield_per_acre * land_size
+                budget['yield_per_acre'] = conservative_yield_per_acre
+                
+                # Recalculate everything
+                budget = enforce_mathematical_accuracy(budget)
+                print(f"[CRITICAL] Applied conservative yield: {conservative_yield_per_acre} {yield_range['unit']}/acre")
+    except Exception as e:
+        print(f"[WARNING] Sanity check error: {e}")
     
     # Adjust feasibility based on profit
     if budget['expected_profit'] < 0:
@@ -1453,12 +1619,16 @@ def parse_ai_budget_enhanced(budget_text, crop_name, land_size):
             budget['feasibility'] = 'MODERATELY_SUITABLE'
             print(f"[DEBUG] Adjusted feasibility to MODERATELY_SUITABLE due to negative profit")
     
-    # Validate reasonable ROI
-    if budget['total_cost'] > 0:
-        roi = (budget['expected_profit'] / budget['total_cost']) * 100
-        if roi > 200:
-            print(f"[WARNING] ⚠️  Unrealistic ROI: {roi:.0f}% - AI may have inflated numbers")
-        print(f"[DEBUG] ROI: {roi:.0f}%")
+    print(f"[FINAL] ===== BUDGET VALIDATION COMPLETE =====")
+    print(f"[FINAL] Crop: {budget.get('crop', 'unknown')}")
+    print(f"[FINAL] Land Size: {land_size} acres")
+    print(f"[FINAL] Cost per acre: ₹{budget.get('cost_per_acre', 0):,}")
+    print(f"[FINAL] Yield per acre: {budget.get('yield_per_acre', 0)} {budget.get('price_unit', 'quintal')}")
+    print(f"[FINAL] Total Cost: ₹{budget['total_cost']:,}")
+    print(f"[FINAL] Total Revenue: ₹{budget['expected_revenue']:,}")
+    print(f"[FINAL] Total Profit: ₹{budget['expected_profit']:,}")
+    print(f"[FINAL] ROI: {budget.get('roi', 0):.1f}%")
+    print(f"[FINAL] ==========================================")
     
     return budget
 
