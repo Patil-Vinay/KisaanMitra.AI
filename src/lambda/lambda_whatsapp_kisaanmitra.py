@@ -81,36 +81,12 @@ except ImportError as e:
     REMINDERS_AVAILABLE = False
 
 try:
-    from sos_handler import handle_sos, get_helpline_numbers
-    SOS_AVAILABLE = True
-    print("✅ Emergency SOS loaded successfully")
-except ImportError as e:
-    print(f"❌ SOS handler not available: {e}")
-    SOS_AVAILABLE = False
-
-try:
-    from voice_handler import handle_voice_message
-    VOICE_AVAILABLE = True
-    print("✅ Voice Handler loaded successfully")
-except ImportError as e:
-    print(f"❌ Voice handler not available: {e}")
-    VOICE_AVAILABLE = False
-
-try:
     from weather_service import get_weather_forecast, analyze_weather_for_farming, format_weather_response
     WEATHER_AVAILABLE = True
     print("✅ Weather Service loaded successfully")
 except ImportError as e:
     print(f"❌ Weather service not available: {e}")
     WEATHER_AVAILABLE = False
-
-try:
-    from crop_comparison import compare_crops, format_comparison_table, suggest_crop_rotation
-    COMPARISON_AVAILABLE = True
-    print("✅ Crop Comparison loaded successfully")
-except ImportError as e:
-    print(f"❌ Crop comparison not available: {e}")
-    COMPARISON_AVAILABLE = False
 
 http = urllib3.PoolManager()
 
@@ -131,39 +107,29 @@ conversation_table = dynamodb.Table("kisaanmitra-conversations")
 market_data_table = dynamodb.Table("kisaanmitra-market-data")
 finance_table = dynamodb.Table("kisaanmitra-finance")
 
-# Language preferences (in-memory cache)
-user_language_preferences = {}
-
 def get_user_language(user_id):
-    """Get user's language preference"""
-    if user_id in user_language_preferences:
-        return user_language_preferences[user_id]
-    
-    # Try to get from DynamoDB
+    """Get user's language preference from DynamoDB (single source of truth)"""
     try:
         response = conversation_table.get_item(
             Key={'user_id': user_id, 'timestamp': 'language_preference'}
         )
         if 'Item' in response:
             lang = response['Item'].get('language', 'hindi')
-            user_language_preferences[user_id] = lang
             return lang
-    except:
-        pass
+    except Exception as e:
+        print(f"[ERROR] Failed to get language preference: {e}")
     
     return 'hindi'  # Default
 
 def set_user_language(user_id, language):
-    """Set user's language preference"""
-    user_language_preferences[user_id] = language
-    
-    # Save to DynamoDB
+    """Set user's language preference in DynamoDB"""
     try:
         conversation_table.put_item(Item={
             'user_id': user_id,
             'timestamp': 'language_preference',
             'language': language
         })
+        print(f"[LANGUAGE] Set {user_id} language to: {language}")
     except Exception as e:
         print(f"[ERROR] Failed to save language preference: {e}")
 
@@ -480,25 +446,19 @@ def fallback_keyword_routing(user_message):
     # Default - friendly chat
     return "general"
 
-def handle_greeting(user_id=None):
-    """Handle greetings with language selection"""
-    print(f"[DEBUG] ===== GREETING AGENT =====")
-    
-    # If interactive messages available, send language selection
-    if INTERACTIVE_MESSAGES_AVAILABLE:
-        print(f"[DEBUG] Sending language selection menu")
-        return "language_selection"  # Special flag
-    
-    # Fallback to text greeting
-    return "Hello! I'm Kisaan Mitra. Send 'English' or 'Hindi' to choose your language."
-
-def handle_crop_query(user_message):
-    """Handle crop-related text queries"""
+def handle_crop_query(user_message, language='hindi'):
+    """Handle crop-related text queries with language support"""
     print(f"[DEBUG] ===== CROP AGENT =====")
-    print(f"[DEBUG] Processing crop query: {user_message}")
-    system_prompt = """You are a helpful farming assistant. 
+    print(f"[DEBUG] Processing crop query: {user_message}, Language: {language}")
+    
+    if language == 'english':
+        system_prompt = """You are a helpful farming assistant. 
 Help farmers with crop diseases, pests, and treatments.
 Reply in simple English. Keep it short (2-3 sentences) and practical."""
+    else:
+        system_prompt = """आप एक सहायक कृषि सलाहकार हैं।
+किसानों को फसल रोग, कीट और उपचार में मदद करें।
+सरल हिंदी में जवाब दें। संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।"""
     
     result = ask_bedrock(user_message, system_prompt)
     print(f"[DEBUG] Crop agent response generated")
@@ -572,14 +532,19 @@ def analyze_price_trend(prices):
         "change_percent": round(change_pct, 2)
     }
 
-def handle_market_query(user_message):
-    """Handle market-related queries with AI state extraction"""
+def handle_market_query(user_message, language='hindi'):
+    """Handle market-related queries with AI state extraction and language support"""
     print(f"[DEBUG] ===== MARKET AGENT =====")
-    print(f"[DEBUG] Processing market query: {user_message}")
+    print(f"[DEBUG] Processing market query: {user_message}, Language: {language}")
     
-    system_prompt = """You are a market expert helping farmers.
+    if language == 'english':
+        system_prompt = """You are a market expert helping farmers.
 Provide market prices and trends in simple English.
 Keep it short (2-3 sentences) and practical."""
+    else:
+        system_prompt = """आप एक बाजार विशेषज्ञ हैं जो किसानों की मदद कर रहे हैं।
+सरल हिंदी में बाजार भाव और रुझान बताएं।
+संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।"""
     
     # Extract crop name
     common_crops = ["wheat", "rice", "cotton", "soybean", "onion", "potato", "tomato", "sugarcane"]
@@ -1769,14 +1734,21 @@ IMPORTANT: Always use ₹ (Rupee symbol) for Indian currency, never use $."""
     print(f"[DEBUG] Falling back to AI for general finance query")
     return ask_bedrock(user_message, system_prompt, context)
 
-def handle_general_query(user_message):
-    """Handle general queries - friendly conversation"""
+def handle_general_query(user_message, language='hindi'):
+    """Handle general queries - friendly conversation with language support"""
     print(f"[DEBUG] ===== GENERAL AGENT =====")
-    print(f"[DEBUG] Processing general query: {user_message}")
-    system_prompt = """You are Kisaan Mitra, a friendly farming assistant.
+    print(f"[DEBUG] Processing general query: {user_message}, Language: {language}")
+    
+    if language == 'english':
+        system_prompt = """You are Kisaan Mitra, a friendly farming assistant.
 Have a natural conversation in simple English.
 Be helpful and warm. Keep responses short (2-3 sentences).
 If they ask about farming problems, guide them to be specific."""
+    else:
+        system_prompt = """आप किसान मित्र हैं, एक मित्रवत कृषि सहायक।
+सरल हिंदी में स्वाभाविक बातचीत करें।
+सहायक और गर्मजोशी से रहें। जवाब संक्षिप्त (2-3 वाक्य) रखें।
+यदि वे खेती की समस्याओं के बारे में पूछें, तो उन्हें विशिष्ट होने के लिए मार्गदर्शन करें।"""
     
     result = ask_bedrock(user_message, system_prompt)
     print(f"[DEBUG] General agent response generated")
@@ -1994,15 +1966,12 @@ def lambda_handler(event, context):
                     send_whatsapp_message(from_number, help_msg, create_back_button(user_lang))
                     return {'statusCode': 200, 'body': 'ok'}
                 elif button_id == "sos":
-                    if SOS_AVAILABLE:
-                        sos_msg = handle_sos(from_number, "Button pressed", user_profile if not is_new_user else None)
-                        send_whatsapp_message(from_number, sos_msg)
+                    user_lang = get_user_language(from_number)
+                    if user_lang == 'english':
+                        sos_msg = "🆘 Emergency Help\n\nPlease describe your problem. We'll help immediately.\n\nOr call:\n📞 Kisan Helpline: 1800-180-1551"
                     else:
-                        if user_lang == 'english':
-                            sos_msg = "🆘 Emergency Help\n\nPlease describe your problem. We'll help immediately.\n\nOr call:\n📞 Kisan Helpline: 1800-180-1551"
-                        else:
-                            sos_msg = "🆘 आपातकालीन सहायता\n\nकृपया अपनी समस्या का वर्णन करें। हम तुरंत मदद करेंगे।\n\nया कॉल करें:\n📞 किसान हेल्पलाइन: 1800-180-1551"
-                        send_whatsapp_message(from_number, sos_msg)
+                        sos_msg = "🆘 आपातकालीन सहायता\n\nकृपया अपनी समस्या का वर्णन करें। हम तुरंत मदद करेंगे।\n\nया कॉल करें:\n📞 किसान हेल्पलाइन: 1800-180-1551"
+                    send_whatsapp_message(from_number, sos_msg)
                     return {'statusCode': 200, 'body': 'ok'}
             
             elif response_type == "list_reply":
@@ -2089,15 +2058,12 @@ def lambda_handler(event, context):
                     return {'statusCode': 200, 'body': 'ok'}
                 
                 elif list_id == "sos":
-                    if SOS_AVAILABLE:
-                        sos_msg = handle_sos(from_number, "Menu selection", user_profile if not is_new_user else None)
-                        send_whatsapp_message(from_number, sos_msg)
+                    user_lang = get_user_language(from_number)
+                    if user_lang == 'english':
+                        sos_msg = "🆘 *Emergency Help*\n\nPlease describe your problem. We'll help immediately.\n\n*Call Now*:\n📞 Kisan Helpline: 1800-180-1551\n📞 Agriculture Dept: 1800-180-1551"
                     else:
-                        if user_lang == 'english':
-                            sos_msg = "🆘 *Emergency Help*\n\nPlease describe your problem. We'll help immediately.\n\n*Call Now*:\n📞 Kisan Helpline: 1800-180-1551\n📞 Agriculture Dept: 1800-180-1551"
-                        else:
-                            sos_msg = "🆘 *आपातकालीन सहायता*\n\nकृपया अपनी समस्या का वर्णन करें। हम तुरंत मदद करेंगे।\n\n*अभी कॉल करें*:\n📞 किसान हेल्पलाइन: 1800-180-1551\n📞 कृषि विभाग: 1800-180-1551"
-                        send_whatsapp_message(from_number, sos_msg)
+                        sos_msg = "🆘 *आपातकालीन सहायता*\n\nकृपया अपनी समस्या का वर्णन करें। हम तुरंत मदद करेंगे।\n\n*अभी कॉल करें*:\n📞 किसान हेल्पलाइन: 1800-180-1551\n📞 कृषि विभाग: 1800-180-1551"
+                    send_whatsapp_message(from_number, sos_msg)
                     return {'statusCode': 200, 'body': 'ok'}
                 
                 # Handle crop selection for market prices
@@ -2188,18 +2154,34 @@ def lambda_handler(event, context):
             print(f"[INFO] 📨 User message: {user_message}")
             
             # ═══════════════════════════════════════════════════════════════
-            # SPECIAL CASE: "Hi" ALWAYS shows language selection & resets
+            # SPECIAL CASE: "Hi" shows menu for existing users, language selection for new
             # ═══════════════════════════════════════════════════════════════
             if user_message.strip().lower() in ['hi', 'hello', 'hey', 'start']:
-                print(f"[GREETING] User said '{user_message}' - Showing language selection")
+                print(f"[GREETING] User said '{user_message}'")
+                user_lang = get_user_language(from_number)
                 
-                # Delete existing profile and onboarding state to restart
+                # Show main menu for existing users
+                if INTERACTIVE_MESSAGES_AVAILABLE:
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                else:
+                    if user_lang == 'english':
+                        send_whatsapp_message(from_number, "Hello! How can I help you today?")
+                    else:
+                        send_whatsapp_message(from_number, "नमस्ते! मैं आपकी कैसे मदद कर सकता हूं?")
+                
+                print(f"[INFO] ✅ Main menu sent to existing user")
+                return {'statusCode': 200, 'body': 'ok'}
+            
+            # SPECIAL CASE: "reset" command to restart onboarding
+            if user_message.strip().lower() == 'reset':
+                print(f"[RESET] User requested reset")
+                
+                # Delete existing profile and onboarding state
                 if ONBOARDING_AVAILABLE:
                     try:
-                        # Delete from both tables
                         onboarding_manager.onboarding_table.delete_item(Key={"user_id": from_number})
                         onboarding_manager.profile_table.delete_item(Key={"user_id": from_number})
-                        print(f"[ONBOARDING] Deleted profile and state for re-onboarding")
+                        print(f"[ONBOARDING] Profile deleted for reset")
                     except Exception as e:
                         print(f"[ONBOARDING] Delete error: {e}")
                 
@@ -2209,7 +2191,7 @@ def lambda_handler(event, context):
                 else:
                     send_whatsapp_message(from_number, "Welcome! Send 'English' or 'Hindi' to choose language.")
                 
-                print(f"[INFO] ✅ Language selection sent")
+                print(f"[INFO] ✅ Reset complete, language selection sent")
                 return {'statusCode': 200, 'body': 'ok'}
             
             # ═══════════════════════════════════════════════════════════════
@@ -2278,30 +2260,29 @@ def lambda_handler(event, context):
             
             print(f"[DEBUG] Executing {agent} agent handler...")
             if agent == "greeting":
-                reply = handle_greeting(from_number)
-                # Special handling for language selection
-                if reply == "language_selection" and INTERACTIVE_MESSAGES_AVAILABLE:
-                    # Delete existing profile and onboarding state to restart
-                    if ONBOARDING_AVAILABLE:
-                        try:
-                            # Delete from both tables
-                            onboarding_manager.onboarding_table.delete_item(Key={"user_id": from_number})
-                            onboarding_manager.profile_table.delete_item(Key={"user_id": from_number})
-                            print(f"[ONBOARDING] Deleted profile and state - user said Hi")
-                        except Exception as e:
-                            print(f"[ONBOARDING] Delete error: {e}")
-                    
-                    send_whatsapp_message(from_number, None, create_language_selection())
-                    print(f"[INFO] ✅ Language selection sent")
-                    return {'statusCode': 200, 'body': 'ok'}
+                # For existing users, show main menu
+                user_lang = get_user_language(from_number)
+                if INTERACTIVE_MESSAGES_AVAILABLE:
+                    send_whatsapp_message(from_number, None, create_main_menu(user_lang))
+                else:
+                    if user_lang == 'english':
+                        reply = "Hello! How can I help you today?"
+                    else:
+                        reply = "नमस्ते! मैं आपकी कैसे मदद कर सकता हूं?"
+                    send_whatsapp_message(from_number, reply)
+                print(f"[INFO] ✅ Greeting handled")
+                return {'statusCode': 200, 'body': 'ok'}
             elif agent == "crop":
-                reply = handle_crop_query(user_message)
+                user_lang = get_user_language(from_number)
+                reply = handle_crop_query(user_message, user_lang)
             elif agent == "market":
-                reply = handle_market_query(user_message)
+                user_lang = get_user_language(from_number)
+                reply = handle_market_query(user_message, user_lang)
             elif agent == "finance":
                 reply = handle_finance_query(user_message, from_number)
             else:
-                reply = handle_general_query(user_message)
+                user_lang = get_user_language(from_number)
+                reply = handle_general_query(user_message, user_lang)
             
             print(f"[DEBUG] Agent execution complete, reply length: {len(reply)} chars")
             
@@ -2377,13 +2358,10 @@ def lambda_handler(event, context):
             
         elif msg_type == "audio" or msg_type == "voice":
             print(f"[VOICE] Voice/audio message received")
+            user_lang = get_user_language(from_number)
             
-            # ═══════════════════════════════════════════════════════════════
-            # FEATURE 3: Voice Message Support
-            # ═══════════════════════════════════════════════════════════════
-            if VOICE_AVAILABLE:
-                reply = handle_voice_message(from_number)
-                send_whatsapp_message(from_number, reply)
+            if user_lang == 'english':
+                send_whatsapp_message(from_number, "Please send your question as text or send a crop photo for disease detection.")
             else:
                 send_whatsapp_message(from_number, "कृपया अपना सवाल टेक्स्ट में लिखें या फसल की तस्वीर भेजें।")
             
