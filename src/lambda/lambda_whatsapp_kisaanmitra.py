@@ -2563,11 +2563,8 @@ def lambda_handler(event, context):
             if ENHANCED_DISEASE_DETECTION_AVAILABLE:
                 print(f"[ENHANCED DETECTION] Using advanced disease detection with confidence scoring...")
                 
-                # Detect disease with confidence - pass anthropic_client if available
-                if USE_ANTHROPIC_DIRECT:
-                    diagnosis = detect_disease_with_confidence(image_bytes, anthropic_client)
-                else:
-                    diagnosis = detect_disease_with_confidence(image_bytes, bedrock)
+                # Detect disease with confidence - pass bedrock client (works for both Anthropic and Bedrock)
+                diagnosis = detect_disease_with_confidence(image_bytes, bedrock)
                 
                 # Format response
                 reply = format_disease_response(diagnosis)
