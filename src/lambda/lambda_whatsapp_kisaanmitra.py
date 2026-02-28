@@ -112,12 +112,17 @@ AGMARKNET_API_KEY = os.environ.get("AGMARKNET_API_KEY")
 USE_ANTHROPIC_DIRECT = os.environ.get('USE_ANTHROPIC_DIRECT', 'true').lower() == 'true'
 
 if USE_ANTHROPIC_DIRECT:
-    print("[INIT] Using direct Anthropic Claude API")
+    print("[INIT] Using direct Anthropic Claude API for text")
     from anthropic_client import get_anthropic_client
     bedrock = get_anthropic_client()
+    # For image analysis, we need real AWS Bedrock (Anthropic wrapper doesn't support images)
+    # Use us-east-1 for cross-region inference with Claude 3.5 Sonnet
+    bedrock_for_images = boto3.client("bedrock-runtime", region_name="us-east-1")
+    print("[INIT] Using AWS Bedrock (us-east-1) for image analysis")
 else:
-    print("[INIT] Using AWS Bedrock")
+    print("[INIT] Using AWS Bedrock for all operations")
     bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")  # Cross-region inference
+    bedrock_for_images = bedrock  # Same client for both
 
 dynamodb = boto3.resource("dynamodb", region_name="ap-south-1")
 s3 = boto3.client("s3", region_name="ap-south-1")
@@ -490,10 +495,34 @@ def fallback_keyword_routing(user_message):
     print(f"[DEBUG] No specific keywords matched, routing to general agent")
     return "general"
 
-def handle_crop_query(user_message, user_id="unknown", language='hindi'):
-    """Handle crop-related text queries with language support"""
+def handle_crop_query(user_message, user_id="unknown", language='hindi', location=None):
+    """Handle crop-related text queries with language support and weather context"""
     print(f"[DEBUG] ===== CROP AGENT =====")
     print(f"[DEBUG] Processing crop query: {user_message}, Language: {language}")
+    
+    # Get weather context if location available
+    weather_context = ""
+    if WEATHER_AVAILABLE and location:
+        try:
+            print(f"[WEATHER] Fetching weather for {location}")
+            forecast = get_weather_forecast(location)
+            analysis = analyze_weather_for_farming(forecast)
+            
+            if language == 'english':
+                weather_context = f"\n\nCurrent Weather Context for {location}:\n"
+                weather_context += f"Temperature: {analysis['min_temp']}°C - {analysis['max_temp']}°C\n"
+                weather_context += f"Rain expected: {'Yes, in ' + str(analysis['days_until_rain']) + ' days' if analysis['rain_expected'] else 'No rain in next 3 days'}\n"
+                weather_context += "Weather advice: " + ", ".join(analysis['recommendations'])
+            else:
+                weather_context = f"\n\n{location} का मौसम:\n"
+                weather_context += f"तापमान: {analysis['min_temp']}°C - {analysis['max_temp']}°C\n"
+                weather_context += f"बारिश: {'हां, ' + str(analysis['days_until_rain']) + ' दिन में' if analysis['rain_expected'] else 'अगले 3 दिन में नहीं'}\n"
+                weather_context += "मौसम सलाह: " + ", ".join(analysis['recommendations'])
+            
+            print(f"[WEATHER] Weather context added")
+        except Exception as e:
+            print(f"[WEATHER ERROR] {e}")
+            weather_context = ""
     
     if language == 'english':
         system_prompt = """You are a helpful farming assistant. 
@@ -506,7 +535,10 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
 सरल हिंदी में जवाब दें। संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।
 अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
-    result = ask_bedrock(user_message, system_prompt)
+    # Add weather context to user message if available
+    enhanced_message = user_message + weather_context if weather_context else user_message
+    
+    result = ask_bedrock(enhanced_message, system_prompt)
     
     # Add navigation text
     if INTERACTIVE_MESSAGES_AVAILABLE:
@@ -1723,35 +1755,53 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         else:
             print(f"[DEBUG] No land size specified, using default: 1 acre")
 
-        # Extract location using regex (prioritize last match to avoid month names)
-        location = "Maharashtra"  # Default
-        location_patterns = [
-            r'farm\s+in\s+(\w+)',  # Most specific first
-            r'location\s+is\s+(\w+)',
-            r'at\s+(\w+)',
-            r'from\s+(\w+)',
-            r'in\s+(\w+)',  # Most generic last
-        ]
+        # Try to get location from user profile first
+        location = None
+        if ONBOARDING_AVAILABLE and user_id != "unknown":
+            try:
+                from onboarding.farmer_onboarding import onboarding_manager
+                profile = onboarding_manager.get_user_profile(user_id)
+                if profile and profile.get('village'):
+                    location = profile.get('village')
+                    print(f"[DEBUG] ✅ Using profile location: {location}")
+            except Exception as e:
+                print(f"[DEBUG] Could not fetch profile location: {e}")
         
-        months = ["january", "february", "march", "april", "may", "june", 
-                  "july", "august", "september", "october", "november", "december",
-                  "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
-        
-        # Find ALL matches and use the LAST valid one (to skip "in March" and get "in Kolhapur")
-        all_matches = []
-        for pattern in location_patterns:
-            matches = re.finditer(pattern, message_lower, re.IGNORECASE)
-            for match in matches:
-                extracted = match.group(1).lower()
-                if extracted not in months:
-                    all_matches.append(extracted)
-        
-        if all_matches:
-            # Use the LAST match (most likely the actual location)
-            location = all_matches[-1].title()
-            print(f"[DEBUG] ✅ Extracted city/location: {location} (from {len(all_matches)} candidates)")
-        else:
-            print(f"[DEBUG] No city extracted, using default: Maharashtra")
+        # If no profile location, extract from message
+        if not location:
+            # Extract location using regex (prioritize last match to avoid month names)
+            location = "Maharashtra"  # Default
+            location_patterns = [
+                r'farm\s+in\s+(\w+)',  # Most specific first
+                r'location\s+is\s+(\w+)',
+                r'at\s+(\w+)',
+                r'from\s+(\w+)',
+                r'in\s+(\w+)',  # Most generic last
+            ]
+            
+            months = ["january", "february", "march", "april", "may", "june", 
+                      "july", "august", "september", "october", "november", "december",
+                      "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+            
+            # Common English words to ignore (articles, prepositions, etc.)
+            ignore_words = ["an", "a", "the", "of", "for", "with", "on", "at", "to", "by", 
+                            "area", "land", "farm", "field", "acre", "acres", "hectare", "hectares"]
+            
+            # Find ALL matches and use the LAST valid one (to skip "in March" and get "in Kolhapur")
+            all_matches = []
+            for pattern in location_patterns:
+                matches = re.finditer(pattern, message_lower, re.IGNORECASE)
+                for match in matches:
+                    extracted = match.group(1).lower()
+                    if extracted not in months and extracted not in ignore_words:
+                        all_matches.append(extracted)
+            
+            if all_matches:
+                # Use the LAST match (most likely the actual location)
+                location = all_matches[-1].title()
+                print(f"[DEBUG] ✅ Extracted city/location from message: {location} (from {len(all_matches)} candidates)")
+            else:
+                print(f"[DEBUG] No city extracted, using default: Maharashtra")
         
         print(f"[INFO] 📍 Location: {location}, Land: {land_size} acre(s)")
         print(f"[INFO] 📊 Generating budget with AI (single call)...")
@@ -1896,6 +1946,49 @@ def handle_general_query(user_message, language='hindi'):
     """Handle general queries - friendly conversation with language support (optimized)"""
     print(f"[DEBUG] ===== GENERAL AGENT =====")
     print(f"[DEBUG] Processing general query: {user_message}, Language: {language}")
+    
+    # Check if this is a weather query
+    message_lower = user_message.lower()
+    weather_keywords = ['weather', 'mausam', 'मौसम', 'forecast', 'temperature', 'rain', 'बारिश']
+    
+    if any(kw in message_lower for kw in weather_keywords) and WEATHER_AVAILABLE:
+        print(f"[WEATHER] Weather query detected in general agent")
+        
+        # Extract city name from message
+        import re
+        # Try to extract city name after "in", "for", "of", or common city names
+        city_match = re.search(r'(?:in|for|of)\s+([a-zA-Z\s]+)', user_message, re.IGNORECASE)
+        
+        if city_match:
+            location = city_match.group(1).strip()
+        else:
+            # Try to find known city names
+            known_cities = list(CITY_TO_STATE.keys())
+            location = None
+            for city in known_cities:
+                if city in message_lower:
+                    location = city.title()
+                    break
+            
+            if not location:
+                location = "Pune"  # Default
+        
+        print(f"[WEATHER] Extracted location: {location}")
+        
+        try:
+            weather = get_weather_forecast(location)
+            weather_analysis = analyze_weather_for_farming(weather)
+            result = format_weather_response(location, weather_analysis)
+            
+            # Add navigation text
+            if INTERACTIVE_MESSAGES_AVAILABLE:
+                result = add_navigation_text(result, language)
+            
+            print(f"[WEATHER] Weather response generated")
+            return result
+        except Exception as e:
+            print(f"[WEATHER ERROR] {e}")
+            # Fall through to general AI response
     
     if language == 'english':
         system_prompt = """You are Kisaan Mitra, a friendly farming assistant.
@@ -2237,20 +2330,47 @@ def lambda_handler(event, context):
                     return {'statusCode': 200, 'body': 'ok'}
                 
                 elif list_id == "weather":
-                    # Get user's location (default to Maharashtra if no profile)
-                    location = 'Maharashtra'
+                    # Get user's location from profile, or ask if not available
+                    user_lang = get_user_language(from_number)
                     
-                    if WEATHER_AVAILABLE:
+                    # Try to get user's village from profile
+                    user_location = None
+                    if ONBOARDING_AVAILABLE:
                         try:
-                            weather = get_weather_forecast(location)
+                            from onboarding.farmer_onboarding import onboarding_manager
+                            profile = onboarding_manager.get_user_profile(from_number)
+                            if profile and profile.get('village'):
+                                user_location = profile.get('village')
+                                print(f"[WEATHER] Using profile location: {user_location}")
+                        except Exception as e:
+                            print(f"[WEATHER] Could not fetch profile: {e}")
+                    
+                    # If we have user's location, show weather directly
+                    if user_location and WEATHER_AVAILABLE:
+                        try:
+                            weather = get_weather_forecast(user_location)
                             weather_analysis = analyze_weather_for_farming(weather)
-                            reply = format_weather_response(location, weather_analysis)
-                            send_whatsapp_message(from_number, reply, create_back_button(user_lang))
-                        except:
-                            if user_lang == 'english':
-                                send_whatsapp_message(from_number, "Weather service temporarily unavailable. Please try again later.")
-                            else:
-                                send_whatsapp_message(from_number, "मौसम सेवा अस्थायी रूप से अनुपलब्ध है। कृपया बाद में पुनः प्रयास करें।")
+                            reply = format_weather_response(user_location, weather_analysis)
+                            send_whatsapp_message(from_number, reply)
+                            return {'statusCode': 200, 'body': 'ok'}
+                        except Exception as e:
+                            print(f"[WEATHER ERROR] {e}")
+                            # Fall through to ask for location
+                    
+                    # If no location in profile, ask user
+                    if user_lang == 'english':
+                        prompt_msg = "🌤️ *Weather Forecast*\n\nWhich city do you want weather for?\n\nJust type your city name:\n• Pune\n• Mumbai\n• Nashik\n• Kolhapur\n• Any city in India!"
+                    else:
+                        prompt_msg = "🌤️ *मौसम पूर्वानुमान*\n\nआप किस शहर का मौसम जानना चाहते हैं?\n\nबस अपने शहर का नाम लिखें:\n• पुणे\n• मुंबई\n• नाशिक\n• कोल्हापुर\n• भारत का कोई भी शहर!"
+                    
+                    # Set user state to awaiting weather location
+                    try:
+                        from user_state_manager import set_user_state
+                        set_user_state(from_number, 'awaiting_weather_location', {'service': 'weather'})
+                    except:
+                        pass
+                    
+                    send_whatsapp_message(from_number, prompt_msg)
                     return {'statusCode': 200, 'body': 'ok'}
                 
                 elif list_id == "sos":
@@ -2294,15 +2414,33 @@ def lambda_handler(event, context):
             
             if msg_type == "text":
                 user_message = msg["text"]["body"]
-                response, is_completed = onboarding_manager.process_onboarding_message(from_number, user_message)
-                send_whatsapp_message(from_number, response)
                 
-                # If onboarding completed, add to knowledge graph
-                if is_completed:
-                    profile = onboarding_manager.get_user_profile(from_number)
-                    if profile:
-                        knowledge_graph.add_farmer_to_graph(profile)
-                        print(f"✅ Onboarding completed! Added {profile.get('name')} to knowledge graph")
+                # Import onboarding_manager locally to avoid scope issues
+                if ONBOARDING_AVAILABLE:
+                    try:
+                        from onboarding.farmer_onboarding import onboarding_manager
+                        response, is_completed = onboarding_manager.process_onboarding_message(from_number, user_message)
+                        send_whatsapp_message(from_number, response)
+                        
+                        # If onboarding completed, add to knowledge graph
+                        if is_completed:
+                            profile = onboarding_manager.get_user_profile(from_number)
+                            if profile:
+                                knowledge_graph.add_farmer_to_graph(profile)
+                                print(f"✅ Onboarding completed! Added {profile.get('name')} to knowledge graph")
+                                
+                                # Clear any pending states after onboarding
+                                try:
+                                    from user_state_manager import clear_user_state
+                                    clear_user_state(from_number)
+                                    print(f"[STATE] Cleared pending states after onboarding completion")
+                                except:
+                                    pass
+                    except Exception as e:
+                        print(f"[ONBOARDING ERROR] {e}")
+                        send_whatsapp_message(from_number, "Sorry, there was an error. Please try again.")
+                else:
+                    send_whatsapp_message(from_number, "Onboarding not available. Please contact support.")
                 
                 return {'statusCode': 200, 'body': 'ok'}
             else:
@@ -2321,15 +2459,33 @@ def lambda_handler(event, context):
             
             if msg_type == "text":
                 user_message = msg["text"]["body"]
-                response, is_completed = onboarding_manager.process_onboarding_message(from_number, user_message)
-                send_whatsapp_message(from_number, response)
                 
-                # If onboarding completed, add to knowledge graph
-                if is_completed:
-                    profile = onboarding_manager.get_user_profile(from_number)
-                    if profile:
-                        knowledge_graph.add_farmer_to_graph(profile)
-                        print(f"✅ Onboarding completed! Added {profile.get('name')} to knowledge graph")
+                # Import onboarding_manager locally to avoid scope issues
+                if ONBOARDING_AVAILABLE:
+                    try:
+                        from onboarding.farmer_onboarding import onboarding_manager
+                        response, is_completed = onboarding_manager.process_onboarding_message(from_number, user_message)
+                        send_whatsapp_message(from_number, response)
+                        
+                        # If onboarding completed, add to knowledge graph
+                        if is_completed:
+                            profile = onboarding_manager.get_user_profile(from_number)
+                            if profile:
+                                knowledge_graph.add_farmer_to_graph(profile)
+                                print(f"✅ Onboarding completed! Added {profile.get('name')} to knowledge graph")
+                                
+                                # Clear any pending states after onboarding
+                                try:
+                                    from user_state_manager import clear_user_state
+                                    clear_user_state(from_number)
+                                    print(f"[STATE] Cleared pending states after onboarding completion")
+                                except:
+                                    pass
+                    except Exception as e:
+                        print(f"[ONBOARDING ERROR] {e}")
+                        send_whatsapp_message(from_number, "Sorry, there was an error. Please try again.")
+                else:
+                    send_whatsapp_message(from_number, "Onboarding not available. Please contact support.")
                 
                 return {'statusCode': 200, 'body': 'ok'}
             else:
@@ -2461,10 +2617,67 @@ def lambda_handler(event, context):
                 user_state = get_user_state(from_number)
                 
                 if user_state and user_state.get('state'):
+                    state_name = user_state['state']
+                    
+                    # Handle weather location state
+                    if state_name == 'awaiting_weather_location':
+                        print(f"[WEATHER] User in weather state, message: {user_message}")
+                        user_lang = get_user_language(from_number)
+                        
+                        # Check if user is asking for weather (not providing a city name)
+                        weather_intent_keywords = ['weather', 'mausam', 'मौसम', 'forecast', 'report', 'बताओ', 'दिखाओ', 'give me', 'show me']
+                        is_weather_query = any(kw in user_message.lower() for kw in weather_intent_keywords)
+                        
+                        # If it's a weather query (not a city name), try to use profile location
+                        if is_weather_query:
+                            print(f"[WEATHER] Detected weather query, checking profile for location")
+                            user_location = None
+                            
+                            # Try to get user's village from profile
+                            if ONBOARDING_AVAILABLE:
+                                try:
+                                    from onboarding.farmer_onboarding import onboarding_manager
+                                    profile = onboarding_manager.get_user_profile(from_number)
+                                    if profile and profile.get('village'):
+                                        user_location = profile.get('village')
+                                        print(f"[WEATHER] Using profile location: {user_location}")
+                                except Exception as e:
+                                    print(f"[WEATHER] Could not fetch profile: {e}")
+                            
+                            # If we have location from profile, use it
+                            if user_location:
+                                user_message = user_location
+                                print(f"[WEATHER] Using profile village: {user_location}")
+                            else:
+                                # No profile location, ask user to provide city
+                                if user_lang == 'english':
+                                    send_whatsapp_message(from_number, "Please type your city name (e.g., Pune, Mumbai, Nashik)")
+                                else:
+                                    send_whatsapp_message(from_number, "कृपया अपने शहर का नाम लिखें (जैसे: पुणे, मुंबई, नाशिक)")
+                                return {'statusCode': 200, 'body': 'ok'}
+                        
+                        # Get weather for the provided/detected location
+                        if WEATHER_AVAILABLE:
+                            try:
+                                weather = get_weather_forecast(user_message)
+                                weather_analysis = analyze_weather_for_farming(weather)
+                                reply = format_weather_response(user_message, weather_analysis)
+                                send_whatsapp_message(from_number, reply)
+                            except Exception as e:
+                                print(f"[WEATHER ERROR] {e}")
+                                if user_lang == 'english':
+                                    send_whatsapp_message(from_number, f"Sorry, couldn't get weather for '{user_message}'. Please try another city name.")
+                                else:
+                                    send_whatsapp_message(from_number, f"क्षमा करें, '{user_message}' के लिए मौसम नहीं मिला। कृपया दूसरा शहर नाम आज़माएं।")
+                        
+                        # Clear state
+                        clear_user_state(from_number)
+                        return {'statusCode': 200, 'body': 'ok'}
+                    
                     # User has a pending state, route directly to appropriate agent
-                    agent = get_agent_from_state(user_state['state'])
+                    agent = get_agent_from_state(state_name)
                     if agent:
-                        print(f"[STATE ROUTING] User in state '{user_state['state']}', routing to {agent.upper()} agent")
+                        print(f"[STATE ROUTING] User in state '{state_name}', routing to {agent.upper()} agent")
                         # Clear state after routing
                         clear_user_state(from_number)
                         # Skip AI orchestrator, go directly to agent
@@ -2516,7 +2729,22 @@ def lambda_handler(event, context):
                 print(f"[INFO] ✅ Greeting handled")
                 return {'statusCode': 200, 'body': 'ok'}
             elif agent == "crop":
-                reply = handle_crop_query(user_message, from_number, user_lang)
+                # Get user location for weather context
+                user_location = None
+                try:
+                    # Try to get location from user message or default to Maharashtra
+                    user_location = extract_state_with_ai(user_message, bedrock)
+                    if user_location and user_location in CITY_TO_STATE.values():
+                        # Use state name as location
+                        user_location = user_location
+                    else:
+                        # Default to a major city in Maharashtra
+                        user_location = "Pune"
+                    print(f"[WEATHER] Using location: {user_location}")
+                except:
+                    user_location = "Pune"  # Fallback
+                
+                reply = handle_crop_query(user_message, from_number, user_lang, location=user_location)
             elif agent == "market":
                 reply = handle_market_query(user_message, user_lang)
             elif agent == "finance":
@@ -2563,11 +2791,15 @@ def lambda_handler(event, context):
             if ENHANCED_DISEASE_DETECTION_AVAILABLE:
                 print(f"[ENHANCED DETECTION] Using advanced disease detection with confidence scoring...")
                 
-                # Detect disease with confidence - pass bedrock client (works for both Anthropic and Bedrock)
-                diagnosis = detect_disease_with_confidence(image_bytes, bedrock)
+                # Get user's language preference
+                user_lang = get_user_language(from_number)
+                print(f"[ENHANCED DETECTION] User language: {user_lang}")
                 
-                # Format response
-                reply = format_disease_response(diagnosis)
+                # Use real Bedrock client for image analysis (not the Anthropic wrapper)
+                diagnosis = detect_disease_with_confidence(image_bytes, bedrock_for_images)
+                
+                # Format response in user's language
+                reply = format_disease_response(diagnosis, language=user_lang)
                 
                 # Save to history for tracking
                 save_disease_detection(from_number, diagnosis, conversation_table)
@@ -2586,20 +2818,17 @@ def lambda_handler(event, context):
             
             print(f"[INFO] ✅ Image analysis completed successfully")
             
-        elif msg_type == "audio" or msg_type == "voice":
-            print(f"[VOICE] Voice/audio message received")
+        else:
+            # Unsupported message type (audio, voice, video, document, etc.)
+            print(f"[WARNING] Unsupported message type: {msg_type}")
             user_lang = get_user_language(from_number)
             
             if user_lang == 'english':
-                send_whatsapp_message(from_number, "Please send your question as text or send a crop photo for disease detection.")
+                send_whatsapp_message(from_number, "Sorry, I only support text messages and crop images. Please send your question as text.")
             else:
-                send_whatsapp_message(from_number, "कृपया अपना सवाल टेक्स्ट में लिखें या फसल की तस्वीर भेजें।")
+                send_whatsapp_message(from_number, "क्षमा करें, मैं केवल टेक्स्ट संदेश और फसल की तस्वीरें समर्थन करता हूं। कृपया अपना सवाल टेक्स्ट में भेजें।")
             
-            print(f"[INFO] ✅ Voice message handled")
-            
-        else:
-            print(f"[DEBUG] Unsupported message type: {msg_type}")
-            send_whatsapp_message(from_number, "Please send a text message or crop image for disease detection.")
+            print(f"[INFO] ✅ Unsupported message type handled")
     
     except Exception as e:
         print(f"[ERROR] ❌ Lambda execution error: {e}")

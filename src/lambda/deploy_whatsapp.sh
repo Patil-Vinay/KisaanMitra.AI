@@ -49,18 +49,18 @@ else
     zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py user_state_manager.py navigation_controller.py crop_yield_database.py anthropic_client.py 2>/dev/null || echo "⚠️  Some feature modules not found"
     
     # Add onboarding and knowledge_graph modules
-    if [ -d "deployment_package/onboarding" ]; then
+    if [ -d "../onboarding" ]; then
         echo "📦 Including onboarding module..."
-        cd deployment_package
-        zip -r -q ../whatsapp_deployment.zip onboarding/
         cd ..
+        zip -r -q lambda/whatsapp_deployment.zip onboarding/
+        cd lambda
     fi
     
-    if [ -d "deployment_package/knowledge_graph" ]; then
+    if [ -d "../knowledge_graph" ]; then
         echo "📦 Including knowledge_graph module..."
-        cd deployment_package
-        zip -r -q ../whatsapp_deployment.zip knowledge_graph/
         cd ..
+        zip -r -q lambda/whatsapp_deployment.zip knowledge_graph/
+        cd lambda
     fi
 fi
 

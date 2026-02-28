@@ -15,7 +15,7 @@ bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 
 # Tables
 ONBOARDING_TABLE = "kisaanmitra-onboarding"
-USER_PROFILE_TABLE = "kisaanmitra-user-profiles"
+USER_PROFILE_TABLE = "kisaanmitra-farmer-profiles"  # Fixed: was kisaanmitra-user-profiles
 CONVERSATION_TABLE = "kisaanmitra-conversations"
 
 

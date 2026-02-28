@@ -11,9 +11,11 @@ import base64
 import os
 
 
-def detect_disease_with_confidence(image_data, anthropic_client=None):
+def detect_disease_with_confidence(image_data, bedrock_client=None):
     """
-    Enhanced disease detection with confidence scores using Anthropic Claude API
+    Enhanced disease detection with confidence scores using AWS Bedrock
+    (Anthropic direct API doesn't support images yet)
+    
     Returns: {
         primary_disease, 
         confidence, 
@@ -61,99 +63,54 @@ def detect_disease_with_confidence(image_data, anthropic_client=None):
 Analyze the image now:"""
 
     try:
-        # Prepare image for API
+        # Convert image to bytes if needed
         if isinstance(image_data, str):
-            # If base64 string
-            image_base64 = image_data
+            image_bytes = base64.b64decode(image_data)
         else:
-            # Convert bytes to base64
-            image_base64 = base64.b64encode(image_data).decode('utf-8')
+            image_bytes = image_data
         
-        print(f"[DISEASE DETECTION] Calling Anthropic Claude API with image...")
+        print(f"[DISEASE DETECTION] Using AWS Bedrock for image analysis (image size: {len(image_bytes)} bytes)")
         
-        # Check if we should use Anthropic direct API
-        use_anthropic_direct = os.environ.get('USE_ANTHROPIC_DIRECT', 'false').lower() == 'true'
-        
-        if use_anthropic_direct and anthropic_client:
-            print(f"[DISEASE DETECTION] Using direct Anthropic API")
-            # Use Anthropic direct API
-            response = anthropic_client.converse(
-                model="claude-sonnet-4-6",
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/jpeg",
-                                "data": image_base64
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": prompt
-                        }
-                    ]
-                }],
-                max_tokens=2000,
-                temperature=0.2
-            )
-            
-            print(f"[DISEASE DETECTION] Anthropic API response received")
-            
-            # Extract text from Anthropic response
-            if hasattr(response, 'content') and len(response.content) > 0:
-                result_text = response.content[0].text.strip()
-            else:
-                print(f"[DISEASE DETECTION ERROR] Invalid Anthropic response structure")
-                raise ValueError("Invalid Anthropic response structure")
-        else:
-            print(f"[DISEASE DETECTION] Using AWS Bedrock")
-            # Use AWS Bedrock (fallback)
+        # Use the bedrock client passed from Lambda (already initialized)
+        if bedrock_client is None:
             import boto3
-            bedrock = boto3.client('bedrock-runtime', region_name='ap-south-1')
-            
-            # Convert base64 back to bytes for Bedrock
-            if isinstance(image_data, str):
-                image_bytes = base64.b64decode(image_data)
-            else:
-                image_bytes = image_data
-            
-            response = bedrock.converse(
-                modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {
-                            "image": {
-                                "format": "jpeg",
-                                "source": {"bytes": image_bytes}
-                            }
-                        },
-                        {"text": prompt}
-                    ]
-                }],
-                inferenceConfig={"maxTokens": 2000, "temperature": 0.2}
-            )
-            
-            print(f"[DISEASE DETECTION] Bedrock response received")
-            
-            # Extract text from Bedrock response
-            if "output" in response and "message" in response["output"]:
-                content = response["output"]["message"]["content"]
-                if isinstance(content, list) and len(content) > 0:
-                    if "text" in content[0]:
-                        result_text = content[0]["text"].strip()
-                    else:
-                        print(f"[DISEASE DETECTION ERROR] No 'text' field in content[0]: {content[0].keys()}")
-                        raise ValueError("No text field in response")
+            bedrock_client = boto3.client('bedrock-runtime', region_name='us-east-1')
+            print(f"[DISEASE DETECTION] Created fallback Bedrock client (us-east-1)")
+        
+        response = bedrock_client.converse(
+            modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "image": {
+                            "format": "jpeg",
+                            "source": {"bytes": image_bytes}
+                        }
+                    },
+                    {"text": prompt}
+                ]
+            }],
+            inferenceConfig={"maxTokens": 2000, "temperature": 0.2}
+        )
+        
+        print(f"[DISEASE DETECTION] Bedrock response received")
+        
+        # Extract text from Bedrock response
+        if "output" in response and "message" in response["output"]:
+            content = response["output"]["message"]["content"]
+            if isinstance(content, list) and len(content) > 0:
+                if "text" in content[0]:
+                    result_text = content[0]["text"].strip()
                 else:
-                    print(f"[DISEASE DETECTION ERROR] Invalid content structure: {content}")
-                    raise ValueError("Invalid content structure")
+                    print(f"[DISEASE DETECTION ERROR] No 'text' field in content[0]: {content[0].keys()}")
+                    raise ValueError("No text field in response")
             else:
-                print(f"[DISEASE DETECTION ERROR] Invalid response structure: {response.keys()}")
-                raise ValueError("Invalid response structure")
+                print(f"[DISEASE DETECTION ERROR] Invalid content structure: {content}")
+                raise ValueError("Invalid content structure")
+        else:
+            print(f"[DISEASE DETECTION ERROR] Invalid response structure: {response.keys()}")
+            raise ValueError("Invalid response structure")
         
         # Extract JSON
         if "```json" in result_text:
@@ -187,7 +144,7 @@ Analyze the image now:"""
         }
 
 
-def format_disease_response(diagnosis):
+def format_disease_response(diagnosis, language='hindi'):
     """Format disease diagnosis into user-friendly message"""
     
     confidence = diagnosis['confidence']
@@ -195,13 +152,13 @@ def format_disease_response(diagnosis):
     # Confidence indicator
     if confidence >= 0.8:
         confidence_emoji = "🟢"
-        confidence_text = "उच्च विश्वास"
+        confidence_text = "High Confidence" if language == 'english' else "उच्च विश्वास"
     elif confidence >= 0.6:
         confidence_emoji = "🟡"
-        confidence_text = "मध्यम विश्वास"
+        confidence_text = "Medium Confidence" if language == 'english' else "मध्यम विश्वास"
     else:
         confidence_emoji = "🔴"
-        confidence_text = "कम विश्वास"
+        confidence_text = "Low Confidence" if language == 'english' else "कम विश्वास"
     
     # Urgency indicator
     urgency_emoji = {
@@ -210,56 +167,109 @@ def format_disease_response(diagnosis):
         "routine": "ℹ️"
     }.get(diagnosis.get('urgency', 'routine'), "ℹ️")
     
-    message = f"{confidence_emoji} *फसल रोग निदान*\n\n"
-    message += f"*रोग*: {diagnosis['primary_disease_hindi']}\n"
-    message += f"*विश्वास स्तर*: {confidence_text} ({int(confidence*100)}%)\n"
-    message += f"*गंभीरता*: {diagnosis.get('severity', 'unknown')}\n"
-    message += f"{urgency_emoji} *तात्कालिकता*: {diagnosis.get('urgency', 'routine')}\n\n"
-    
-    # Symptoms
-    if diagnosis.get('symptoms_observed'):
-        message += "*लक्षण देखे गए*:\n"
-        for symptom in diagnosis['symptoms_observed'][:3]:
-            message += f"• {symptom}\n"
-        message += "\n"
-    
-    # Treatments
-    if diagnosis.get('treatments'):
-        message += "*💊 उपचार (सफलता दर के अनुसार)*:\n\n"
-        for i, treatment in enumerate(diagnosis['treatments'][:3], 1):
-            success_rate = int(treatment.get('success_rate', 0) * 100)
-            message += f"{i}. *{treatment['method_hindi']}*\n"
-            message += f"   ✅ सफलता: {success_rate}%\n"
-            message += f"   💰 लागत: {treatment.get('cost_estimate', 'N/A')}\n"
-            message += f"   📝 {treatment.get('application', '')}\n\n"
-    
-    # Alternative diseases
-    if diagnosis.get('alternative_diseases') and confidence < 0.8:
-        message += "*🔍 अन्य संभावनाएं*:\n"
-        for alt in diagnosis['alternative_diseases'][:2]:
-            prob = int(alt.get('probability', 0) * 100)
-            message += f"• {alt['name']} ({prob}%)\n"
-        message += "\n"
-    
-    # Preventive measures
-    if diagnosis.get('preventive_measures'):
-        message += "*🛡️ रोकथाम*:\n"
-        for measure in diagnosis['preventive_measures'][:3]:
-            message += f"• {measure}\n"
-        message += "\n"
-    
-    # Follow-up questions if low confidence
-    if confidence < 0.7 and diagnosis.get('follow_up_questions'):
-        message += "*❓ बेहतर निदान के लिए*:\n"
-        for question in diagnosis['follow_up_questions'][:2]:
-            message += f"• {question}\n"
-        message += "\n"
-    
-    # Confidence warning
-    if confidence < 0.6:
-        message += "⚠️ *चेतावनी*: कम विश्वास स्तर। कृपया स्थानीय कृषि विशेषज्ञ से संपर्क करें।\n\n"
-    
-    message += "💡 *सुझाव*: उपचार से पहले छोटे क्षेत्र में परीक्षण करें।"
+    if language == 'english':
+        message = f"{confidence_emoji} *Crop Disease Diagnosis*\n\n"
+        message += f"*Disease*: {diagnosis['primary_disease']}\n"
+        message += f"*Confidence Level*: {confidence_text} ({int(confidence*100)}%)\n"
+        message += f"*Severity*: {diagnosis.get('severity', 'unknown')}\n"
+        message += f"{urgency_emoji} *Urgency*: {diagnosis.get('urgency', 'routine')}\n\n"
+        
+        # Symptoms
+        if diagnosis.get('symptoms_observed'):
+            message += "*Symptoms Observed*:\n"
+            for symptom in diagnosis['symptoms_observed'][:3]:
+                message += f"• {symptom}\n"
+            message += "\n"
+        
+        # Treatments
+        if diagnosis.get('treatments'):
+            message += "*💊 Treatments (by success rate)*:\n\n"
+            for i, treatment in enumerate(diagnosis['treatments'][:3], 1):
+                success_rate = int(treatment.get('success_rate', 0) * 100)
+                message += f"{i}. *{treatment['method']}*\n"
+                message += f"   ✅ Success Rate: {success_rate}%\n"
+                message += f"   💰 Cost: {treatment.get('cost_estimate', 'N/A')}\n"
+                message += f"   📝 {treatment.get('application', '')}\n\n"
+        
+        # Alternative diseases
+        if diagnosis.get('alternative_diseases') and confidence < 0.8:
+            message += "*🔍 Other Possibilities*:\n"
+            for alt in diagnosis['alternative_diseases'][:2]:
+                prob = int(alt.get('probability', 0) * 100)
+                message += f"• {alt['name']} ({prob}%)\n"
+            message += "\n"
+        
+        # Preventive measures
+        if diagnosis.get('preventive_measures'):
+            message += "*🛡️ Prevention*:\n"
+            for measure in diagnosis['preventive_measures'][:3]:
+                message += f"• {measure}\n"
+            message += "\n"
+        
+        # Follow-up questions if low confidence
+        if confidence < 0.7 and diagnosis.get('follow_up_questions'):
+            message += "*❓ For Better Diagnosis*:\n"
+            for question in diagnosis['follow_up_questions'][:2]:
+                message += f"• {question}\n"
+            message += "\n"
+        
+        # Confidence warning
+        if confidence < 0.6:
+            message += "⚠️ *Warning*: Low confidence level. Please consult a local agricultural expert.\n\n"
+        
+        message += "💡 *Tip*: Test treatment on a small area first."
+    else:
+        # Hindi version (original)
+        message = f"{confidence_emoji} *फसल रोग निदान*\n\n"
+        message += f"*रोग*: {diagnosis['primary_disease_hindi']}\n"
+        message += f"*विश्वास स्तर*: {confidence_text} ({int(confidence*100)}%)\n"
+        message += f"*गंभीरता*: {diagnosis.get('severity', 'unknown')}\n"
+        message += f"{urgency_emoji} *तात्कालिकता*: {diagnosis.get('urgency', 'routine')}\n\n"
+        
+        # Symptoms
+        if diagnosis.get('symptoms_observed'):
+            message += "*लक्षण देखे गए*:\n"
+            for symptom in diagnosis['symptoms_observed'][:3]:
+                message += f"• {symptom}\n"
+            message += "\n"
+        
+        # Treatments
+        if diagnosis.get('treatments'):
+            message += "*💊 उपचार (सफलता दर के अनुसार)*:\n\n"
+            for i, treatment in enumerate(diagnosis['treatments'][:3], 1):
+                success_rate = int(treatment.get('success_rate', 0) * 100)
+                message += f"{i}. *{treatment['method_hindi']}*\n"
+                message += f"   ✅ सफलता: {success_rate}%\n"
+                message += f"   💰 लागत: {treatment.get('cost_estimate', 'N/A')}\n"
+                message += f"   📝 {treatment.get('application', '')}\n\n"
+        
+        # Alternative diseases
+        if diagnosis.get('alternative_diseases') and confidence < 0.8:
+            message += "*🔍 अन्य संभावनाएं*:\n"
+            for alt in diagnosis['alternative_diseases'][:2]:
+                prob = int(alt.get('probability', 0) * 100)
+                message += f"• {alt['name']} ({prob}%)\n"
+            message += "\n"
+        
+        # Preventive measures
+        if diagnosis.get('preventive_measures'):
+            message += "*🛡️ रोकथाम*:\n"
+            for measure in diagnosis['preventive_measures'][:3]:
+                message += f"• {measure}\n"
+            message += "\n"
+        
+        # Follow-up questions if low confidence
+        if confidence < 0.7 and diagnosis.get('follow_up_questions'):
+            message += "*❓ बेहतर निदान के लिए*:\n"
+            for question in diagnosis['follow_up_questions'][:2]:
+                message += f"• {question}\n"
+            message += "\n"
+        
+        # Confidence warning
+        if confidence < 0.6:
+            message += "⚠️ *चेतावनी*: कम विश्वास स्तर। कृपया स्थानीय कृषि विशेषज्ञ से संपर्क करें।\n\n"
+        
+        message += "💡 *सुझाव*: उपचार से पहले छोटे क्षेत्र में परीक्षण करें।"
     
     return message
 

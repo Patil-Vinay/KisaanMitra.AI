@@ -168,106 +168,256 @@ def get_crop_budget_template(crop_name, land_size_acres):
     return scaled_budget
 
 
-def calculate_loan_eligibility(budget, farmer_income, credit_score=None):
-    """Calculate loan eligibility and recommendations"""
+def calculate_loan_eligibility(budget, farmer_income, credit_score=None, loan_purpose="crop", land_size=1):
+    """
+    Calculate smart loan eligibility based on user context
+    
+    Args:
+        budget: Budget dict with total_cost
+        farmer_income: Monthly income
+        credit_score: Credit score (optional)
+        loan_purpose: crop/equipment/land_improvement
+        land_size: Land size in acres
+    """
     
     total_cost = budget.get("total_cost", 0)
     
-    # Loan eligibility (typically 80% of total cost)
-    max_loan = int(total_cost * 0.8)
-    
-    # Interest rates based on credit score
-    if credit_score and credit_score > 750:
-        interest_rate = 7.0  # Priority sector lending
-    elif credit_score and credit_score > 650:
-        interest_rate = 9.0
+    # Loan type and limits based on purpose
+    if loan_purpose == "crop":
+        # Crop loans - typically 100% of cultivation cost
+        max_loan_base = int(total_cost * 1.0)  # Full cost coverage
+        loan_type = "Kisan Credit Card (KCC) - Crop Loan"
+        tenure_months = 12  # One crop cycle
+        interest_rate_base = 7.0
+    elif loan_purpose == "equipment":
+        # Equipment loans - up to 85% of cost
+        max_loan_base = int(total_cost * 0.85)
+        loan_type = "Farm Equipment Loan"
+        tenure_months = 60  # 5 years
+        interest_rate_base = 9.5
     else:
-        interest_rate = 11.0  # Standard rate
+        # General agricultural loan
+        max_loan_base = int(total_cost * 0.75)
+        loan_type = "Agricultural Term Loan"
+        tenure_months = 36  # 3 years
+        interest_rate_base = 8.5
     
-    # EMI calculation (6 months repayment typical for crop loans)
-    months = 6
-    monthly_rate = interest_rate / 12 / 100
-    emi = int(max_loan * monthly_rate * (1 + monthly_rate)**months / ((1 + monthly_rate)**months - 1))
+    # Adjust based on land size (collateral value)
+    if land_size >= 5:
+        max_loan = int(max_loan_base * 1.2)  # 20% more for larger landholdings
+    elif land_size >= 2:
+        max_loan = max_loan_base
+    else:
+        max_loan = int(max_loan_base * 0.9)  # Slightly lower for small farmers
     
-    # Debt-to-income ratio
-    dti_ratio = (emi * months) / (farmer_income * 6) if farmer_income > 0 else 0
+    # Cap at ₹3 lakh for KCC without collateral
+    if loan_purpose == "crop" and max_loan > 300000:
+        max_loan = 300000
+        requires_collateral = True
+    else:
+        requires_collateral = False
+    
+    # Interest rate adjustments
+    if credit_score and credit_score > 750:
+        interest_rate = interest_rate_base - 1.0  # 1% discount for good credit
+    elif credit_score and credit_score > 650:
+        interest_rate = interest_rate_base
+    else:
+        interest_rate = interest_rate_base + 1.5  # Higher rate for lower/no credit score
+    
+    # Interest subvention for crop loans (Government subsidy)
+    if loan_purpose == "crop":
+        interest_rate_effective = max(4.0, interest_rate - 3.0)  # 3% subvention
+        has_subvention = True
+    else:
+        interest_rate_effective = interest_rate
+        has_subvention = False
+    
+    # EMI calculation
+    monthly_rate = interest_rate_effective / 12 / 100
+    if monthly_rate > 0:
+        emi = int(max_loan * monthly_rate * (1 + monthly_rate)**tenure_months / ((1 + monthly_rate)**tenure_months - 1))
+    else:
+        emi = int(max_loan / tenure_months)
+    
+    # Debt-to-income ratio (should be < 40%)
+    monthly_income = farmer_income if farmer_income > 10000 else farmer_income * 30  # Assume monthly if > 10k, else daily
+    dti_ratio = (emi / monthly_income * 100) if monthly_income > 0 else 100
+    
+    # Repayment capacity assessment
+    if dti_ratio < 30:
+        repayment_capacity = "excellent"
+        approval_likelihood = "95%"
+    elif dti_ratio < 40:
+        repayment_capacity = "good"
+        approval_likelihood = "80%"
+    elif dti_ratio < 50:
+        repayment_capacity = "moderate"
+        approval_likelihood = "60%"
+    else:
+        repayment_capacity = "poor"
+        approval_likelihood = "30%"
+    
+    # Smart recommendations
+    recommendations = []
+    
+    if dti_ratio > 40:
+        recommendations.append("⚠️ EMI is high relative to income. Consider:")
+        recommendations.append("  • Reducing loan amount by 20-30%")
+        recommendations.append("  • Using own funds for part of the cost")
+        recommendations.append("  • Applying for government subsidies first")
+    
+    if loan_purpose == "crop" and not has_subvention:
+        recommendations.append("💡 Apply through Kisan Credit Card for 3% interest subsidy")
+    
+    if land_size < 2:
+        recommendations.append("💡 Check eligibility for small farmer subsidies (up to 50% on equipment)")
+    
+    if credit_score is None or credit_score < 650:
+        recommendations.append("💡 Build credit score by:")
+        recommendations.append("  • Timely repayment of existing loans")
+        recommendations.append("  • Getting a small KCC and using it responsibly")
+    
+    # Alternative financing options
+    alternatives = []
+    if dti_ratio > 50:
+        alternatives.append("Consider group farming/FPO for shared costs")
+        alternatives.append("Explore government subsidies (can reduce cost by 40-60%)")
+        alternatives.append("Start with smaller land area this season")
     
     return {
+        "loan_type": loan_type,
         "max_loan_amount": max_loan,
         "interest_rate": interest_rate,
+        "interest_rate_effective": interest_rate_effective,
+        "has_subvention": has_subvention,
+        "tenure_months": tenure_months,
         "monthly_emi": emi,
-        "total_repayment": emi * months,
-        "total_interest": (emi * months) - max_loan,
-        "dti_ratio": round(dti_ratio * 100, 2),
-        "recommendation": "approved" if dti_ratio < 0.4 else "needs_review"
+        "total_repayment": emi * tenure_months,
+        "total_interest": (emi * tenure_months) - max_loan,
+        "dti_ratio": round(dti_ratio, 2),
+        "repayment_capacity": repayment_capacity,
+        "approval_likelihood": approval_likelihood,
+        "requires_collateral": requires_collateral,
+        "recommendations": recommendations,
+        "alternatives": alternatives,
+        "documents_needed": [
+            "Aadhaar card",
+            "PAN card",
+            "Land ownership documents" if requires_collateral else "Land records/lease",
+            "Bank statements (6 months)",
+            "Passport size photos"
+        ]
     }
 
 
 def match_government_schemes(crop, land_size, state="Maharashtra", income=None):
-    """Match farmer with eligible government schemes"""
+    """Match farmer with eligible government schemes - REAL SCHEMES ONLY"""
     
     schemes = []
     
-    # PM-KISAN (all farmers)
+    # 1. PM-KISAN (Universal - All farmers)
     schemes.append({
-        "name": "PM-KISAN",
-        "benefit": "₹6,000/year (₹2,000 per installment)",
-        "eligibility": "All landholding farmers",
+        "name": "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)",
+        "benefit": "₹6,000/year in 3 equal installments of ₹2,000",
+        "eligibility": "All landholding farmers (no land size limit)",
         "status": "eligible",
-        "how_to_apply": "Visit pmkisan.gov.in or nearest CSC",
-        "documents": ["Aadhaar", "Land records", "Bank account"]
+        "how_to_apply": "Visit pmkisan.gov.in or nearest Common Service Centre (CSC)",
+        "documents": ["Aadhaar card", "Land ownership documents", "Bank account with Aadhaar linking"],
+        "official_website": "https://pmkisan.gov.in"
     })
     
-    # Crop Insurance (PMFBY)
+    # 2. PMFBY - Crop Insurance (All farmers growing notified crops)
+    premium_rate = "2%" if crop.lower() in ["rice", "wheat", "cotton", "sugarcane"] else "1.5%"
     schemes.append({
-        "name": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
-        "benefit": f"Crop insurance with 2% premium for {crop}",
-        "eligibility": "All farmers growing notified crops",
-        "status": "eligible",
-        "how_to_apply": "Through bank or insurance company",
-        "documents": ["Land records", "Sowing certificate", "Bank account"]
+        "name": "PMFBY (Pradhan Mantri Fasal Bima Yojana)",
+        "benefit": f"Comprehensive crop insurance with only {premium_rate} farmer premium",
+        "eligibility": "All farmers growing notified crops in notified areas",
+        "status": "eligible" if crop.lower() in ["rice", "wheat", "cotton", "sugarcane", "maize", "bajra", "tur"] else "check_eligibility",
+        "how_to_apply": "Through your bank, insurance company, or CSC within crop cutting period",
+        "documents": ["Land records", "Sowing certificate from Patwari", "Bank account", "Aadhaar"],
+        "official_website": "https://pmfby.gov.in"
     })
     
-    # Kisan Credit Card
+    # 3. Kisan Credit Card (KCC) - For farmers with land
     schemes.append({
         "name": "Kisan Credit Card (KCC)",
-        "benefit": "Credit up to ₹3 lakh at 7% interest",
-        "eligibility": "Farmers with land ownership",
+        "benefit": "Credit up to ₹3 lakh at 7% interest (4% effective with 3% subvention)",
+        "eligibility": "Farmers with land ownership or lease agreement",
         "status": "eligible",
-        "how_to_apply": "Visit nearest bank branch",
-        "documents": ["Land records", "Aadhaar", "PAN card"]
+        "how_to_apply": "Visit nearest bank branch (any nationalized/cooperative bank)",
+        "documents": ["Land records/lease deed", "Aadhaar", "PAN card", "Passport size photos"],
+        "official_website": "https://www.nabard.org/content1.aspx?id=523"
     })
     
-    # Small/Marginal farmer schemes
+    # 4. PM-KUSUM (Solar Pump) - For irrigation
+    if crop.lower() in ["rice", "sugarcane", "cotton", "vegetables"]:
+        subsidy_percent = "60%" if land_size <= 2 else "40%"
+        schemes.append({
+            "name": "PM-KUSUM (Solar Pump Scheme)",
+            "benefit": f"{subsidy_percent} subsidy on solar pump installation + 30% bank loan",
+            "eligibility": "Farmers with irrigation needs",
+            "status": "eligible",
+            "how_to_apply": "Apply through state nodal agency or DISCOM",
+            "documents": ["Land documents", "Electricity connection details", "Bank account", "Aadhaar"],
+            "official_website": "https://pmkusum.mnre.gov.in"
+        })
+    
+    # 5. Soil Health Card Scheme (Universal)
+    schemes.append({
+        "name": "Soil Health Card Scheme",
+        "benefit": "Free soil testing and nutrient recommendations every 2 years",
+        "eligibility": "All farmers",
+        "status": "eligible",
+        "how_to_apply": "Contact District Agriculture Office or Krishi Vigyan Kendra",
+        "documents": ["Land details", "Aadhaar"],
+        "official_website": "https://soilhealth.dac.gov.in"
+    })
+    
+    # 6. e-NAM (National Agriculture Market) - For selling produce
+    schemes.append({
+        "name": "e-NAM (National Agriculture Market)",
+        "benefit": "Online trading platform for better price discovery and transparent auctions",
+        "eligibility": "All farmers",
+        "status": "eligible",
+        "how_to_apply": "Register at nearest e-NAM mandi or online at enam.gov.in",
+        "documents": ["Aadhaar", "Bank account", "Mobile number"],
+        "official_website": "https://enam.gov.in"
+    })
+    
+    # 7. Small/Marginal Farmer Schemes
     if land_size <= 2:
         schemes.append({
-            "name": "National Mission for Sustainable Agriculture",
-            "benefit": "50% subsidy on farm equipment",
-            "eligibility": "Small and marginal farmers",
+            "name": "Sub-Mission on Agricultural Mechanization (SMAM)",
+            "benefit": "40-50% subsidy on farm equipment (tractors, harvesters, etc.)",
+            "eligibility": "Small and marginal farmers (up to 2 hectares)",
             "status": "eligible",
-            "how_to_apply": "District agriculture office",
-            "documents": ["Land records", "Aadhaar", "Income certificate"]
+            "how_to_apply": "Apply through District Agriculture Office",
+            "documents": ["Land records", "Aadhaar", "Income certificate", "Caste certificate (if applicable)"],
+            "official_website": "Contact District Agriculture Office"
         })
     
-    # Drip irrigation subsidy
-    if crop in ["cotton", "sugarcane", "vegetables"]:
+    # 8. Micro Irrigation - For water-intensive crops
+    if crop.lower() in ["cotton", "sugarcane", "vegetables", "fruits"]:
         schemes.append({
-            "name": "Micro Irrigation Scheme",
-            "benefit": "60% subsidy on drip/sprinkler systems",
-            "eligibility": "All farmers",
+            "name": "Pradhan Mantri Krishi Sinchayee Yojana (PMKSY) - Micro Irrigation",
+            "benefit": "55% subsidy on drip/sprinkler irrigation (up to 5 hectares)",
+            "eligibility": "All farmers with water source",
             "status": "eligible",
-            "how_to_apply": "Agriculture department",
-            "documents": ["Land records", "Quotation from vendor"]
+            "how_to_apply": "Apply through District Agriculture Office with vendor quotation",
+            "documents": ["Land records", "Water source proof", "Vendor quotation", "Aadhaar"],
+            "official_website": "https://pmksy.gov.in"
         })
     
-    # Organic farming
+    # 9. Interest Subvention Scheme (Linked with KCC)
     schemes.append({
-        "name": "Paramparagat Krishi Vikas Yojana (PKVY)",
-        "benefit": "₹50,000/hectare for organic farming",
-        "eligibility": "Farmers adopting organic methods",
-        "status": "conditional",
-        "how_to_apply": "Form farmer groups, apply through agriculture dept",
-        "documents": ["Land records", "Group formation certificate"]
+        "name": "Interest Subvention Scheme",
+        "benefit": "3% interest subvention on crop loans (effective 4% interest)",
+        "eligibility": "Farmers with Kisan Credit Card",
+        "status": "eligible" if land_size > 0 else "conditional",
+        "how_to_apply": "Automatic benefit with KCC - no separate application",
+        "documents": ["KCC card"],
+        "official_website": "Through your bank"
     })
     
     return schemes

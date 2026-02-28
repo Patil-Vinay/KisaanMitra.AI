@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KisaanMitra - AI-Powered Farming Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .tagline {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        
+        .features {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 16px;
+            color: #555;
+        }
+        
+        .feature-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: #25D366;
+            color: white;
+            text-decoration: none;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+        }
+        
+        .cta-button:hover {
+            background: #128C7E;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+        }
+        
+        .whatsapp-icon {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 24px;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            border-radius: 5px;
+        }
+        
+        .info-title {
+            font-weight: bold;
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+        
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+        }
+        
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 15px 0;
+        }
+        
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .step-text {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .tagline {
+                font-size: 16px;
+            }
+            
+            .cta-button {
+                padding: 15px 30px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🌾</div>
+        <h1>KisaanMitra</h1>
+        <p class="tagline">AI-Powered Farming Assistant on WhatsApp</p>
+        
+        <div class="info">
+            <div class="info-title">📱 For Evaluators</div>
+            <p>Click the button below to test our WhatsApp bot. No app download required!</p>
+        </div>
+        
+        <a href="https://wa.me/15551411052?text=Hi" class="cta-button" target="_blank">
+            <span class="whatsapp-icon">💬</span>
+            Start Testing on WhatsApp
+        </a>
+        
+        <div class="features">
+            <h3 style="margin-bottom: 15px; color: #333;">✨ Key Features</h3>
+            <div class="feature">
+                <span class="feature-icon">🌾</span>
+                <span>Crop Disease Detection with AI</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">💰</span>
+                <span>Smart Budget Planning</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📊</span>
+                <span>Real-time Market Prices</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🌤️</span>
+                <span>7-Day Weather Forecast</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🌐</span>
+                <span>English + Hindi Support</span>
+            </div>
+        </div>
+        
+        <div class="steps">
+            <h3 style="margin-bottom: 15px; color: #333;">🚀 Quick Start Guide</h3>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-text">Click the green button above to open WhatsApp</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-text">Send "Hi" to start the conversation</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-text">Complete quick registration (name, crops, land, village)</div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-text">Explore features from the interactive menu</div>
+            </div>
+        </div>
+        
+        <div class="info" style="background: #fff3e0; border-left-color: #ff9800;">
+            <div class="info-title" style="color: #f57c00;">⚠️ Important Note</div>
+            <p>This is a test environment. If you cannot access the bot, please contact us to add your WhatsApp number to the test list.</p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>WhatsApp Number:</strong> +1 (555) 141-1052</p>
+            <p><strong>Powered by:</strong> AWS Lambda, Amazon Nova Pro, Claude AI</p>
+            <p style="margin-top: 10px;">© 2026 KisaanMitra. Built for AWS GenAI Hackathon.</p>
+        </div>
+    </div>
+</body>
+</html>
