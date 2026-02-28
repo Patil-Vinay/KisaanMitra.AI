@@ -171,82 +171,6 @@ def set_user_language(user_id, language):
     except Exception as e:
         print(f"[ERROR] Failed to save language preference: {e}")
 
-# City to State mapping for accurate location detection
-CITY_TO_STATE = {
-    # Maharashtra
-    "mumbai": "Maharashtra", "pune": "Maharashtra", "nagpur": "Maharashtra",
-    "nashik": "Maharashtra", "aurangabad": "Maharashtra", "solapur": "Maharashtra",
-    "kolhapur": "Maharashtra", "amravati": "Maharashtra", "sangli": "Maharashtra",
-    "malegaon": "Maharashtra", "jalgaon": "Maharashtra", "akola": "Maharashtra",
-    "latur": "Maharashtra", "dhule": "Maharashtra", "ahmednagar": "Maharashtra",
-    
-    # Punjab
-    "ludhiana": "Punjab", "amritsar": "Punjab", "jalandhar": "Punjab",
-    "patiala": "Punjab", "bathinda": "Punjab", "mohali": "Punjab",
-    "hoshiarpur": "Punjab", "batala": "Punjab", "pathankot": "Punjab",
-    
-    # Haryana
-    "faridabad": "Haryana", "gurgaon": "Haryana", "gurugram": "Haryana",
-    "panipat": "Haryana", "ambala": "Haryana", "yamunanagar": "Haryana",
-    "rohtak": "Haryana", "hisar": "Haryana", "karnal": "Haryana",
-    
-    # Uttar Pradesh
-    "lucknow": "Uttar Pradesh", "kanpur": "Uttar Pradesh", "ghaziabad": "Uttar Pradesh",
-    "agra": "Uttar Pradesh", "meerut": "Uttar Pradesh", "varanasi": "Uttar Pradesh",
-    "allahabad": "Uttar Pradesh", "prayagraj": "Uttar Pradesh", "bareilly": "Uttar Pradesh",
-    
-    # Gujarat
-    "ahmedabad": "Gujarat", "surat": "Gujarat", "vadodara": "Gujarat",
-    "rajkot": "Gujarat", "bhavnagar": "Gujarat", "jamnagar": "Gujarat",
-    "junagadh": "Gujarat", "gandhinagar": "Gujarat", "anand": "Gujarat",
-    
-    # Rajasthan
-    "jaipur": "Rajasthan", "jodhpur": "Rajasthan", "kota": "Rajasthan",
-    "bikaner": "Rajasthan", "udaipur": "Rajasthan", "ajmer": "Rajasthan",
-    "bhilwara": "Rajasthan", "alwar": "Rajasthan", "bharatpur": "Rajasthan",
-    
-    # Madhya Pradesh
-    "indore": "Madhya Pradesh", "bhopal": "Madhya Pradesh", "jabalpur": "Madhya Pradesh",
-    "gwalior": "Madhya Pradesh", "ujjain": "Madhya Pradesh", "sagar": "Madhya Pradesh",
-    "dewas": "Madhya Pradesh", "satna": "Madhya Pradesh", "ratlam": "Madhya Pradesh",
-    
-    # Karnataka
-    "bangalore": "Karnataka", "bengaluru": "Karnataka", "mysore": "Karnataka",
-    "hubli": "Karnataka", "mangalore": "Karnataka", "belgaum": "Karnataka",
-    "gulbarga": "Karnataka", "davanagere": "Karnataka", "bellary": "Karnataka",
-    
-    # Tamil Nadu
-    "chennai": "Tamil Nadu", "coimbatore": "Tamil Nadu", "madurai": "Tamil Nadu",
-    "tiruchirappalli": "Tamil Nadu", "salem": "Tamil Nadu", "tirunelveli": "Tamil Nadu",
-    "tiruppur": "Tamil Nadu", "erode": "Tamil Nadu", "vellore": "Tamil Nadu",
-    
-    # Andhra Pradesh
-    "visakhapatnam": "Andhra Pradesh", "vijayawada": "Andhra Pradesh", "guntur": "Andhra Pradesh",
-    "nellore": "Andhra Pradesh", "kurnool": "Andhra Pradesh", "kakinada": "Andhra Pradesh",
-    "rajahmundry": "Andhra Pradesh", "tirupati": "Andhra Pradesh", "kadapa": "Andhra Pradesh",
-    
-    # Telangana
-    "hyderabad": "Telangana", "warangal": "Telangana", "nizamabad": "Telangana",
-    "karimnagar": "Telangana", "khammam": "Telangana", "ramagundam": "Telangana",
-    
-    # West Bengal
-    "kolkata": "West Bengal", "howrah": "West Bengal", "durgapur": "West Bengal",
-    "asansol": "West Bengal", "siliguri": "West Bengal", "bardhaman": "West Bengal",
-    
-    # Kerala
-    "thiruvananthapuram": "Kerala", "kochi": "Kerala", "kozhikode": "Kerala",
-    "thrissur": "Kerala", "kollam": "Kerala", "palakkad": "Kerala",
-    "malappuram": "Kerala", "kannur": "Kerala", "kottayam": "Kerala",
-    
-    # Bihar
-    "patna": "Bihar", "gaya": "Bihar", "bhagalpur": "Bihar",
-    "muzaffarpur": "Bihar", "purnia": "Bihar", "darbhanga": "Bihar",
-    
-    # Odisha
-    "bhubaneswar": "Odisha", "cuttack": "Odisha", "rourkela": "Odisha",
-    "berhampur": "Odisha", "sambalpur": "Odisha", "puri": "Odisha"
-}
-
 # Conversation memory cache (in-memory for Lambda)
 conversation_memory = {}
 
@@ -430,70 +354,44 @@ def format_crop_result(result):
 
 def route_message(user_message, user_id="unknown"):
     """
-    Route message to appropriate agent using LangGraph AI routing
-    Falls back to keyword matching if LangGraph is unavailable
+    Route message to appropriate agent using Claude AI - NO hardcoded keywords
     """
-    print(f"[DEBUG] ===== ROUTING MESSAGE =====")
+    print(f"[DEBUG] ===== AI-BASED ROUTING =====")
     print(f"[DEBUG] User ID: {user_id}")
     print(f"[DEBUG] Message: {user_message}")
-    print(f"[DEBUG] LangGraph Available: {LANGGRAPH_AVAILABLE}")
     
-    if LANGGRAPH_AVAILABLE:
-        try:
-            print(f"[DEBUG] Using LangGraph AI routing...")
-            # Use AI-powered routing with LangGraph
-            agent = route_message_with_ai(user_message, user_id, bedrock)
-            print(f"[INFO] ✅ LangGraph AI routing selected: {agent.upper()}")
-            return agent
-        except Exception as e:
-            print(f"[ERROR] LangGraph routing failed: {e}, using fallback")
-            import traceback
-            print(f"[ERROR] Traceback: {traceback.format_exc()}")
-    
-    # Fallback to keyword-based routing
-    print(f"[DEBUG] Using fallback keyword-based routing...")
-    agent = fallback_keyword_routing(user_message)
-    print(f"[INFO] ✅ Fallback routing selected: {agent.upper()}")
-    return agent
+    try:
+        # Use Claude AI to intelligently route the message
+        routing_prompt = f"""Analyze this farmer's message and determine which agent should handle it.
 
+Message: "{user_message}"
 
-def fallback_keyword_routing(user_message):
-    """Simple keyword-based routing as fallback"""
-    msg_lower = user_message.lower()
-    
-    # Greetings - keep it casual
-    greetings = ["hi", "hello", "hey", "namaste", "नमस्ते", "हाय", "हेलो"]
-    if any(greeting == msg_lower.strip() for greeting in greetings):
-        return "greeting"
-    
-    # Crop problems - disease, pest, leaf issues
-    crop_keywords = ["disease", "pest", "leaf", "yellow", "spots", "dying", "बीमारी", "रोग", "पत्ती", "कीट"]
-    if any(kw in msg_lower for kw in crop_keywords):
-        return "crop"
-    
-    # Market prices - mandi rates
-    market_keywords = ["price", "mandi", "rate", "sell", "market", "भाव", "कीमत", "मंडी", "बाजार"]
-    if any(kw in msg_lower for kw in market_keywords):
-        return "market"
-    
-    # Finance - budget, loan, schemes, structure, model, planting
-    finance_keywords = ["budget", "loan", "scheme", "money", "cost", "finance", "financial", 
-                        "structure", "model", "planting", "investment", "expense",
-                        "बजट", "लोन", "योजना", "खर्च", "वित्त"]
-    if any(kw in msg_lower for kw in finance_keywords):
-        return "finance"
-    
-    # Crop recommendation - which crop, what to plant, suggest crop
-    recommendation_keywords = ["which crop", "what crop", "suggest crop", "recommend crop", 
-                               "should i plant", "what to plant", "which to grow", "what to grow",
-                               "कौन सी फसल", "क्या लगाएं", "क्या उगाएं", "फसल सुझाव"]
-    if any(kw in msg_lower for kw in recommendation_keywords):
-        print(f"[DEBUG] Detected crop recommendation query")
+Available agents:
+- greeting: Simple greetings (hi, hello, namaste)
+- crop: Crop health issues (disease, pests, leaf problems, plant issues)
+- market: Market prices and mandi rates
+- finance: Budget planning, loans, government schemes, costs, expenses
+- general: General farming advice, crop recommendations, weather, other queries
+
+Reply with ONLY ONE WORD - the agent name (greeting/crop/market/finance/general).
+No explanation, just the agent name."""
+
+        agent = ask_bedrock(routing_prompt, skip_context=True).strip().lower()
+        
+        # Validate response
+        valid_agents = ["greeting", "crop", "market", "finance", "general"]
+        if agent not in valid_agents:
+            print(f"[WARNING] Invalid agent '{agent}', defaulting to general")
+            agent = "general"
+        
+        print(f"[INFO] ✅ Claude AI routing selected: {agent.upper()}")
+        return agent
+        
+    except Exception as e:
+        print(f"[ERROR] AI routing failed: {e}, defaulting to general")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
         return "general"
-    
-    # Default - friendly chat (general agent handles crop recommendations too)
-    print(f"[DEBUG] No specific keywords matched, routing to general agent")
-    return "general"
 
 def handle_crop_query(user_message, user_id="unknown", language='hindi', location=None):
     """Handle crop-related text queries with language support and weather context"""
@@ -679,48 +577,28 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     return result
 
 def extract_crop_with_ai(user_message, bedrock_client, conversation_history=""):
-    """Extract crop name from user message using keyword matching (no AI call to avoid throttling)"""
-    print(f"[DEBUG] Extracting crop name using keyword matching...")
+    """Extract crop name from user message using Claude AI - NO hardcoded keywords"""
+    print(f"[DEBUG] Extracting crop name using Claude AI...")
     print(f"[DEBUG] Message: {user_message}")
     
-    # Common crop names and variations
-    crop_keywords = {
-        'rice': ['rice', 'paddy', 'धान', 'चावल'],
-        'wheat': ['wheat', 'गेहूं'],
-        'onion': ['onion', 'प्याज'],
-        'potato': ['potato', 'आलू'],
-        'tomato': ['tomato', 'टमाटर'],
-        'cotton': ['cotton', 'कपास'],
-        'sugarcane': ['sugarcane', 'sugar cane', 'गन्ना'],
-        'soybean': ['soybean', 'soya', 'सोयाबीन'],
-        'maize': ['maize', 'corn', 'मक्का'],
-        'chilly': ['chilly', 'chilli', 'pepper', 'मिर्च'],
-        'brinjal': ['brinjal', 'eggplant', 'बैंगन'],
-        'cabbage': ['cabbage', 'पत्तागोभी'],
-        'cauliflower': ['cauliflower', 'फूलगोभी'],
-        'groundnut': ['groundnut', 'peanut', 'मूंगफली'],
-        'turmeric': ['turmeric', 'हल्दी'],
-        'ginger': ['ginger', 'अदरक'],
-        'garlic': ['garlic', 'लहसुन'],
-        'banana': ['banana', 'केला'],
-        'mango': ['mango', 'आम'],
-        'grapes': ['grapes', 'grape', 'अंगूर'],
-        'pomegranate': ['pomegranate', 'अनार'],
-        'papaya': ['papaya', 'पपीता'],
-        'mushroom': ['mushroom', 'मशरूम'],
-    }
-    
-    message_lower = user_message.lower()
-    
-    # Check for crop keywords
-    for crop, keywords in crop_keywords.items():
-        for keyword in keywords:
-            if keyword in message_lower:
-                print(f"[INFO] ✅ Extracted crop: {crop}")
-                return crop
-    
-    print(f"[WARNING] No crop found in message")
-    return None
+    crop_prompt = f"""Extract the crop name from this farmer's message. If no crop is mentioned, return "none".
+
+Message: "{user_message}"
+
+Common crops: rice, wheat, onion, potato, tomato, cotton, sugarcane, soybean, maize, chilly, brinjal, cabbage, cauliflower, groundnut, turmeric, ginger, garlic, banana, mango, grapes, pomegranate, papaya, mushroom
+
+Reply with ONLY the crop name in English (e.g., "tomato" or "wheat" or "none"). No explanation."""
+
+    try:
+        crop = ask_bedrock(crop_prompt, skip_context=True).strip().lower()
+        if crop == "none" or not crop:
+            print(f"[WARNING] No crop found in message")
+            return None
+        print(f"[INFO] ✅ AI extracted crop: {crop}")
+        return crop
+    except Exception as e:
+        print(f"[ERROR] Crop extraction failed: {e}")
+        return None
 
 
 def generate_crop_budget_with_ai_combined(user_message, land_size, location, bedrock_client, conversation_history=""):
@@ -736,20 +614,25 @@ def generate_crop_budget_with_ai_combined(user_message, land_size, location, bed
     print(f"[DEBUG] User message: {user_message}")
     print(f"[DEBUG] Land: {land_size} acre(s), Location: {location}")
     
-    # Step 1: Extract state name for market data
-    state_mapping = {
-        'mumbai': 'Maharashtra', 'pune': 'Maharashtra', 'nagpur': 'Maharashtra', 'nashik': 'Maharashtra',
-        'kolhapur': 'Maharashtra', 'aurangabad': 'Maharashtra', 'solapur': 'Maharashtra',
-        'delhi': 'Delhi', 'bangalore': 'Karnataka', 'bengaluru': 'Karnataka', 'mysore': 'Karnataka',
-        'hyderabad': 'Telangana', 'chennai': 'Tamil Nadu', 'coimbatore': 'Tamil Nadu',
-        'kolkata': 'West Bengal', 'ahmedabad': 'Gujarat', 'surat': 'Gujarat', 'vadodara': 'Gujarat',
-        'jaipur': 'Rajasthan', 'jodhpur': 'Rajasthan', 'udaipur': 'Rajasthan',
-        'lucknow': 'Uttar Pradesh', 'kanpur': 'Uttar Pradesh', 'varanasi': 'Uttar Pradesh',
-        'patna': 'Bihar', 'bhopal': 'Madhya Pradesh', 'indore': 'Madhya Pradesh',
-        'chandigarh': 'Punjab', 'ludhiana': 'Punjab', 'amritsar': 'Punjab',
-    }
-    
-    state_name = state_mapping.get(location.lower(), 'Maharashtra')
+    # Step 1: Extract state name using AI
+    state_prompt = f"""What Indian state is "{location}" in? Reply with ONLY the state name.
+
+Examples:
+- Mumbai → Maharashtra
+- Kolhapur → Maharashtra
+- Delhi → Delhi
+- Bangalore → Karnataka
+- Chennai → Tamil Nadu
+
+Location: {location}
+State: """
+
+    try:
+        state_name = ask_bedrock(state_prompt, skip_context=True).strip()
+        print(f"[DEBUG] AI mapped state: {location} → {state_name}")
+    except:
+        state_name = "Maharashtra"
+        print(f"[DEBUG] Could not map state, using default: Maharashtra")
     print(f"[DEBUG] State mapped: {state_name}")
     
     # Step 2: Build comprehensive prompt that does EVERYTHING in one call
@@ -920,30 +803,32 @@ Now generate the complete analysis FOR 1 ACRE:"""
 
 
 def extract_state_with_ai(user_message, bedrock_client):
-    """Extract state name from user message using keyword matching (optimized for speed)"""
-    print(f"[DEBUG] Extracting state/location using keyword matching...")
+    """Extract state name from user message using Claude AI - NO hardcoded mappings"""
+    print(f"[DEBUG] Extracting state/location using Claude AI...")
     
-    message_lower = user_message.lower()
-    
-    # Check CITY_TO_STATE mapping first (fastest)
-    for city, state in CITY_TO_STATE.items():
-        if city in message_lower:
-            print(f"[INFO] ✅ Extracted state from city: {city} → {state}")
-            return state
-    
-    # Check for direct state mentions
-    states = ["maharashtra", "punjab", "haryana", "uttar pradesh", "gujarat", "rajasthan",
-              "madhya pradesh", "karnataka", "tamil nadu", "andhra pradesh", "telangana",
-              "west bengal", "kerala", "bihar", "odisha"]
-    
-    for state in states:
-        if state in message_lower:
-            print(f"[INFO] ✅ Extracted state: {state.title()}")
-            return state.title()
-    
-    # Default fallback
-    print(f"[INFO] No location found, using default: Maharashtra")
-    return "Maharashtra"
+    state_prompt = f"""Extract the Indian state name from this message. If no state/city mentioned, return "Maharashtra".
+
+Message: "{user_message}"
+
+Common Indian states: Maharashtra, Punjab, Haryana, Uttar Pradesh, Gujarat, Rajasthan, Madhya Pradesh, Karnataka, Tamil Nadu, Andhra Pradesh, Telangana, West Bengal, Kerala, Bihar, Odisha, Delhi
+
+If a city is mentioned, return the state it belongs to.
+Examples:
+- "Mumbai" → Maharashtra
+- "Kolhapur" → Maharashtra  
+- "Bangalore" → Karnataka
+- "Chennai" → Tamil Nadu
+- "Delhi" → Delhi
+
+Reply with ONLY the state name (e.g., "Maharashtra" or "Karnataka"). No explanation."""
+
+    try:
+        state = ask_bedrock(state_prompt, skip_context=True).strip()
+        print(f"[INFO] ✅ AI extracted state: {state}")
+        return state
+    except Exception as e:
+        print(f"[ERROR] State extraction failed: {e}, using default: Maharashtra")
+        return "Maharashtra"
 
 
 def fetch_real_agricultural_data_with_ai(crop_name, state_name, bedrock_client):
@@ -1712,7 +1597,7 @@ def calculate_loan_eligibility(total_cost, farmer_income):
     }
 
 def handle_finance_query(user_message, user_id="unknown", language='hindi'):
-    """Handle finance-related queries with enhanced AI and memory"""
+    """Handle finance-related queries with AI-based sub-routing - NO hardcoded keywords"""
     print(f"[DEBUG] ===== FINANCE AGENT =====")
     print(f"[DEBUG] Processing finance query: {user_message}, Language: {language}")
     print(f"[DEBUG] User ID: {user_id}")
@@ -1735,25 +1620,154 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     history = get_conversation_history(user_id, limit=10)
     context = build_context_from_history(history)
 
-    message_lower = user_message.lower()
+    # Use Claude AI to determine finance sub-type (schemes, budget, loan, or general)
+    finance_routing_prompt = f"""Analyze this farmer's finance query and determine the specific type.
 
-    # Check for budget request
-    budget_keywords = ["budget", "cost", "expense", "finance", "model", "planting", "structure", "grow", "cultivation"]
-    has_budget_keyword = any(word in message_lower for word in budget_keywords)
-    print(f"[DEBUG] Budget request detected: {has_budget_keyword}")
+Message: "{user_message}"
 
-    if has_budget_keyword:
+Finance types:
+- schemes: Government schemes, subsidies, yojana
+- budget: Budget planning, cost calculation, cultivation expenses, crop growing costs
+- loan: Loan applications, credit, borrowing money
+- general: Other finance questions
+
+Reply with ONLY ONE WORD - the type (schemes/budget/loan/general).
+No explanation."""
+
+    try:
+        finance_type = ask_bedrock(finance_routing_prompt, skip_context=True).strip().lower()
+        print(f"[DEBUG] AI determined finance type: {finance_type}")
+    except Exception as e:
+        print(f"[ERROR] Finance routing failed: {e}, defaulting to general")
+        finance_type = "general"
+
+    # Handle based on AI-determined type
+    if finance_type == "schemes":
+        print(f"[DEBUG] Processing government schemes query with Claude API")
+        
+        # Get user profile for context
+        profile_context = ""
+        if ONBOARDING_AVAILABLE and user_id != "unknown":
+            try:
+                from onboarding.farmer_onboarding import onboarding_manager
+                profile = onboarding_manager.get_user_profile(user_id)
+                if profile:
+                    profile_context = f"\nUser Profile: {profile.get('name', 'Farmer')} from {profile.get('village', 'India')}, {profile.get('land_acres', 'N/A')} acres, grows {profile.get('crops', 'various crops')}."
+                    print(f"[DEBUG] Added profile context for schemes")
+            except Exception as e:
+                print(f"[DEBUG] Could not fetch profile: {e}")
+        
+        # Enhanced system prompt for government schemes
+        if language == 'english':
+            schemes_system_prompt = """You are an expert on Indian government agricultural schemes and subsidies.
+
+IMPORTANT INSTRUCTIONS:
+1. Extract the crop name from the user's message if mentioned
+2. Format your response for WhatsApp with this EXACT structure:
+
+🏛️ *Government Schemes for [Crop/Farming]*
+
+*📋 Available Schemes:*
+
+*1. [Scheme Name]*
+💰 Benefit: [benefit details]
+✅ Eligibility: [who can apply]
+📄 Documents: [required docs]
+
+*2. [Scheme Name]*
+💰 Benefit: [benefit details]
+✅ Eligibility: [who can apply]
+
+*3. [Scheme Name]*
+💰 Benefit: [benefit details]
+✅ Eligibility: [who can apply]
+
+*🏛️ Where to Apply:*
+Visit nearest Krishi Vigyan Kendra (KVK), CSC center, or district agriculture office
+
+3. Include these major schemes:
+   - PM-KISAN: ₹6,000/year direct benefit transfer
+   - Kisan Credit Card (KCC): Up to ₹3 lakh at 7% interest
+   - Pradhan Mantri Fasal Bima Yojana (PMFBY): Crop insurance at 2% premium
+   - Soil Health Card Scheme: Free soil testing
+   - National Mission for Sustainable Agriculture (NMSA): Various subsidies
+   - Paramparagat Krishi Vikas Yojana (PKVY): Organic farming support
+   - Crop-specific schemes if mentioned (e.g., sugarcane: FRP, ethanol subsidy)
+
+4. Be specific about benefits, eligibility, and application process
+5. Use emojis for visual appeal: 🏛️ 💰 ✅ 📄 🌾
+
+Reply in simple, clear English. Be practical and helpful.
+CRITICAL: Respond ONLY in English. Always use ₹ for currency. Follow the format EXACTLY."""
+        else:
+            schemes_system_prompt = """आप भारतीय सरकारी कृषि योजनाओं और सब्सिडी के विशेषज्ञ हैं।
+
+महत्वपूर्ण निर्देश:
+1. यदि उल्लेख किया गया है तो उपयोगकर्ता के संदेश से फसल का नाम निकालें
+2. अपना जवाब WhatsApp के लिए इस सटीक संरचना में फॉर्मेट करें:
+
+🏛️ *[फसल/खेती] के लिए सरकारी योजनाएं*
+
+*📋 उपलब्ध योजनाएं:*
+
+*1. [योजना का नाम]*
+💰 लाभ: [लाभ विवरण]
+✅ पात्रता: [कौन आवेदन कर सकता है]
+📄 दस्तावेज: [आवश्यक दस्तावेज]
+
+*2. [योजना का नाम]*
+💰 लाभ: [लाभ विवरण]
+✅ पात्रता: [कौन आवेदन कर सकता है]
+
+*3. [योजना का नाम]*
+💰 लाभ: [लाभ विवरण]
+✅ पात्रता: [कौन आवेदन कर सकता है]
+
+*🏛️ कहां आवेदन करें:*
+निकटतम कृषि विज्ञान केंद्र (KVK), CSC केंद्र, या जिला कृषि कार्यालय पर जाएं
+
+3. इन प्रमुख योजनाओं को शामिल करें:
+   - PM-KISAN: ₹6,000/वर्ष सीधा लाभ हस्तांतरण
+   - किसान क्रेडिट कार्ड (KCC): ₹3 लाख तक 7% ब्याज पर
+   - प्रधानमंत्री फसल बीमा योजना (PMFBY): 2% प्रीमियम पर फसल बीमा
+   - मृदा स्वास्थ्य कार्ड योजना: मुफ्त मिट्टी परीक्षण
+   - राष्ट्रीय सतत कृषि मिशन (NMSA): विभिन्न सब्सिडी
+   - परंपरागत कृषि विकास योजना (PKVY): जैविक खेती समर्थन
+   - फसल-विशिष्ट योजनाएं यदि उल्लेख किया गया है (जैसे गन्ना: FRP, इथेनॉल सब्सिडी)
+
+4. लाभ, पात्रता और आवेदन प्रक्रिया के बारे में विशिष्ट रहें
+5. दृश्य अपील के लिए इमोजी का उपयोग करें: 🏛️ 💰 ✅ 📄 🌾
+
+सरल, स्पष्ट हिंदी में जवाब दें। व्यावहारिक और सहायक रहें।
+अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। मुद्रा के लिए हमेशा ₹ का उपयोग करें। फॉर्मेट का सटीक पालन करें।"""
+        
+        # Use Claude API with enhanced context
+        enhanced_message = user_message + profile_context
+        result = ask_bedrock(enhanced_message, schemes_system_prompt, context)
+        
+        # Add navigation text
+        if INTERACTIVE_MESSAGES_AVAILABLE:
+            result = add_navigation_text(result, language)
+        
+        print(f"[DEBUG] Schemes response generated using Claude API")
+        return result
+
+    elif finance_type == "budget":
         print(f"[DEBUG] Processing budget request...")
 
-        # Extract land size using regex
-        land_size = 1
-        import re
-        size_match = re.search(r'(\d+)\s*(acre|एकड़|hectare)', message_lower)
-        if size_match:
-            land_size = int(size_match.group(1))
-            print(f"[DEBUG] Land size extracted: {land_size} acre(s)")
-        else:
-            print(f"[DEBUG] No land size specified, using default: 1 acre")
+        # Extract land size using AI
+        land_size_prompt = f"""Extract the land size from this message. If not mentioned, return "1".
+
+Message: "{user_message}"
+
+Reply with ONLY the number (e.g., "5" or "10" or "1"). No units, no explanation."""
+
+        try:
+            land_size = int(ask_bedrock(land_size_prompt, skip_context=True).strip())
+            print(f"[DEBUG] AI extracted land size: {land_size} acre(s)")
+        except:
+            land_size = 1
+            print(f"[DEBUG] Could not extract land size, using default: 1 acre")
 
         # Try to get location from user profile first
         location = None
@@ -1767,41 +1781,20 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
             except Exception as e:
                 print(f"[DEBUG] Could not fetch profile location: {e}")
         
-        # If no profile location, extract from message
+        # If no profile location, extract using AI
         if not location:
-            # Extract location using regex (prioritize last match to avoid month names)
-            location = "Maharashtra"  # Default
-            location_patterns = [
-                r'farm\s+in\s+(\w+)',  # Most specific first
-                r'location\s+is\s+(\w+)',
-                r'at\s+(\w+)',
-                r'from\s+(\w+)',
-                r'in\s+(\w+)',  # Most generic last
-            ]
-            
-            months = ["january", "february", "march", "april", "may", "june", 
-                      "july", "august", "september", "october", "november", "december",
-                      "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
-            
-            # Common English words to ignore (articles, prepositions, etc.)
-            ignore_words = ["an", "a", "the", "of", "for", "with", "on", "at", "to", "by", 
-                            "area", "land", "farm", "field", "acre", "acres", "hectare", "hectares"]
-            
-            # Find ALL matches and use the LAST valid one (to skip "in March" and get "in Kolhapur")
-            all_matches = []
-            for pattern in location_patterns:
-                matches = re.finditer(pattern, message_lower, re.IGNORECASE)
-                for match in matches:
-                    extracted = match.group(1).lower()
-                    if extracted not in months and extracted not in ignore_words:
-                        all_matches.append(extracted)
-            
-            if all_matches:
-                # Use the LAST match (most likely the actual location)
-                location = all_matches[-1].title()
-                print(f"[DEBUG] ✅ Extracted city/location from message: {location} (from {len(all_matches)} candidates)")
-            else:
-                print(f"[DEBUG] No city extracted, using default: Maharashtra")
+            location_prompt = f"""Extract the location/city/village name from this message. If not mentioned, return "Maharashtra".
+
+Message: "{user_message}"
+
+Reply with ONLY the location name (e.g., "Kolhapur" or "Pune" or "Maharashtra"). No explanation."""
+
+            try:
+                location = ask_bedrock(location_prompt, skip_context=True).strip().title()
+                print(f"[DEBUG] ✅ AI extracted location: {location}")
+            except:
+                location = "Maharashtra"
+                print(f"[DEBUG] Could not extract location, using default: Maharashtra")
         
         print(f"[INFO] 📍 Location: {location}, Land: {land_size} acre(s)")
         print(f"[INFO] 📊 Generating budget with AI (single call)...")
@@ -1893,44 +1886,127 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         print(f"[DEBUG] Budget response formatted successfully")
         return message
 
-    # Check for schemes
-    elif any(word in message_lower for word in ["scheme", "subsidy", "government"]):
-        print(f"[DEBUG] Processing government schemes query")
-        schemes = match_government_schemes("wheat", 1)
+    elif finance_type == "loan":
+        print(f"[DEBUG] Processing loan query with Claude API")
+        
+        # Get user profile for context
+        profile_context = ""
+        if ONBOARDING_AVAILABLE and user_id != "unknown":
+            try:
+                from onboarding.farmer_onboarding import onboarding_manager
+                profile = onboarding_manager.get_user_profile(user_id)
+                if profile:
+                    profile_context = f"\nUser Profile: {profile.get('name', 'Farmer')} from {profile.get('village', 'India')}, {profile.get('land_acres', 'N/A')} acres, grows {profile.get('crops', 'various crops')}."
+                    print(f"[DEBUG] Added profile context for loan advice")
+            except Exception as e:
+                print(f"[DEBUG] Could not fetch profile: {e}")
+        
+        # Enhanced system prompt for loan queries with WhatsApp formatting
+        if language == 'english':
+            loan_system_prompt = """You are an expert agricultural finance advisor specializing in farm loans and credit for Indian farmers.
 
-        message = "? *Government Schemes for Farmers*\n\n"
-        for i, scheme in enumerate(schemes[:4], 1):
-            message += f"{i}. *{scheme['name']}*\n"
-            message += f"   💰 Benefit: {scheme['benefit']}\n"
-            message += f"   ✅ Eligibility: {scheme['eligibility']}\n\n"
-        message += "💡 Visit nearest Krishi Vigyan Kendra for more details"
+IMPORTANT INSTRUCTIONS:
+1. Extract the loan amount from the user's message (e.g., "5 lacs" = ₹500,000, "2 crore" = ₹20,000,000)
+2. Format your response for WhatsApp with this EXACT structure:
+
+🏦 *Agricultural Loan Options for ₹[AMOUNT]*
+
+*📋 Recommended Schemes:*
+
+*1. [Scheme Name]*
+💰 Loan Amount: ₹[amount]
+📊 Interest Rate: [rate]%
+⏱️ Tenure: [period]
+💳 EMI: ~₹[amount]/month
+
+*2. [Scheme Name]*
+💰 Loan Amount: ₹[amount]
+📊 Interest Rate: [rate]%
+⏱️ Tenure: [period]
+
+*✅ Eligibility:*
+• Land ownership documents
+• Aadhaar card
+• Bank account
+• [other requirements]
+
+*📄 Required Documents:*
+• Land records (7/12, 8A)
+• Aadhaar & PAN card
+• Bank statements (6 months)
+• Crop details
+
+*🏛️ Where to Apply:*
+Visit your nearest bank branch or CSC center
+
+3. Use these schemes based on amount:
+   - Up to ₹3 lakh: Kisan Credit Card (KCC) at 7% interest
+   - ₹3 lakh to ₹2 crore: Agriculture Term Loan at 9-11% interest
+   - Also mention: PM-KISAN (₹6,000/year), Crop Loans (7% interest)
+
+4. Keep it concise but informative
+5. Use emojis for visual appeal: 🏦 💰 📊 ⏱️ 💳 ✅ 📄 🏛️
+
+Reply in simple, clear English. Be practical and helpful.
+CRITICAL: Respond ONLY in English. Always use ₹ for currency. Follow the format EXACTLY."""
+        else:
+            loan_system_prompt = """आप भारतीय किसानों के लिए कृषि ऋण और क्रेडिट में विशेषज्ञता रखने वाले एक विशेषज्ञ कृषि वित्त सलाहकार हैं।
+
+महत्वपूर्ण निर्देश:
+1. उपयोगकर्ता के संदेश से ऋण राशि निकालें (जैसे "5 लाख" = ₹500,000)
+2. अपना जवाब WhatsApp के लिए इस सटीक संरचना में फॉर्मेट करें:
+
+🏦 *₹[राशि] के लिए कृषि ऋण विकल्प*
+
+*📋 अनुशंसित योजनाएं:*
+
+*1. [योजना का नाम]*
+💰 ऋण राशि: ₹[राशि]
+📊 ब्याज दर: [दर]%
+⏱️ अवधि: [समय]
+💳 EMI: ~₹[राशि]/माह
+
+*2. [योजना का नाम]*
+💰 ऋण राशि: ₹[राशि]
+📊 ब्याज दर: [दर]%
+⏱️ अवधि: [समय]
+
+*✅ पात्रता:*
+• भूमि स्वामित्व दस्तावेज
+• आधार कार्ड
+• बैंक खाता
+• [अन्य आवश्यकताएं]
+
+*📄 आवश्यक दस्तावेज:*
+• भूमि रिकॉर्ड (7/12, 8A)
+• आधार और पैन कार्ड
+• बैंक स्टेटमेंट (6 महीने)
+• फसल विवरण
+
+*🏛️ कहां आवेदन करें:*
+अपनी निकटतम बैंक शाखा या CSC केंद्र पर जाएं
+
+3. राशि के आधार पर ये योजनाएं उपयोग करें:
+   - ₹3 लाख तक: किसान क्रेडिट कार्ड (KCC) 7% ब्याज पर
+   - ₹3 लाख से ₹2 करोड़: कृषि टर्म लोन 9-11% ब्याज पर
+   - यह भी बताएं: PM-KISAN (₹6,000/वर्ष), फसल ऋण (7% ब्याज)
+
+4. संक्षिप्त लेकिन जानकारीपूर्ण रखें
+5. दृश्य अपील के लिए इमोजी का उपयोग करें: 🏦 💰 📊 ⏱️ 💳 ✅ 📄 🏛️
+
+सरल, स्पष्ट हिंदी में जवाब दें। व्यावहारिक और सहायक रहें।
+अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। मुद्रा के लिए हमेशा ₹ का उपयोग करें। फॉर्मेट का सटीक पालन करें।"""
+        
+        # Use Claude API with enhanced context
+        enhanced_message = user_message + profile_context
+        result = ask_bedrock(enhanced_message, loan_system_prompt, context)
         
         # Add navigation text
         if INTERACTIVE_MESSAGES_AVAILABLE:
-            message = add_navigation_text(message, language)
+            result = add_navigation_text(result, language)
         
-        print(f"[DEBUG] Schemes response generated")
-        return message
-
-    # Check for loan
-    elif any(word in message_lower for word in ["loan", "credit", "borrow"]):
-        print(f"[DEBUG] Processing loan eligibility query")
-        loan = calculate_loan_eligibility(20000, 50000)
-
-        message = "🏦 *Kisan Credit Card (KCC) Eligibility*\n\n"
-        message += f"💰 Max Loan: ₹{loan['max_loan']:,}\n"
-        message += f"📊 Interest Rate: {loan['interest_rate']}% per annum\n"
-        message += f"💳 Monthly EMI: ₹{loan['monthly_emi']:,}\n"
-        message += f"💵 Total Repayment: ₹{loan['total_repayment']:,}\n"
-        message += f"📈 Total Interest: ₹{loan['total_interest']:,}\n\n"
-        message += "💡 Apply at your nearest bank branch with land documents"
-        
-        # Add navigation text
-        if INTERACTIVE_MESSAGES_AVAILABLE:
-            message = add_navigation_text(message, language)
-        
-        print(f"[DEBUG] Loan response generated")
-        return message
+        print(f"[DEBUG] Loan response generated using Claude API")
+        return result
 
     # Fallback to AI with enhanced context
     print(f"[DEBUG] Falling back to AI for general finance query")
@@ -1943,51 +2019,56 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     return result
 
 def handle_general_query(user_message, language='hindi'):
-    """Handle general queries - friendly conversation with language support (optimized)"""
+    """Handle general queries - friendly conversation with language support (AI-based routing)"""
     print(f"[DEBUG] ===== GENERAL AGENT =====")
     print(f"[DEBUG] Processing general query: {user_message}, Language: {language}")
     
-    # Check if this is a weather query
-    message_lower = user_message.lower()
-    weather_keywords = ['weather', 'mausam', 'मौसम', 'forecast', 'temperature', 'rain', 'बारिश']
-    
-    if any(kw in message_lower for kw in weather_keywords) and WEATHER_AVAILABLE:
-        print(f"[WEATHER] Weather query detected in general agent")
-        
-        # Extract city name from message
-        import re
-        # Try to extract city name after "in", "for", "of", or common city names
-        city_match = re.search(r'(?:in|for|of)\s+([a-zA-Z\s]+)', user_message, re.IGNORECASE)
-        
-        if city_match:
-            location = city_match.group(1).strip()
-        else:
-            # Try to find known city names
-            known_cities = list(CITY_TO_STATE.keys())
-            location = None
-            for city in known_cities:
-                if city in message_lower:
-                    location = city.title()
-                    break
-            
-            if not location:
-                location = "Pune"  # Default
-        
-        print(f"[WEATHER] Extracted location: {location}")
-        
+    # Use AI to check if this is a weather query
+    if WEATHER_AVAILABLE:
+        weather_check_prompt = f"""Is this a weather-related query? Reply with ONLY "yes" or "no".
+
+Message: "{user_message}"
+
+Examples of weather queries: "what's the weather", "mausam kya hai", "will it rain", "temperature today"
+Examples of non-weather: "how to grow tomato", "market price", "loan information"
+
+Reply: """
+
         try:
-            weather = get_weather_forecast(location)
-            weather_analysis = analyze_weather_for_farming(weather)
-            result = format_weather_response(location, weather_analysis)
-            
-            # Add navigation text
-            if INTERACTIVE_MESSAGES_AVAILABLE:
-                result = add_navigation_text(result, language)
-            
-            print(f"[WEATHER] Weather response generated")
-            return result
+            is_weather = ask_bedrock(weather_check_prompt, skip_context=True).strip().lower()
+            if is_weather == "yes":
+                print(f"[WEATHER] AI detected weather query")
+                
+                # Extract location using AI
+                location_prompt = f"""Extract the city/location name from this message. If not mentioned, return "Pune".
+
+Message: "{user_message}"
+
+Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur" or "Pune"). No explanation."""
+
+                try:
+                    location = ask_bedrock(location_prompt, skip_context=True).strip().title()
+                    print(f"[WEATHER] AI extracted location: {location}")
+                except:
+                    location = "Pune"
+                    print(f"[WEATHER] Using default location: Pune")
+                
+                try:
+                    weather = get_weather_forecast(location)
+                    weather_analysis = analyze_weather_for_farming(weather)
+                    result = format_weather_response(location, weather_analysis)
+                    
+                    # Add navigation text
+                    if INTERACTIVE_MESSAGES_AVAILABLE:
+                        result = add_navigation_text(result, language)
+                    
+                    print(f"[WEATHER] Weather response generated")
+                    return result
+                except Exception as e:
+                    print(f"[WEATHER ERROR] {e}")
+                    # Fall through to general AI response
         except Exception as e:
-            print(f"[WEATHER ERROR] {e}")
+            print(f"[WEATHER CHECK ERROR] {e}")
             # Fall through to general AI response
     
     if language == 'english':
@@ -2624,13 +2705,29 @@ def lambda_handler(event, context):
                         print(f"[WEATHER] User in weather state, message: {user_message}")
                         user_lang = get_user_language(from_number)
                         
-                        # Check if user is asking for weather (not providing a city name)
-                        weather_intent_keywords = ['weather', 'mausam', 'मौसम', 'forecast', 'report', 'बताओ', 'दिखाओ', 'give me', 'show me']
-                        is_weather_query = any(kw in user_message.lower() for kw in weather_intent_keywords)
+                        # Use AI to check if user is asking for weather (not providing a city name)
+                        weather_check_prompt = f"""Is this a weather query or a city name? Reply with ONLY "query" or "city".
+
+Message: "{user_message}"
+
+Examples:
+- "weather" → query
+- "mausam" → query
+- "Mumbai" → city
+- "Kolhapur" → city
+- "give me weather" → query
+
+Reply: """
+
+                        try:
+                            response_type = ask_bedrock(weather_check_prompt, skip_context=True).strip().lower()
+                            is_weather_query = (response_type == "query")
+                        except:
+                            is_weather_query = False
                         
                         # If it's a weather query (not a city name), try to use profile location
                         if is_weather_query:
-                            print(f"[WEATHER] Detected weather query, checking profile for location")
+                            print(f"[WEATHER] AI detected weather query, checking profile for location")
                             user_location = None
                             
                             # Try to get user's village from profile
@@ -2729,16 +2826,13 @@ def lambda_handler(event, context):
                 print(f"[INFO] ✅ Greeting handled")
                 return {'statusCode': 200, 'body': 'ok'}
             elif agent == "crop":
-                # Get user location for weather context
+                # Get user location for weather context using AI
                 user_location = None
                 try:
-                    # Try to get location from user message or default to Maharashtra
+                    # Extract location using AI
                     user_location = extract_state_with_ai(user_message, bedrock)
-                    if user_location and user_location in CITY_TO_STATE.values():
-                        # Use state name as location
-                        user_location = user_location
-                    else:
-                        # Default to a major city in Maharashtra
+                    if not user_location or user_location == "Maharashtra":
+                        # Default to a major city
                         user_location = "Pune"
                     print(f"[WEATHER] Using location: {user_location}")
                 except:
