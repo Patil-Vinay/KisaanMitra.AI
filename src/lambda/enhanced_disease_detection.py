@@ -8,11 +8,12 @@ Enhanced Crop Disease Detection with Confidence Scores
 
 import json
 import base64
+import os
 
 
-def detect_disease_with_confidence(image_data, bedrock_client):
+def detect_disease_with_confidence(image_data, anthropic_client=None):
     """
-    Enhanced disease detection with confidence scores
+    Enhanced disease detection with confidence scores using Anthropic Claude API
     Returns: {
         primary_disease, 
         confidence, 
@@ -60,31 +61,99 @@ def detect_disease_with_confidence(image_data, bedrock_client):
 Analyze the image now:"""
 
     try:
-        # Prepare image for Bedrock
+        # Prepare image for API
         if isinstance(image_data, str):
             # If base64 string
-            image_bytes = base64.b64decode(image_data)
+            image_base64 = image_data
         else:
-            image_bytes = image_data
+            # Convert bytes to base64
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
         
-        response = bedrock_client.converse(
-            modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "image": {
-                            "format": "jpeg",
-                            "source": {"bytes": image_bytes}
+        print(f"[DISEASE DETECTION] Calling Anthropic Claude API with image...")
+        
+        # Check if we should use Anthropic direct API
+        use_anthropic_direct = os.environ.get('USE_ANTHROPIC_DIRECT', 'false').lower() == 'true'
+        
+        if use_anthropic_direct and anthropic_client:
+            print(f"[DISEASE DETECTION] Using direct Anthropic API")
+            # Use Anthropic direct API
+            response = anthropic_client.converse(
+                model="claude-sonnet-4-6",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": image_base64
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": prompt
                         }
-                    },
-                    {"text": prompt}
-                ]
-            }],
-            inferenceConfig={"maxTokens": 2000, "temperature": 0.2}
-        )
-        
-        result_text = response["output"]["message"]["content"][0]["text"].strip()
+                    ]
+                }],
+                max_tokens=2000,
+                temperature=0.2
+            )
+            
+            print(f"[DISEASE DETECTION] Anthropic API response received")
+            
+            # Extract text from Anthropic response
+            if hasattr(response, 'content') and len(response.content) > 0:
+                result_text = response.content[0].text.strip()
+            else:
+                print(f"[DISEASE DETECTION ERROR] Invalid Anthropic response structure")
+                raise ValueError("Invalid Anthropic response structure")
+        else:
+            print(f"[DISEASE DETECTION] Using AWS Bedrock")
+            # Use AWS Bedrock (fallback)
+            import boto3
+            bedrock = boto3.client('bedrock-runtime', region_name='ap-south-1')
+            
+            # Convert base64 back to bytes for Bedrock
+            if isinstance(image_data, str):
+                image_bytes = base64.b64decode(image_data)
+            else:
+                image_bytes = image_data
+            
+            response = bedrock.converse(
+                modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "image": {
+                                "format": "jpeg",
+                                "source": {"bytes": image_bytes}
+                            }
+                        },
+                        {"text": prompt}
+                    ]
+                }],
+                inferenceConfig={"maxTokens": 2000, "temperature": 0.2}
+            )
+            
+            print(f"[DISEASE DETECTION] Bedrock response received")
+            
+            # Extract text from Bedrock response
+            if "output" in response and "message" in response["output"]:
+                content = response["output"]["message"]["content"]
+                if isinstance(content, list) and len(content) > 0:
+                    if "text" in content[0]:
+                        result_text = content[0]["text"].strip()
+                    else:
+                        print(f"[DISEASE DETECTION ERROR] No 'text' field in content[0]: {content[0].keys()}")
+                        raise ValueError("No text field in response")
+                else:
+                    print(f"[DISEASE DETECTION ERROR] Invalid content structure: {content}")
+                    raise ValueError("Invalid content structure")
+            else:
+                print(f"[DISEASE DETECTION ERROR] Invalid response structure: {response.keys()}")
+                raise ValueError("Invalid response structure")
         
         # Extract JSON
         if "```json" in result_text:
@@ -212,13 +281,15 @@ def get_disease_history(user_id, dynamodb_table):
 def save_disease_detection(user_id, diagnosis, dynamodb_table):
     """Save disease detection for history tracking"""
     import time
+    from decimal import Decimal
     
     try:
+        # Convert float values to Decimal for DynamoDB
         item = {
             'user_id': user_id,
             'timestamp': str(int(time.time())),
             'disease': diagnosis['primary_disease'],
-            'confidence': diagnosis['confidence'],
+            'confidence': Decimal(str(diagnosis['confidence'])),  # Convert float to Decimal
             'severity': diagnosis.get('severity', 'unknown'),
             'treatments_suggested': len(diagnosis.get('treatments', []))
         }
@@ -226,3 +297,5 @@ def save_disease_detection(user_id, diagnosis, dynamodb_table):
         print(f"[DISEASE HISTORY] Saved detection for user {user_id}")
     except Exception as e:
         print(f"[DISEASE HISTORY ERROR] {e}")
+        import traceback
+        traceback.print_exc()
