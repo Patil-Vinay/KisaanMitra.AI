@@ -71,16 +71,17 @@ Reply with ONLY the location name."""
 location = ask_bedrock(location_prompt, skip_context=True)
 ```
 
-### 5. Crop Name Extraction
-**Before:** Hardcoded dictionary with 20+ crops and Hindi translations
+### 5. Crop Name Extraction (FIXED 2026-03-01)
+**Before:** Hardcoded dictionary with 20+ crops and substring matching
 ```python
-crop_keywords = {
-    'rice': ['rice', 'paddy', 'धान', 'चावल'],
-    'wheat': ['wheat', 'गेहूं'],
-    'tomato': ['tomato', 'टमाटर'],
-    # ... 20+ more crops
-}
+common_crops = ["wheat", "rice", "cotton", "soybean", "onion", "potato", "tomato", "sugarcane"]
+for crop in common_crops:
+    if crop in message_lower:  # ❌ Substring matching caused bugs
+        detected_crop = crop
+        break
 ```
+
+**Bug:** "sugarcane mandi prices" matched "rice" because "rice" is in "p**rice**s"
 
 **After:** Claude AI extraction
 ```python

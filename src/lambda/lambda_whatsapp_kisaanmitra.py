@@ -138,7 +138,7 @@ def get_user_language(user_id, message_text=""):
     if message_text:
         # Check if message is primarily English (no Devanagari script)
         has_hindi = any('\u0900' <= char <= '\u097F' for char in message_text)
-        is_english_greeting = message_text.lower().strip() in ['hi', 'hii', 'hiii', 'hello', 'hey', 'helo']
+        is_english_greeting = message_text.lower().strip() in ['hi', 'hii', 'hiii', 'hello', 'hey', 'helo', 'hello']
         
         if not has_hindi and (is_english_greeting or len(message_text.split()) > 2):
             # Likely English message, auto-set language
