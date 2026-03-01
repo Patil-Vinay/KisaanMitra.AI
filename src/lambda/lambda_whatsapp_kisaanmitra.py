@@ -513,7 +513,7 @@ def analyze_price_trend(prices):
         "change_percent": round(change_pct, 2)
     }
 
-def handle_market_query(user_message, language='hindi'):
+def handle_market_query(user_message, language='hindi', user_id="unknown"):
     """Handle market-related queries with AI state extraction and language support"""
     print(f"[DEBUG] ===== MARKET AGENT =====")
     print(f"[DEBUG] Processing market query: {user_message}, Language: {language}")
@@ -530,20 +530,33 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
 अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
     # Extract crop name
-    common_crops = ["wheat", "rice", "cotton", "soybean", "onion", "potato", "tomato", "sugarcane"]
-    detected_crop = None
-    message_lower = user_message.lower()
-    
-    print(f"[DEBUG] Searching for crop keywords in message...")
-    for crop in common_crops:
-        if crop in message_lower:
-            detected_crop = crop
-            print(f"[DEBUG] ✅ Detected crop: {crop}")
-            break
+    # Extract crop name using AI (NO hardcoded keywords!)
+    print(f"[DEBUG] Using AI to extract crop name from market query...")
+    detected_crop = extract_crop_with_ai(user_message, bedrock)
     
     if not detected_crop:
         print(f"[DEBUG] No crop detected in message")
+        print(f"[DEBUG] No crop detected in message")
     
+        # Try to get location from user profile first
+        state_name = None
+        if ONBOARDING_AVAILABLE and user_id != "unknown":
+            try:
+                from onboarding.farmer_onboarding import onboarding_manager
+                profile = onboarding_manager.get_user_profile(user_id)
+                if profile and profile.get('village'):
+                    village = profile.get('village')
+                    state_prompt = f"""What Indian state is "{village}" in? Reply with ONLY the state name.
+Examples: Mumbai → Maharashtra, Kolhapur → Maharashtra
+Location: {village}
+State: """
+                    state_name = ask_bedrock(state_prompt, skip_context=True).strip()
+                    print(f"[INFO] 📍 Using profile location: {village} → {state_name}")
+            except Exception as e:
+                print(f"[DEBUG] Could not fetch profile location: {e}")
+        
+        # If no profile location, extract using AI from message
+        if not state_name:
     if detected_crop and FAST_MARKET_DATA_AVAILABLE:
         # Extract state using AI (no hardcoding!)
         print(f"[DEBUG] Using AI to extract state for market query...")
