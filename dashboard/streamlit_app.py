@@ -374,73 +374,146 @@ if page == "📊 Overview":
     st.plotly_chart(fig, use_container_width=True)
 
 elif page == "👥 Farmers":
-    st.markdown("<div class='section-header'>👥 Registered Farmers</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>👥 All Farmers</div>", unsafe_allow_html=True)
     
-    # Load real user data
-    try:
-        clients = get_aws_clients()
-        response = clients['profiles'].scan(Limit=50)
-        users = response.get('Items', [])
+    # Create tabs for registered and dummy farmers
+    tab1, tab2 = st.tabs(["✅ Registered Farmers (DynamoDB)", "🎭 Demo Farmers (Knowledge Graph)"])
+    
+    with tab1:
+        st.markdown("### Real farmers who have registered via WhatsApp")
         
-        if users:
+        # Load real user data
+        try:
+            clients = get_aws_clients()
+            response = clients['profiles'].scan(Limit=50)
+            users = response.get('Items', [])
+            
+            if users:
+                # Summary metrics
+                col1, col2, col3, col4 = st.columns(4)
+                
+                total_land = sum(float(u.get('land_acres', 0)) for u in users)
+                avg_land = total_land / len(users) if users else 0
+                
+                with col1:
+                    st.metric("👥 Total Registered", len(users))
+                with col2:
+                    st.metric("📏 Total Land", f"{total_land:.0f} acres")
+                with col3:
+                    st.metric("📊 Avg Land/Farmer", f"{avg_land:.1f} acres")
+                with col4:
+                    unique_villages = len(set(u.get('village', '') for u in users))
+                    st.metric("🏘️ Villages", unique_villages)
+                
+                st.markdown("---")
+                
+                # Farmers table
+                df = pd.DataFrame(users)
+                if 'name' in df.columns:
+                    display_cols = []
+                    if 'user_id' in df.columns: display_cols.append('user_id')
+                    if 'name' in df.columns: display_cols.append('name')
+                    if 'village' in df.columns: display_cols.append('village')
+                    if 'crops' in df.columns: display_cols.append('crops')
+                    if 'land_acres' in df.columns: display_cols.append('land_acres')
+                    if 'registered_at' in df.columns: display_cols.append('registered_at')
+                    
+                    df = df[display_cols]
+                    df.columns = ['Phone', 'Name', 'Village', 'Crops', 'Land (acres)', 'Registered']
+                    
+                    st.dataframe(
+                        df,
+                        use_container_width=True,
+                        height=400,
+                        column_config={
+                            "Land (acres)": st.column_config.NumberColumn(
+                                "Land (acres)",
+                                format="%.1f"
+                            )
+                        }
+                    )
+                    
+                    # Download button
+                    col1, col2, col3 = st.columns([1, 1, 2])
+                    with col1:
+                        csv = df.to_csv(index=False)
+                        st.download_button(
+                            label="📥 Download CSV",
+                            data=csv,
+                            file_name=f"registered_farmers_{datetime.now().strftime('%Y%m%d')}.csv",
+                            mime="text/csv"
+                        )
+            else:
+                st.info("🌾 No registered farmers yet. Start onboarding on WhatsApp!")
+        except Exception as e:
+            st.error(f"❌ Error loading user data: {e}")
+            st.info("💡 Make sure AWS credentials are configured correctly.")
+    
+    with tab2:
+        st.markdown("### Demo farmers from knowledge graph (for testing)")
+        
+        # Load knowledge graph data
+        kg_data = load_knowledge_graph_data()
+        dummy_farmers = kg_data.get('farmers', [])
+        
+        if dummy_farmers:
             # Summary metrics
             col1, col2, col3, col4 = st.columns(4)
             
-            total_land = sum(float(u.get('land_acres', 0)) for u in users)
-            avg_land = total_land / len(users) if users else 0
+            total_land = sum(float(f.get('land_size_acres', 0)) for f in dummy_farmers)
+            avg_land = total_land / len(dummy_farmers) if dummy_farmers else 0
             
             with col1:
-                st.metric("👥 Total Farmers", len(users))
+                st.metric("👥 Total Demo Farmers", len(dummy_farmers))
             with col2:
                 st.metric("📏 Total Land", f"{total_land:.0f} acres")
             with col3:
                 st.metric("📊 Avg Land/Farmer", f"{avg_land:.1f} acres")
             with col4:
-                unique_villages = len(set(u.get('village', '') for u in users))
+                unique_villages = len(set(f.get('village_name', '') for f in dummy_farmers))
                 st.metric("🏘️ Villages", unique_villages)
             
             st.markdown("---")
             
-            # Farmers table
-            df = pd.DataFrame(users)
-            if 'name' in df.columns:
-                display_cols = []
-                if 'name' in df.columns: display_cols.append('name')
-                if 'village' in df.columns: display_cols.append('village')
-                if 'crops' in df.columns: display_cols.append('crops')
-                if 'land_acres' in df.columns: display_cols.append('land_acres')
-                if 'registered_at' in df.columns: display_cols.append('registered_at')
-                
-                df = df[display_cols]
-                df.columns = ['Name', 'Village', 'Crops', 'Land (acres)', 'Registered']
-                
-                st.dataframe(
-                    df,
-                    use_container_width=True,
-                    height=500,
-                    column_config={
-                        "Land (acres)": st.column_config.NumberColumn(
-                            "Land (acres)",
-                            format="%.1f"
-                        )
-                    }
-                )
-                
-                # Download button
-                col1, col2, col3 = st.columns([1, 1, 2])
-                with col1:
-                    csv = df.to_csv(index=False)
-                    st.download_button(
-                        label="📥 Download CSV",
-                        data=csv,
-                        file_name=f"farmers_data_{datetime.now().strftime('%Y%m%d')}.csv",
-                        mime="text/csv"
+            # Create dataframe
+            dummy_df = pd.DataFrame([
+                {
+                    'Phone': f.get('phone_number', 'N/A'),
+                    'Name': f.get('name', 'Unknown'),
+                    'Village': f.get('village_name', 'N/A'),
+                    'Crops': f.get('crops_grown', 'N/A'),
+                    'Land (acres)': f.get('land_size_acres', 0),
+                }
+                for f in dummy_farmers
+            ])
+            
+            st.dataframe(
+                dummy_df,
+                use_container_width=True,
+                height=400,
+                column_config={
+                    "Land (acres)": st.column_config.NumberColumn(
+                        "Land (acres)",
+                        format="%.1f"
                     )
+                }
+            )
+            
+            # Download button
+            col1, col2, col3 = st.columns([1, 1, 2])
+            with col1:
+                csv = dummy_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download CSV",
+                    data=csv,
+                    file_name=f"demo_farmers_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
+                )
+            
+            st.markdown("---")
+            st.info("💡 These are demo farmers used for knowledge graph testing. They are NOT real registered users.")
         else:
-            st.info("🌾 No registered farmers yet. Start onboarding on WhatsApp!")
-    except Exception as e:
-        st.error(f"❌ Error loading user data: {e}")
-        st.info("💡 Make sure AWS credentials are configured correctly.")
+            st.warning("⚠️ No demo farmers found in knowledge graph data.")
 
 elif page == "💬 Conversations":
     st.markdown("<div class='section-header'>💬 Recent Conversations</div>", unsafe_allow_html=True)
