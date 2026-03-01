@@ -110,29 +110,9 @@ def add_known_users():
     """Add known users manually"""
     known_users = [
         {
-            "id": "farmer_real_parth",
-            "name": "Parth Nikam",
-            "phone": "+919000000001",
-            "village_id": "village_001",
-            "village_name": "Kolhapur",
-            "land_size_acres": 20,
-            "crops_grown": ["Sugarcane"],
-            "experience_years": 8,
-            "success_rate": 0.90,
-            "avg_yield_sugarcane": 480,
-            "total_revenue_last_year": 3072000,
-            "total_expenses_last_year": 900000,
-            "net_profit_last_year": 2172000,
-            "best_selling_month": "March",
-            "irrigation_method": "Drip irrigation",
-            "fertilizer_usage": "Organic + Chemical",
-            "is_real_user": True,
-            "total_messages": 50
-        },
-        {
             "id": "farmer_real_vinay",
             "name": "Vinay",
-            "phone": "+91XXXXXXXXXX",
+            "phone": "+919000000001",
             "village_id": "village_001",
             "village_name": "Kolhapur",
             "land_size_acres": 15,
@@ -147,7 +127,8 @@ def add_known_users():
             "irrigation_method": "Flood irrigation",
             "fertilizer_usage": "Chemical",
             "is_real_user": True,
-            "total_messages": 25
+            "total_messages": 0,
+            "status": "Fresh start - data cleared"
         }
     ]
     
@@ -164,28 +145,20 @@ def update_knowledge_graph():
     # Add known users
     known_users = add_known_users()
     
-    # Find and update Parth's entry if it exists
-    parth_found = False
-    for i, farmer in enumerate(data['farmers']):
-        if farmer['name'] == 'Parth Nikam':
-            data['farmers'][i] = known_users[0]
-            parth_found = True
-            print("✅ Updated Parth Nikam's profile")
-            break
+    # Find and remove Parth if exists (he's not a real user)
+    data['farmers'] = [f for f in data['farmers'] if f['name'] != 'Parth Nikam']
     
-    if not parth_found:
-        data['farmers'].insert(0, known_users[0])
-        print("✅ Added Parth Nikam")
-    
-    # Add Vinay
+    # Add/Update Vinay
     vinay_found = False
-    for farmer in data['farmers']:
-        if 'Vinay' in farmer['name']:
+    for i, farmer in enumerate(data['farmers']):
+        if 'Vinay' in farmer.get('name', ''):
+            data['farmers'][i] = known_users[0]
             vinay_found = True
+            print("✅ Updated Vinay's profile")
             break
     
     if not vinay_found:
-        data['farmers'].insert(1, known_users[1])
+        data['farmers'].insert(0, known_users[0])
         print("✅ Added Vinay")
     
     # Update metadata
@@ -195,24 +168,6 @@ def update_knowledge_graph():
     
     # Add relationships for real users
     real_user_relationships = [
-        {
-            "type": "LOCATED_IN",
-            "source_id": "farmer_real_parth",
-            "source_type": "farmer",
-            "target_id": "village_001",
-            "target_type": "village",
-            "strength": 1.0
-        },
-        {
-            "type": "GROWS",
-            "source_id": "farmer_real_parth",
-            "source_type": "farmer",
-            "target_id": "crop_001",
-            "target_type": "crop",
-            "strength": 1.0,
-            "area_acres": 20,
-            "yield_per_acre": 480
-        },
         {
             "type": "LOCATED_IN",
             "source_id": "farmer_real_vinay",
@@ -230,15 +185,6 @@ def update_knowledge_graph():
             "strength": 1.0,
             "area_acres": 15,
             "yield_per_acre": 445
-        },
-        {
-            "type": "SIMILAR_TO",
-            "source_id": "farmer_real_parth",
-            "source_type": "farmer",
-            "target_id": "farmer_real_vinay",
-            "target_type": "farmer",
-            "strength": 0.88,
-            "similarity_factors": ["same_crop", "same_village", "similar_experience"]
         }
     ]
     
@@ -254,7 +200,7 @@ def update_knowledge_graph():
     print("\n✅ Knowledge graph updated!")
     print(f"   Total farmers: {len(data['farmers'])}")
     print(f"   Total relationships: {len(data['relationships'])}")
-    print(f"   Real users: Parth Nikam, Vinay")
+    print(f"   Real user: Vinay (data cleared, ready for fresh onboarding)")
 
 def main():
     """Main function"""
