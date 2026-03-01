@@ -529,15 +529,14 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
 संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।
 अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
-    # Extract crop name
     # Extract crop name using AI (NO hardcoded keywords!)
     print(f"[DEBUG] Using AI to extract crop name from market query...")
     detected_crop = extract_crop_with_ai(user_message, bedrock)
     
     if not detected_crop:
         print(f"[DEBUG] No crop detected in message")
-        print(f"[DEBUG] No crop detected in message")
     
+    if detected_crop and FAST_MARKET_DATA_AVAILABLE:
         # Try to get location from user profile first
         state_name = None
         if ONBOARDING_AVAILABLE and user_id != "unknown":
@@ -557,10 +556,8 @@ State: """
         
         # If no profile location, extract using AI from message
         if not state_name:
-    if detected_crop and FAST_MARKET_DATA_AVAILABLE:
-        # Extract state using AI (no hardcoding!)
-        print(f"[DEBUG] Using AI to extract state for market query...")
-        state_name = extract_state_with_ai(user_message, bedrock)
+            print(f"[DEBUG] Using AI to extract state for market query...")
+            state_name = extract_state_with_ai(user_message, bedrock)
         
         print(f"[DEBUG] Using market data for {detected_crop} in {state_name}")
         # Use market data with AI-extracted state
@@ -2853,7 +2850,7 @@ Reply: """
                 
                 reply = handle_crop_query(user_message, from_number, user_lang, location=user_location)
             elif agent == "market":
-                reply = handle_market_query(user_message, user_lang)
+                reply = handle_market_query(user_message, user_lang, from_number)
             elif agent == "finance":
                 reply = handle_finance_query(user_message, from_number, user_lang)
             else:
