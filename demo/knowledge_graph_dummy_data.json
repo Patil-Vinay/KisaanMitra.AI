@@ -291,10 +291,13 @@
       "phone": "+919000000001",
       "village_id": "village_001",
       "village_name": "Kolhapur",
-      "land_size_acres": 15,
+      "land_size_acres": 50,
       "crops_grown": [
+        "Wheat",
         "Sugarcane",
-        "Wheat"
+        "Soyabean",
+        "Rice",
+        "Tur Daal"
       ],
       "experience_years": 6,
       "success_rate": 0.82,

@@ -18,26 +18,34 @@ if [ -d "package" ]; then
     echo "📦 Including LangGraph dependencies..."
     cd package
     zip -r -q ../whatsapp_deployment.zip .
-    cd ..
+    cd ../..
     zip -q whatsapp_deployment.zip lambda_whatsapp_kisaanmitra.py agent_router.py market_data_sources.py
     
     # Add new hackathon feature modules
     echo "🚀 Including hackathon feature modules..."
-    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py user_state_manager.py navigation_controller.py crop_yield_database.py anthropic_client.py 2>/dev/null || echo "⚠️  Some feature modules not found"
+    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py user_state_manager.py navigation_controller.py crop_yield_database.py anthropic_client.py knowledge_graph_helper.py 2>/dev/null || echo "⚠️  Some feature modules not found"
     
     # Add onboarding and knowledge_graph modules
     if [ -d "deployment_package/onboarding" ]; then
         echo "📦 Including onboarding module..."
         cd deployment_package
         zip -r -q ../whatsapp_deployment.zip onboarding/
-        cd ..
+        cd ../..
     fi
     
     if [ -d "deployment_package/knowledge_graph" ]; then
         echo "📦 Including knowledge_graph module..."
         cd deployment_package
         zip -r -q ../whatsapp_deployment.zip knowledge_graph/
-        cd ..
+        cd ../..
+    fi
+    
+    # Add demo folder with knowledge graph data
+    if [ -d "../../demo" ]; then
+        echo "📊 Including knowledge graph demo data..."
+        cd ../..
+        zip -r -q src/lambda/whatsapp_deployment.zip demo/knowledge_graph_dummy_data.json
+        cd lambda
     fi
 else
     echo "⚠️  No package directory found. LangGraph will use fallback routing."
@@ -46,7 +54,7 @@ else
     
     # Add new hackathon feature modules
     echo "🚀 Including hackathon feature modules..."
-    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py user_state_manager.py navigation_controller.py crop_yield_database.py anthropic_client.py 2>/dev/null || echo "⚠️  Some feature modules not found"
+    zip -q whatsapp_deployment.zip whatsapp_interactive.py ai_orchestrator.py enhanced_disease_detection.py reminder_manager.py sos_handler.py voice_handler.py weather_service.py crop_comparison.py user_state_manager.py navigation_controller.py crop_yield_database.py anthropic_client.py knowledge_graph_helper.py 2>/dev/null || echo "⚠️  Some feature modules not found"
     
     # Add onboarding and knowledge_graph modules
     if [ -d "../onboarding" ]; then
@@ -61,6 +69,14 @@ else
         cd ..
         zip -r -q lambda/whatsapp_deployment.zip knowledge_graph/
         cd lambda
+    fi
+    
+    # Add demo folder with knowledge graph data
+    if [ -d "../../demo" ]; then
+        echo "📊 Including knowledge graph demo data..."
+        cd ../..
+        zip -r -q src/lambda/whatsapp_deployment.zip demo/knowledge_graph_dummy_data.json
+        cd src/lambda
     fi
 fi
 

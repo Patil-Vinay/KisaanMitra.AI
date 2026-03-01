@@ -600,7 +600,7 @@ Common crops: rice, wheat, onion, potato, tomato, cotton, sugarcane, soybean, ma
 Reply with ONLY the crop name in English (e.g., "tomato" or "wheat" or "none"). No explanation."""
 
     try:
-        crop = ask_bedrock(crop_prompt, skip_context=True).strip().lower()
+        crop = ask_bedrock(crop_prompt, skip_context=True).strip().lower().replace("*", "").replace("_", "")
         if crop == "none" or not crop:
             print(f"[WARNING] No crop found in message")
             return None
@@ -2028,10 +2028,43 @@ CRITICAL: Respond ONLY in English. Always use ₹ for currency. Follow the forma
     
     return result
 
-def handle_general_query(user_message, language='hindi'):
+def handle_general_query(user_message, user_id="unknown", language='hindi'):
     """Handle general queries - friendly conversation with language support (AI-based routing)"""
     print(f"[DEBUG] ===== GENERAL AGENT =====")
     print(f"[DEBUG] Processing general query: {user_message}, Language: {language}")
+    
+    # Use AI to detect knowledge graph queries
+    if ONBOARDING_AVAILABLE:
+        kg_check_prompt = f"""Is this asking about OTHER FARMERS in the user's village/community? Reply ONLY "yes" or "no".
+
+Message: "{user_message}"
+
+Examples of KG queries: "who else grows sugarcane", "other farmers in my village", "show me farmers", "और कौन गन्ना उगाता है"
+Examples of non-KG: "how to grow wheat", "market price", "weather today"
+
+Reply: """
+        
+        try:
+            is_kg = ask_bedrock(kg_check_prompt, skip_context=True).strip().lower()
+            if is_kg == "yes":
+                print(f"[KG] AI detected knowledge graph query")
+                from knowledge_graph_helper import get_village_farmers, format_farmers_list
+                from onboarding.farmer_onboarding import onboarding_manager
+                profile = onboarding_manager.get_user_profile(user_id)
+                if profile:
+                    village = profile.get('village', '')
+                    print(f"[KG] User village: {village}")
+                    crop_prompt = f"Extract ONLY the crop name from: {user_message}. Reply with ONE WORD crop name (sugarcane/wheat/rice/soybean) or 'all' if no specific crop mentioned."
+                    crop = ask_bedrock(crop_prompt, skip_context=True).strip().lower().replace("*", "").replace("_", "")
+                    crop_filter = None if crop in ['none', 'all'] else crop
+                    print(f"[KG] Querying {village} for {crop_filter or 'all crops'}")
+                    farmers = get_village_farmers(village, crop_filter, user_id)
+                    return format_farmers_list(farmers, language)
+        except Exception as e:
+            print(f"[KG ERROR] {e}")
+            import traceback
+            traceback.print_exc()
+
     
     # Use AI to check if this is a weather query
     if WEATHER_AVAILABLE:
@@ -2088,7 +2121,7 @@ Keep responses concise (3-4 sentences).
 CRITICAL: Respond ONLY in English."""
     else:
         system_prompt = """आप किसान मित्र हैं, एक मित्रवत कृषि सहायक।
-सरल हिंदी में व्यावहारिक कृषि सलाह दें।
+    # Use AI to check if this is a weather query
 जवाब संक्षिप्त (3-4 वाक्य) रखें।
 अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें।"""
     
@@ -2856,7 +2889,7 @@ Reply: """
             else:
                 # General agent - handles all other queries
                 print(f"[DEBUG] Routing to GENERAL agent for query: {user_message}")
-                reply = handle_general_query(user_message, user_lang)
+                reply = handle_general_query(user_message, from_number, user_lang)
             
             print(f"[DEBUG] Agent execution complete, reply length: {len(reply)} chars")
             print(f"[DEBUG] Reply preview: {reply[:200]}...")
