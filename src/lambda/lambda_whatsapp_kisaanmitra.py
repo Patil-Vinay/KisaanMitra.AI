@@ -28,7 +28,6 @@ import sys
 sys.path.append('/opt/python')  # Lambda layer path
 try:
     from onboarding.farmer_onboarding import onboarding_manager
-    from knowledge_graph.village_graph import knowledge_graph
     ONBOARDING_AVAILABLE = True
     print("✅ Onboarding module loaded successfully")
 except ImportError as e:
@@ -2051,6 +2050,29 @@ Reply: """
                 from knowledge_graph_helper import get_village_farmers, format_farmers_list
                 from onboarding.farmer_onboarding import onboarding_manager
                 profile = onboarding_manager.get_user_profile(user_id)
+                
+                # If no profile, check if user exists in knowledge graph data
+                if not profile:
+                    print(f"[KG] No DynamoDB profile found, checking knowledge graph data for user {user_id}")
+                    from knowledge_graph_helper import load_knowledge_graph_data
+                    kg_data = load_knowledge_graph_data()
+                    print(f"[KG] Knowledge graph has {len(kg_data.get('farmers', []))} farmers")
+                    for farmer in kg_data.get("farmers", []):
+                        farmer_phone = farmer.get("phone", "").replace("+", "")
+                        if farmer_phone == user_id.replace("+", ""):
+                            profile = {
+                                'name': farmer.get('name', 'You'),
+                                'village': farmer.get('village_name', 'Kolhapur'),
+                                'land_size': farmer.get('land_size_acres', 'N/A'),
+                                'crops': farmer.get('crops_grown', [])
+                            }
+                            print(f"[KG] ✅ Found user in knowledge graph: {profile['name']} from {profile['village']}")
+                            break
+                    if not profile:
+                        print(f"[KG] ❌ User {user_id} not found in knowledge graph either")
+                else:
+                    print(f"[KG] Using DynamoDB profile: {profile.get('name', 'Unknown')} from {profile.get('village', 'Unknown')}")
+                
                 if profile:
                     village = profile.get('village', '')
                     print(f"[KG] User village: {village}")
@@ -2087,6 +2109,12 @@ Reply: """
                         return format_farmers_list(farmers, language, current_user_data, 'all')
                     else:
                         return format_farmers_list(farmers, language, current_user if not include_self else None, query_type)
+                else:
+                    print(f"[KG] No profile found for user {user_id}, cannot query knowledge graph")
+                    if language == 'english':
+                        return "I couldn't find your profile. Please complete onboarding first by saying 'Hi' or 'Start'."
+                    else:
+                        return "मुझे आपकी प्रोफ़ाइल नहीं मिली। कृपया पहले 'Hi' या 'Start' कहकर ऑनबोर्डिंग पूरी करें।"
         except Exception as e:
             print(f"[KG ERROR] {e}")
             import traceback

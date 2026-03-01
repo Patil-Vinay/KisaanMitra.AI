@@ -12,15 +12,20 @@ def load_knowledge_graph_data():
     
     for path in paths:
         try:
+            print(f"[KG] Trying to load from: {path}")
             with open(path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                print(f"[KG] ✅ Successfully loaded from: {path}")
+                print(f"[KG] Data contains {len(data.get('farmers', []))} farmers")
+                return data
         except FileNotFoundError:
+            print(f"[KG] File not found: {path}")
             continue
         except Exception as e:
             print(f"[KG] Error loading from {path}: {e}")
             continue
     
-    print("[KG] WARNING: Could not load knowledge graph data from any path")
+    print("[KG] ❌ WARNING: Could not load knowledge graph data from any path")
     return {"farmers": []}
 
 def get_village_farmers(village_name, crop=None, exclude_user_id=None, include_self=False):
@@ -34,15 +39,21 @@ def get_village_farmers(village_name, crop=None, exclude_user_id=None, include_s
         include_self: If True, include the current user in results
     """
     data = load_knowledge_graph_data()
+    print(f"[KG] Loaded {len(data.get('farmers', []))} farmers from knowledge graph")
+    print(f"[KG] Searching for village: '{village_name}', user_id: '{exclude_user_id}'")
+    
     farmers = []
     current_user = None
     
     for farmer in data.get("farmers", []):
         farmer_village = farmer.get("village_name", "").lower()
+        farmer_phone = farmer.get("phone", "").replace("+", "")
         
         # Check if this is the current user
-        is_current_user = (exclude_user_id and 
-                          farmer.get("phone", "").replace("+", "") == exclude_user_id.replace("+", ""))
+        is_current_user = (exclude_user_id and farmer_phone == exclude_user_id.replace("+", ""))
+        
+        if is_current_user:
+            print(f"[KG] Found current user: {farmer.get('name')} from {farmer.get('village_name')}")
         
         # Store current user for later
         if is_current_user:
@@ -59,6 +70,9 @@ def get_village_farmers(village_name, crop=None, exclude_user_id=None, include_s
                     farmers.append(farmer)
             else:
                 farmers.append(farmer)
+    
+    print(f"[KG] Found {len(farmers)} farmers in village '{village_name}'")
+    print(f"[KG] Current user found: {current_user is not None}")
     
     return farmers, current_user
 
