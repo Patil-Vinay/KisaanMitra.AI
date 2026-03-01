@@ -1,13 +1,14 @@
 {
   "metadata": {
     "generated_date": "2026-03-01",
-    "total_farmers": 50,
+    "total_farmers": 26,
     "total_villages": 10,
     "total_crops": 15,
     "total_relationships": 500,
-    "focus_area": "Kolhapur sugarcane farmers"
+    "focus_area": "Kolhapur sugarcane farmers",
+    "real_users_included": true,
+    "last_updated": "2026-03-01T13:45:00 IST"
   },
-  
   "villages": [
     {
       "id": "village_001",
@@ -18,8 +19,16 @@
       "avg_rainfall_mm": 850,
       "irrigation_availability": "High",
       "total_farmers": 15,
-      "primary_crops": ["Sugarcane", "Soybean", "Wheat"],
-      "nearby_mandis": ["Kolhapur APMC", "Sangli Mandi", "Satara Mandi"],
+      "primary_crops": [
+        "Sugarcane",
+        "Soybean",
+        "Wheat"
+      ],
+      "nearby_mandis": [
+        "Kolhapur APMC",
+        "Sangli Mandi",
+        "Satara Mandi"
+      ],
       "avg_land_size_acres": 18.5,
       "success_rate": 0.85
     },
@@ -32,8 +41,15 @@
       "avg_rainfall_mm": 780,
       "irrigation_availability": "Medium",
       "total_farmers": 8,
-      "primary_crops": ["Sugarcane", "Turmeric", "Grapes"],
-      "nearby_mandis": ["Sangli Mandi", "Kolhapur APMC"],
+      "primary_crops": [
+        "Sugarcane",
+        "Turmeric",
+        "Grapes"
+      ],
+      "nearby_mandis": [
+        "Sangli Mandi",
+        "Kolhapur APMC"
+      ],
       "avg_land_size_acres": 12.3,
       "success_rate": 0.78
     },
@@ -46,8 +62,15 @@
       "avg_rainfall_mm": 920,
       "irrigation_availability": "High",
       "total_farmers": 6,
-      "primary_crops": ["Sugarcane", "Strawberry", "Tomato"],
-      "nearby_mandis": ["Satara Mandi", "Pune APMC"],
+      "primary_crops": [
+        "Sugarcane",
+        "Strawberry",
+        "Tomato"
+      ],
+      "nearby_mandis": [
+        "Satara Mandi",
+        "Pune APMC"
+      ],
       "avg_land_size_acres": 15.7,
       "success_rate": 0.82
     },
@@ -60,8 +83,15 @@
       "avg_rainfall_mm": 650,
       "irrigation_availability": "Medium",
       "total_farmers": 5,
-      "primary_crops": ["Wheat", "Soybean", "Onion"],
-      "nearby_mandis": ["Pune APMC", "Hadapsar Mandi"],
+      "primary_crops": [
+        "Wheat",
+        "Soybean",
+        "Onion"
+      ],
+      "nearby_mandis": [
+        "Pune APMC",
+        "Hadapsar Mandi"
+      ],
       "avg_land_size_acres": 10.2,
       "success_rate": 0.75
     },
@@ -74,8 +104,15 @@
       "avg_rainfall_mm": 580,
       "irrigation_availability": "Low",
       "total_farmers": 4,
-      "primary_crops": ["Grapes", "Onion", "Tomato"],
-      "nearby_mandis": ["Nashik APMC", "Lasalgaon Mandi"],
+      "primary_crops": [
+        "Grapes",
+        "Onion",
+        "Tomato"
+      ],
+      "nearby_mandis": [
+        "Nashik APMC",
+        "Lasalgaon Mandi"
+      ],
       "avg_land_size_acres": 8.5,
       "success_rate": 0.72
     },
@@ -88,8 +125,14 @@
       "avg_rainfall_mm": 520,
       "irrigation_availability": "Low",
       "total_farmers": 3,
-      "primary_crops": ["Cotton", "Soybean", "Wheat"],
-      "nearby_mandis": ["Solapur Mandi"],
+      "primary_crops": [
+        "Cotton",
+        "Soybean",
+        "Wheat"
+      ],
+      "nearby_mandis": [
+        "Solapur Mandi"
+      ],
       "avg_land_size_acres": 14.8,
       "success_rate": 0.68
     },
@@ -102,8 +145,14 @@
       "avg_rainfall_mm": 600,
       "irrigation_availability": "Medium",
       "total_farmers": 3,
-      "primary_crops": ["Sugarcane", "Wheat", "Soybean"],
-      "nearby_mandis": ["Ahmednagar Mandi"],
+      "primary_crops": [
+        "Sugarcane",
+        "Wheat",
+        "Soybean"
+      ],
+      "nearby_mandis": [
+        "Ahmednagar Mandi"
+      ],
       "avg_land_size_acres": 16.2,
       "success_rate": 0.76
     },
@@ -116,10 +165,16 @@
       "avg_rainfall_mm": 480,
       "irrigation_availability": "Low",
       "total_farmers": 2,
-      "primary_crops": ["Soybean", "Cotton", "Wheat"],
-      "nearby_mandis": ["Latur Mandi"],
+      "primary_crops": [
+        "Soybean",
+        "Cotton",
+        "Wheat"
+      ],
+      "nearby_mandis": [
+        "Latur Mandi"
+      ],
       "avg_land_size_acres": 12.5,
-      "success_rate": 0.70
+      "success_rate": 0.7
     },
     {
       "id": "village_009",
@@ -130,8 +185,14 @@
       "avg_rainfall_mm": 550,
       "irrigation_availability": "Medium",
       "total_farmers": 2,
-      "primary_crops": ["Soybean", "Cotton", "Wheat"],
-      "nearby_mandis": ["Nanded Mandi"],
+      "primary_crops": [
+        "Soybean",
+        "Cotton",
+        "Wheat"
+      ],
+      "nearby_mandis": [
+        "Nanded Mandi"
+      ],
       "avg_land_size_acres": 11.8,
       "success_rate": 0.71
     },
@@ -144,13 +205,18 @@
       "avg_rainfall_mm": 620,
       "irrigation_availability": "Medium",
       "total_farmers": 2,
-      "primary_crops": ["Cotton", "Soybean", "Wheat"],
-      "nearby_mandis": ["Akola Mandi"],
+      "primary_crops": [
+        "Cotton",
+        "Soybean",
+        "Wheat"
+      ],
+      "nearby_mandis": [
+        "Akola Mandi"
+      ],
       "avg_land_size_acres": 13.2,
       "success_rate": 0.73
     }
   ],
-  
   "crops": [
     {
       "id": "crop_001",
@@ -218,25 +284,51 @@
       "profit_margin": 0.72
     }
   ],
-  
   "farmers": [
     {
-      "id": "farmer_001",
+      "id": "farmer_real_parth",
       "name": "Parth Nikam",
-      "phone": "+919876543210",
+      "phone": "+919000000001",
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 20,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 8,
-      "success_rate": 0.90,
+      "success_rate": 0.9,
       "avg_yield_sugarcane": 480,
       "total_revenue_last_year": 3072000,
       "total_expenses_last_year": 900000,
       "net_profit_last_year": 2172000,
       "best_selling_month": "March",
       "irrigation_method": "Drip irrigation",
-      "fertilizer_usage": "Organic + Chemical"
+      "fertilizer_usage": "Organic + Chemical",
+      "is_real_user": true,
+      "total_messages": 50
+    },
+    {
+      "id": "farmer_real_vinay",
+      "name": "Vinay",
+      "phone": "+91XXXXXXXXXX",
+      "village_id": "village_001",
+      "village_name": "Kolhapur",
+      "land_size_acres": 15,
+      "crops_grown": [
+        "Sugarcane",
+        "Wheat"
+      ],
+      "experience_years": 6,
+      "success_rate": 0.82,
+      "avg_yield_sugarcane": 445,
+      "total_revenue_last_year": 2137500,
+      "total_expenses_last_year": 675000,
+      "net_profit_last_year": 1462500,
+      "best_selling_month": "March",
+      "irrigation_method": "Flood irrigation",
+      "fertilizer_usage": "Chemical",
+      "is_real_user": true,
+      "total_messages": 25
     },
     {
       "id": "farmer_002",
@@ -245,7 +337,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 15,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 12,
       "success_rate": 0.88,
       "avg_yield_sugarcane": 470,
@@ -263,7 +357,10 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 25,
-      "crops_grown": ["Sugarcane", "Soybean"],
+      "crops_grown": [
+        "Sugarcane",
+        "Soybean"
+      ],
       "experience_years": 15,
       "success_rate": 0.92,
       "avg_yield_sugarcane": 490,
@@ -281,7 +378,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 18,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 6,
       "success_rate": 0.82,
       "avg_yield_sugarcane": 440,
@@ -299,7 +398,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 22,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 10,
       "success_rate": 0.86,
       "avg_yield_sugarcane": 460,
@@ -317,9 +418,12 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 12,
-      "crops_grown": ["Sugarcane", "Wheat"],
+      "crops_grown": [
+        "Sugarcane",
+        "Wheat"
+      ],
       "experience_years": 7,
-      "success_rate": 0.80,
+      "success_rate": 0.8,
       "avg_yield_sugarcane": 430,
       "total_revenue_last_year": 1651200,
       "total_expenses_last_year": 540000,
@@ -335,7 +439,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 16,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 9,
       "success_rate": 0.84,
       "avg_yield_sugarcane": 455,
@@ -353,7 +459,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 14,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 5,
       "success_rate": 0.78,
       "avg_yield_sugarcane": 425,
@@ -371,7 +479,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 19,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 11,
       "success_rate": 0.87,
       "avg_yield_sugarcane": 465,
@@ -389,7 +499,10 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 21,
-      "crops_grown": ["Sugarcane", "Soybean"],
+      "crops_grown": [
+        "Sugarcane",
+        "Soybean"
+      ],
       "experience_years": 13,
       "success_rate": 0.89,
       "avg_yield_sugarcane": 475,
@@ -407,7 +520,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 17,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 8,
       "success_rate": 0.83,
       "avg_yield_sugarcane": 450,
@@ -425,7 +540,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 23,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 14,
       "success_rate": 0.91,
       "avg_yield_sugarcane": 485,
@@ -443,7 +560,10 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 13,
-      "crops_grown": ["Sugarcane", "Wheat"],
+      "crops_grown": [
+        "Sugarcane",
+        "Wheat"
+      ],
       "experience_years": 6,
       "success_rate": 0.79,
       "avg_yield_sugarcane": 435,
@@ -461,7 +581,9 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 20,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 10,
       "success_rate": 0.85,
       "avg_yield_sugarcane": 460,
@@ -479,7 +601,10 @@
       "village_id": "village_001",
       "village_name": "Kolhapur",
       "land_size_acres": 24,
-      "crops_grown": ["Sugarcane", "Soybean"],
+      "crops_grown": [
+        "Sugarcane",
+        "Soybean"
+      ],
       "experience_years": 16,
       "success_rate": 0.93,
       "avg_yield_sugarcane": 495,
@@ -497,7 +622,10 @@
       "village_id": "village_002",
       "village_name": "Sangli",
       "land_size_acres": 10,
-      "crops_grown": ["Sugarcane", "Turmeric"],
+      "crops_grown": [
+        "Sugarcane",
+        "Turmeric"
+      ],
       "experience_years": 7,
       "success_rate": 0.76,
       "avg_yield_sugarcane": 420,
@@ -512,9 +640,11 @@
       "village_id": "village_002",
       "village_name": "Sangli",
       "land_size_acres": 12,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 9,
-      "success_rate": 0.80,
+      "success_rate": 0.8,
       "avg_yield_sugarcane": 445,
       "total_revenue_last_year": 1708800,
       "total_expenses_last_year": 540000,
@@ -527,7 +657,10 @@
       "village_id": "village_002",
       "village_name": "Sangli",
       "land_size_acres": 15,
-      "crops_grown": ["Grapes", "Sugarcane"],
+      "crops_grown": [
+        "Grapes",
+        "Sugarcane"
+      ],
       "experience_years": 11,
       "success_rate": 0.82,
       "avg_yield_sugarcane": 455,
@@ -542,7 +675,10 @@
       "village_id": "village_003",
       "village_name": "Satara",
       "land_size_acres": 14,
-      "crops_grown": ["Sugarcane", "Strawberry"],
+      "crops_grown": [
+        "Sugarcane",
+        "Strawberry"
+      ],
       "experience_years": 8,
       "success_rate": 0.81,
       "avg_yield_sugarcane": 450,
@@ -557,7 +693,9 @@
       "village_id": "village_003",
       "village_name": "Satara",
       "land_size_acres": 16,
-      "crops_grown": ["Sugarcane"],
+      "crops_grown": [
+        "Sugarcane"
+      ],
       "experience_years": 10,
       "success_rate": 0.84,
       "avg_yield_sugarcane": 465,
@@ -572,7 +710,10 @@
       "village_id": "village_004",
       "village_name": "Pune",
       "land_size_acres": 8,
-      "crops_grown": ["Wheat", "Soybean"],
+      "crops_grown": [
+        "Wheat",
+        "Soybean"
+      ],
       "experience_years": 5,
       "success_rate": 0.72,
       "avg_yield_soybean": 11,
@@ -587,7 +728,10 @@
       "village_id": "village_004",
       "village_name": "Pune",
       "land_size_acres": 11,
-      "crops_grown": ["Onion", "Wheat"],
+      "crops_grown": [
+        "Onion",
+        "Wheat"
+      ],
       "experience_years": 7,
       "success_rate": 0.75,
       "avg_yield_onion": 115,
@@ -602,7 +746,10 @@
       "village_id": "village_005",
       "village_name": "Nashik",
       "land_size_acres": 7,
-      "crops_grown": ["Grapes", "Onion"],
+      "crops_grown": [
+        "Grapes",
+        "Onion"
+      ],
       "experience_years": 9,
       "success_rate": 0.78,
       "avg_yield_grapes": 80,
@@ -617,9 +764,12 @@
       "village_id": "village_005",
       "village_name": "Nashik",
       "land_size_acres": 9,
-      "crops_grown": ["Onion", "Tomato"],
+      "crops_grown": [
+        "Onion",
+        "Tomato"
+      ],
       "experience_years": 6,
-      "success_rate": 0.70,
+      "success_rate": 0.7,
       "avg_yield_onion": 110,
       "total_revenue_last_year": 1782000,
       "total_expenses_last_year": 315000,
@@ -632,7 +782,10 @@
       "village_id": "village_006",
       "village_name": "Solapur",
       "land_size_acres": 13,
-      "crops_grown": ["Cotton", "Soybean"],
+      "crops_grown": [
+        "Cotton",
+        "Soybean"
+      ],
       "experience_years": 8,
       "success_rate": 0.68,
       "avg_yield_cotton": 7,
@@ -641,7 +794,6 @@
       "net_profit_last_year": 305500
     }
   ],
-  
   "relationships": [
     {
       "type": "LOCATED_IN",
@@ -668,7 +820,12 @@
       "target_id": "farmer_003",
       "target_type": "farmer",
       "strength": 0.92,
-      "similarity_factors": ["same_crop", "same_village", "similar_land_size", "high_success_rate"]
+      "similarity_factors": [
+        "same_crop",
+        "same_village",
+        "similar_land_size",
+        "high_success_rate"
+      ]
     },
     {
       "type": "SIMILAR_TO",
@@ -677,7 +834,11 @@
       "target_id": "farmer_005",
       "target_type": "farmer",
       "strength": 0.88,
-      "similarity_factors": ["same_crop", "same_village", "similar_land_size"]
+      "similarity_factors": [
+        "same_crop",
+        "same_village",
+        "similar_land_size"
+      ]
     },
     {
       "type": "SUITABLE_FOR",
@@ -707,9 +868,57 @@
       "practice": "Drip irrigation + Organic fertilizer",
       "success_rate": 0.92,
       "yield_improvement": 0.15
+    },
+    {
+      "type": "LOCATED_IN",
+      "source_id": "farmer_real_parth",
+      "source_type": "farmer",
+      "target_id": "village_001",
+      "target_type": "village",
+      "strength": 1.0
+    },
+    {
+      "type": "GROWS",
+      "source_id": "farmer_real_parth",
+      "source_type": "farmer",
+      "target_id": "crop_001",
+      "target_type": "crop",
+      "strength": 1.0,
+      "area_acres": 20,
+      "yield_per_acre": 480
+    },
+    {
+      "type": "LOCATED_IN",
+      "source_id": "farmer_real_vinay",
+      "source_type": "farmer",
+      "target_id": "village_001",
+      "target_type": "village",
+      "strength": 1.0
+    },
+    {
+      "type": "GROWS",
+      "source_id": "farmer_real_vinay",
+      "source_type": "farmer",
+      "target_id": "crop_001",
+      "target_type": "crop",
+      "strength": 1.0,
+      "area_acres": 15,
+      "yield_per_acre": 445
+    },
+    {
+      "type": "SIMILAR_TO",
+      "source_id": "farmer_real_parth",
+      "source_type": "farmer",
+      "target_id": "farmer_real_vinay",
+      "target_type": "farmer",
+      "strength": 0.88,
+      "similarity_factors": [
+        "same_crop",
+        "same_village",
+        "similar_experience"
+      ]
     }
   ],
-  
   "markets": [
     {
       "id": "market_001",
@@ -717,9 +926,18 @@
       "location": "Kolhapur",
       "district": "Kolhapur",
       "state": "Maharashtra",
-      "crops_traded": ["Sugarcane", "Soybean", "Wheat", "Turmeric"],
+      "crops_traded": [
+        "Sugarcane",
+        "Soybean",
+        "Wheat",
+        "Turmeric"
+      ],
       "avg_daily_volume_tons": 500,
-      "peak_months": ["February", "March", "April"]
+      "peak_months": [
+        "February",
+        "March",
+        "April"
+      ]
     },
     {
       "id": "market_002",
@@ -727,9 +945,16 @@
       "location": "Sangli",
       "district": "Sangli",
       "state": "Maharashtra",
-      "crops_traded": ["Sugarcane", "Turmeric", "Grapes"],
+      "crops_traded": [
+        "Sugarcane",
+        "Turmeric",
+        "Grapes"
+      ],
       "avg_daily_volume_tons": 350,
-      "peak_months": ["March", "April"]
+      "peak_months": [
+        "March",
+        "April"
+      ]
     },
     {
       "id": "market_003",
@@ -737,12 +962,18 @@
       "location": "Satara",
       "district": "Satara",
       "state": "Maharashtra",
-      "crops_traded": ["Sugarcane", "Strawberry", "Tomato"],
+      "crops_traded": [
+        "Sugarcane",
+        "Strawberry",
+        "Tomato"
+      ],
       "avg_daily_volume_tons": 280,
-      "peak_months": ["February", "March"]
+      "peak_months": [
+        "February",
+        "March"
+      ]
     }
   ],
-  
   "events": [
     {
       "id": "event_001",
@@ -796,7 +1027,6 @@
       "yield_improvement_percent": 12
     }
   ],
-  
   "patterns": [
     {
       "id": "pattern_001",
@@ -805,8 +1035,15 @@
       "crop_id": "crop_001",
       "avg_yield": 460,
       "success_rate": 0.85,
-      "best_practices": ["Drip irrigation", "Organic fertilizer", "Timely pest control"],
-      "optimal_selling_months": ["February", "March"],
+      "best_practices": [
+        "Drip irrigation",
+        "Organic fertilizer",
+        "Timely pest control"
+      ],
+      "optimal_selling_months": [
+        "February",
+        "March"
+      ],
       "price_premium_percent": 15
     },
     {
@@ -816,7 +1053,10 @@
       "disease": "Red Rot",
       "season": "Monsoon",
       "occurrence_rate": 0.25,
-      "affected_villages": ["village_001", "village_002"],
+      "affected_villages": [
+        "village_001",
+        "village_002"
+      ],
       "prevention": "Resistant varieties + Fungicide"
     },
     {
@@ -838,10 +1078,14 @@
       "optimal_fertilizer_cost": 45000,
       "optimal_irrigation_method": "Drip",
       "roi_improvement": 0.22,
-      "successful_farmers": ["farmer_001", "farmer_003", "farmer_009", "farmer_012"]
+      "successful_farmers": [
+        "farmer_001",
+        "farmer_003",
+        "farmer_009",
+        "farmer_012"
+      ]
     }
   ],
-  
   "insights": [
     {
       "id": "insight_001",
@@ -850,8 +1094,11 @@
       "title": "Optimal Selling Time",
       "description": "Based on 12 similar farmers in Kolhapur, selling sugarcane in March yields 15% higher prices",
       "confidence": 0.92,
-      "potential_benefit": "₹4,60,800 additional revenue",
-      "supporting_data": ["pattern_001", "pattern_003"]
+      "potential_benefit": "\u20b94,60,800 additional revenue",
+      "supporting_data": [
+        "pattern_001",
+        "pattern_003"
+      ]
     },
     {
       "id": "insight_002",
@@ -860,8 +1107,15 @@
       "title": "Red Rot Risk - Monsoon 2026",
       "description": "25% chance of Red Rot outbreak based on historical patterns",
       "confidence": 0.78,
-      "prevention_steps": ["Use resistant varieties", "Apply preventive fungicide", "Improve drainage"],
-      "supporting_data": ["pattern_002", "event_001"]
+      "prevention_steps": [
+        "Use resistant varieties",
+        "Apply preventive fungicide",
+        "Improve drainage"
+      ],
+      "supporting_data": [
+        "pattern_002",
+        "event_001"
+      ]
     },
     {
       "id": "insight_003",
@@ -872,7 +1126,10 @@
       "confidence": 0.88,
       "investment_required": 250000,
       "payback_period_years": 2.5,
-      "supporting_data": ["pattern_004", "event_005"]
+      "supporting_data": [
+        "pattern_004",
+        "event_005"
+      ]
     }
   ]
 }
