@@ -37,8 +37,26 @@ class FarmerOnboarding:
         self.profile_table = dynamodb.Table(USER_PROFILE_TABLE)
         self.conversation_table = dynamodb.Table(CONVERSATION_TABLE)
     
-    def get_user_language(self, user_id: str) -> str:
-        """Get user's language preference from conversation table"""
+    def get_user_language(self, user_id: str, first_message: str = "") -> str:
+        """Get user's language preference from conversation table with auto-detection"""
+        # Auto-detect English if first message is English greeting
+        if first_message:
+            msg_lower = first_message.lower().strip()
+            english_greetings = ['hi', 'hii', 'hiii', 'hello', 'hey', 'helo', 'start', 'begin']
+            if msg_lower in english_greetings:
+                print(f"[LANGUAGE] Auto-detected English from greeting: {first_message}")
+                # Save language preference
+                try:
+                    self.conversation_table.put_item(Item={
+                        'user_id': user_id,
+                        'timestamp': 'language_preference',
+                        'language': 'english'
+                    })
+                except Exception as e:
+                    print(f"[ERROR] Failed to save language: {e}")
+                return 'english'
+        
+        # Otherwise fetch from DynamoDB
         try:
             response = self.conversation_table.get_item(
                 Key={
@@ -173,9 +191,14 @@ Reply with ONLY location name:"""
         Returns: (response_message, is_completed)
         """
         state, data = self.get_onboarding_state(user_id)
-        lang = self.get_user_language(user_id)
         
-        print(f"[ONBOARDING] User: {user_id}, State: {state}, Language: {lang}")
+        # For NEW users, detect language from first message
+        if state == OnboardingState.NEW.value:
+            lang = self.get_user_language(user_id, user_message)
+        else:
+            lang = self.get_user_language(user_id)
+        
+        print(f"[ONBOARDING] User: {user_id}, State: {state}, Language: {lang}, Message: {user_message}")
         
         # Bilingual messages
         messages = {
