@@ -2035,11 +2035,11 @@ def handle_general_query(user_message, user_id="unknown", language='hindi'):
     
     # Use AI to detect knowledge graph queries
     if ONBOARDING_AVAILABLE:
-        kg_check_prompt = f"""Is this asking about OTHER FARMERS in the user's village/community? Reply ONLY "yes" or "no".
+        kg_check_prompt = f"""Is this asking about FARMERS in the user's village/community? Reply ONLY "yes" or "no".
 
 Message: "{user_message}"
 
-Examples of KG queries: "who else grows sugarcane", "other farmers in my village", "show me farmers", "और कौन गन्ना उगाता है"
+Examples of KG queries: "who else grows sugarcane", "other farmers in my village", "show me farmers", "how many farmers", "total farmers", "और कौन गन्ना उगाता है", "कितने किसान हैं"
 Examples of non-KG: "how to grow wheat", "market price", "weather today"
 
 Reply: """
@@ -2054,12 +2054,39 @@ Reply: """
                 if profile:
                     village = profile.get('village', '')
                     print(f"[KG] User village: {village}")
+                    
+                    # Detect if asking for total count or just other farmers
+                    count_prompt = f"""Is this asking for TOTAL/ALL farmers (including the user) or just OTHER farmers (excluding the user)? Reply ONLY "total" or "other".
+
+Message: "{user_message}"
+
+Examples of "total": "how many farmers", "total farmers", "कितने किसान हैं", "all farmers in my village"
+Examples of "other": "who else grows", "other farmers", "और कौन उगाता है", "show me other farmers"
+
+Reply: """
+                    query_type = ask_bedrock(count_prompt, skip_context=True).strip().lower()
+                    print(f"[KG] Query type: {query_type}")
+                    
                     crop_prompt = f"Extract ONLY the crop name from: {user_message}. Reply with ONE WORD crop name (sugarcane/wheat/rice/soybean) or 'all' if no specific crop mentioned."
                     crop = ask_bedrock(crop_prompt, skip_context=True).strip().lower().replace("*", "").replace("_", "")
                     crop_filter = None if crop in ['none', 'all'] else crop
                     print(f"[KG] Querying {village} for {crop_filter or 'all crops'}")
-                    farmers = get_village_farmers(village, crop_filter, user_id)
-                    return format_farmers_list(farmers, language)
+                    
+                    # Get farmers based on query type
+                    include_self = (query_type == "total")
+                    farmers, current_user = get_village_farmers(village, crop_filter, user_id, include_self)
+                    
+                    # If asking for total, pass current_user to formatter
+                    if query_type == "total" and not include_self:
+                        # User not in farmers list, but we have their profile
+                        current_user_data = {
+                            'name': profile.get('name', 'You'),
+                            'land_size_acres': profile.get('land_size', 'N/A'),
+                            'crops_grown': profile.get('crops', [])
+                        }
+                        return format_farmers_list(farmers, language, current_user_data, 'all')
+                    else:
+                        return format_farmers_list(farmers, language, current_user if not include_self else None, query_type)
         except Exception as e:
             print(f"[KG ERROR] {e}")
             import traceback
