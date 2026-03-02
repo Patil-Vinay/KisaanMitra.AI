@@ -26,15 +26,15 @@ zip -r whatsapp_deployment.zip \
 
 # Include onboarding module
 echo "📦 Including onboarding module..."
-cd ../../src/onboarding
-zip -r ../../src/lambda/whatsapp_deployment.zip . -x "*.pyc" -x "*__pycache__*"
-cd ../../src/lambda
+cd ../onboarding
+zip -r ../lambda/whatsapp_deployment.zip . -x "*.pyc" -x "*__pycache__*"
+cd ../lambda
 
 # Include hyperlocal module
 echo "📦 Including hyperlocal module..."
-cd ../../src/hyperlocal
-zip -r ../../src/lambda/whatsapp_deployment.zip . -x "*.pyc" -x "*__pycache__*"
-cd ../../src/lambda
+cd ../hyperlocal
+zip -r ../lambda/whatsapp_deployment.zip . -x "*.pyc" -x "*__pycache__*"
+cd ../lambda
 
 # Include knowledge graph demo data
 echo "📊 Including knowledge graph demo data..."

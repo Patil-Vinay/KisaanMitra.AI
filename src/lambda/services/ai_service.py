@@ -125,10 +125,17 @@ Message: "{user_message}"
 
 Available agents:
 - greeting: Simple greetings (hi, hello, namaste)
-- crop: Crop health issues (disease, pests, leaf problems, plant issues)
-- market: Market prices and mandi rates
-- finance: Budget planning, loans, government schemes, costs, expenses
+- crop: Crop health issues (disease, pests, leaf problems, plant issues, crop care)
+- market: Market prices, mandi rates, selling prices
+- finance: Budget planning, cost calculation, profit analysis, expenses, loans, schemes, financial planning, cultivation costs
 - general: General farming advice, crop recommendations, weather, other queries
+
+IMPORTANT ROUTING RULES:
+1. If message mentions costs, budget, expenses, profit, or financial planning → FINANCE
+2. If message mentions a crop + land size (e.g., "wheat in 10 acres", "sugarcane 50% of my land") → FINANCE (implies budget planning)
+3. If message asks about cultivation/growing a crop with land details → FINANCE
+4. If message is about crop health/disease → CROP
+5. If message asks for market prices → MARKET
 
 Reply with ONLY ONE WORD - the agent name (greeting/crop/market/finance/general).
 No explanation, just the agent name."""

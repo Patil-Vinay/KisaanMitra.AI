@@ -36,7 +36,7 @@ except:
     NAVIGATION_AVAILABLE = False
 
 try:
-    from onboarding.farmer_onboarding import onboarding_manager
+    from farmer_onboarding import onboarding_manager
     ONBOARDING_AVAILABLE = True
 except:
     ONBOARDING_AVAILABLE = False
@@ -50,7 +50,7 @@ except:
     ENHANCED_DISEASE_AVAILABLE = False
 
 try:
-    from hyperlocal.disease_tracker import hyperlocal_tracker
+    from disease_tracker import hyperlocal_tracker
     HYPERLOCAL_AVAILABLE = True
 except:
     HYPERLOCAL_AVAILABLE = False

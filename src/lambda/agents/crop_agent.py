@@ -8,16 +8,18 @@ from services.ai_service import AIService
 
 # Import optional modules
 try:
-    from onboarding.farmer_onboarding import onboarding_manager
+    from farmer_onboarding import onboarding_manager
     ONBOARDING_AVAILABLE = True
 except:
     ONBOARDING_AVAILABLE = False
+    print("[CROP AGENT] Onboarding module not available")
 
 try:
-    from hyperlocal.disease_tracker import hyperlocal_tracker
+    from disease_tracker import hyperlocal_tracker
     HYPERLOCAL_AVAILABLE = True
 except:
     HYPERLOCAL_AVAILABLE = False
+    print("[CROP AGENT] Hyperlocal module not available")
 
 try:
     from weather_service import get_weather_forecast, analyze_weather_for_farming
@@ -34,7 +36,8 @@ class CropAgent:
         """Handle crop-related text queries"""
         print(f"[CROP AGENT] Processing query: {user_message}, Language: {language}")
         
-        # Get user profile context
+        # ALWAYS fetch user profile first
+        profile = None
         profile_context = ""
         village = None
         district = None
@@ -44,16 +47,18 @@ class CropAgent:
             try:
                 profile = onboarding_manager.get_user_profile(user_id)
                 if profile:
+                    name = profile.get('name', 'Farmer')
                     village = profile.get('village')
                     district = profile.get('district')
                     crops = profile.get('current_crops') or profile.get('crops')
+                    land = profile.get('land_acres', '')
                     
-                    if village and crops:
-                        if language == 'english':
-                            profile_context = f"\n\nUser Profile: Farmer from {village}, {district}. Currently growing: {crops}."
-                        else:
-                            profile_context = f"\n\nकिसान प्रोफाइल: {village}, {district} से। वर्तमान फसल: {crops}।"
-                        print(f"[CROP AGENT] Using profile context: {village}, {crops}")
+                    print(f"[CROP AGENT] Profile loaded: {name} from {village}, {district}. Crops: {crops}")
+                    
+                    if language == 'english':
+                        profile_context = f"\n\nUser Profile: {name} from {village}, {district}. Land: {land} acres. Currently growing: {crops}."
+                    else:
+                        profile_context = f"\n\nकिसान प्रोफाइल: {name}, {village}, {district}। जमीन: {land} एकड़। वर्तमान फसल: {crops}।"
             except Exception as e:
                 print(f"[CROP AGENT] Failed to get profile: {e}")
         
@@ -121,8 +126,8 @@ class CropAgent:
             except Exception as e:
                 print(f"[CROP AGENT] Hyperlocal error: {e}")
         
-        # FALLBACK: Use AI
-        print(f"[CROP AGENT] Using AI fallback")
+        # FALLBACK: Use AI with full context
+        print(f"[CROP AGENT] Using AI fallback with profile context")
         
         if language == 'english':
             system_prompt = """You are a helpful farming assistant. 

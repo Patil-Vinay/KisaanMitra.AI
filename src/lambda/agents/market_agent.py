@@ -8,10 +8,11 @@ from services.ai_service import AIService
 
 # Import optional modules
 try:
-    from onboarding.farmer_onboarding import onboarding_manager
+    from farmer_onboarding import onboarding_manager
     ONBOARDING_AVAILABLE = True
 except:
     ONBOARDING_AVAILABLE = False
+    print("[MARKET AGENT] Onboarding module not available")
 
 try:
     from market_data_sources import get_fast_market_prices, format_market_response_fast
@@ -28,6 +29,25 @@ class MarketAgent:
         """Handle market-related queries"""
         print(f"[MARKET AGENT] Processing query: {user_message}, Language: {language}")
         
+        # ALWAYS fetch user profile first
+        profile = None
+        state_name = None
+        district = None
+        
+        if ONBOARDING_AVAILABLE and user_id != "unknown":
+            try:
+                profile = onboarding_manager.get_user_profile(user_id)
+                if profile:
+                    village = profile.get('village', '')
+                    district = profile.get('district', '')
+                    print(f"[MARKET AGENT] Profile loaded: {village}, {district}")
+                    
+                    # Use district as state approximation for market data
+                    if district:
+                        state_name = district
+            except Exception as e:
+                print(f"[MARKET AGENT] Could not fetch profile: {e}")
+        
         if language == 'english':
             system_prompt = """You are a market expert helping farmers.
 Provide market prices and trends in simple English.
@@ -43,22 +63,6 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         detected_crop = AIService.extract_crop(user_message)
         
         if detected_crop and FAST_MARKET_DATA_AVAILABLE:
-            # Try to get location from user profile
-            state_name = None
-            if ONBOARDING_AVAILABLE and user_id != "unknown":
-                try:
-                    profile = onboarding_manager.get_user_profile(user_id)
-                    if profile and profile.get('village'):
-                        village = profile.get('village')
-                        state_prompt = f"""What Indian state is "{village}" in? Reply with ONLY the state name.
-Examples: Mumbai → Maharashtra, Kolhapur → Maharashtra
-Location: {village}
-State: """
-                        state_name = AIService.ask(state_prompt, skip_context=True).strip()
-                        print(f"[MARKET AGENT] Using profile location: {village} → {state_name}")
-                except Exception as e:
-                    print(f"[MARKET AGENT] Could not fetch profile location: {e}")
-            
             # If no profile location, extract from message
             if not state_name:
                 state_name = AIService.extract_state(user_message)
@@ -71,7 +75,14 @@ State: """
                 result = format_market_response_fast(detected_crop, market_data, language)
                 return (result, True)
         
-        # Fallback to AI
-        print(f"[MARKET AGENT] Using AI fallback")
-        result = AIService.ask(user_message, system_prompt)
+        # Fallback to AI with profile context
+        profile_context = ""
+        if profile:
+            if language == 'english':
+                profile_context = f"\n\nUser is from {district}. Provide location-specific advice."
+            else:
+                profile_context = f"\n\nकिसान {district} से है। स्थानीय सलाह दें।"
+        
+        enhanced_message = user_message + profile_context
+        result = AIService.ask(enhanced_message, system_prompt)
         return (result, True)
