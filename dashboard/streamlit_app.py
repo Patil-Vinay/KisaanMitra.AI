@@ -386,8 +386,13 @@ elif page == "👥 Farmers":
         registered_users = response.get('Items', [])
         
         for user in registered_users:
+            # Format phone number with +91 prefix
+            phone = user.get('user_id', 'N/A')
+            if phone != 'N/A' and not phone.startswith('+'):
+                phone = f'+{phone}'
+            
             all_farmers.append({
-                'Phone': user.get('user_id', 'N/A'),
+                'Phone': phone,
                 'Name': user.get('name', 'Unknown'),
                 'Village': user.get('village', 'N/A'),
                 'Crops': user.get('crops', 'N/A'),

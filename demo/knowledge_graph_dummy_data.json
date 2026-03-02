@@ -16,20 +16,20 @@
     "real_users_included": true,
     "last_updated": "2026-03-01T17:47:58 IST",
     "fixes_applied": [
-      "✅ Realistic sugarcane price (₹350/quintal not ₹3200)",
-      "✅ Lat/lng coordinates for all villages",
-      "✅ Pincodes for all villages",
-      "✅ 15 Mandi nodes with locations and crops",
-      "✅ 6 Government schemes (PM-KISAN, insurance, loans, subsidies)",
-      "✅ Input suppliers per village",
-      "✅ Monthly weather data (temp + rainfall) for all villages",
-      "✅ Market trends for ALL 20 crops (not just 10)",
-      "✅ Better farmer distribution (min 3 per village)",
-      "✅ Sequential disease event IDs (no gaps)",
-      "✅ Farmer-mandi relationships with distances",
-      "✅ Village proximity data",
-      "✅ Best practices from successful farmers",
-      "✅ Current crop stage and sowing dates per farmer"
+      "\u2705 Realistic sugarcane price (\u20b9350/quintal not \u20b93200)",
+      "\u2705 Lat/lng coordinates for all villages",
+      "\u2705 Pincodes for all villages",
+      "\u2705 15 Mandi nodes with locations and crops",
+      "\u2705 6 Government schemes (PM-KISAN, insurance, loans, subsidies)",
+      "\u2705 Input suppliers per village",
+      "\u2705 Monthly weather data (temp + rainfall) for all villages",
+      "\u2705 Market trends for ALL 20 crops (not just 10)",
+      "\u2705 Better farmer distribution (min 3 per village)",
+      "\u2705 Sequential disease event IDs (no gaps)",
+      "\u2705 Farmer-mandi relationships with distances",
+      "\u2705 Village proximity data",
+      "\u2705 Best practices from successful farmers",
+      "\u2705 Current crop stage and sowing dates per farmer"
     ]
   },
   "villages": [
@@ -795,7 +795,7 @@
       "amount": 6000,
       "frequency": "Annual",
       "eligibility": "Small & marginal farmers (up to 2 hectares / 5 acres)",
-      "description": "₹6000/year in 3 installments of ₹2000 each",
+      "description": "\u20b96000/year in 3 installments of \u20b92000 each",
       "land_limit_acres": 5
     },
     {
@@ -954,29 +954,6 @@
     }
   ],
   "farmers": [
-    {
-      "id": "farmer_real_vinay",
-      "name": "Vinay",
-      "phone": "+919000000001",
-      "village_id": "village_001",
-      "village_name": "Kolhapur",
-      "land_size_acres": 50,
-      "crops_grown": [
-        "Wheat",
-        "Sugarcane",
-        "Soybean",
-        "Rice",
-        "Pigeon Pea"
-      ],
-      "experience_years": 6,
-      "success_rate": 0.82,
-      "irrigation_method": "Flood irrigation",
-      "fertilizer_usage": "Chemical",
-      "is_real_user": true,
-      "current_crop_stage": "Growing",
-      "sowing_date": "2025-06-15",
-      "preferred_mandi": "Kolhapur APMC"
-    },
     {
       "id": "farmer_002",
       "name": "Vikas Dange",
