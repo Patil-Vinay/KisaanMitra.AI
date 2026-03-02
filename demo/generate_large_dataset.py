@@ -2,16 +2,63 @@ import json
 import random
 from datetime import datetime, timedelta
 
-# Maharashtra districts and their villages
+# Maharashtra districts and their real villages
 DISTRICTS = {
-    "Pune": ["Baramati", "Indapur", "Malegaon", "Shirur", "Daund", "Purandar", "Bhor", "Velhe"],
-    "Kolhapur": ["Shahuwadi", "Panhala", "Radhanagari", "Kagal", "Hatkanangle", "Shirol", "Karvir"],
-    "Nashik": ["Sinnar", "Niphad", "Dindori", "Igatpuri", "Surgana", "Kalwan", "Yeola"],
-    "Satara": ["Koregaon", "Wai", "Phaltan", "Mahabaleshwar", "Patan", "Karad", "Khandala"],
-    "Sangli": ["Miraj", "Tasgaon", "Jat", "Walwa", "Khanapur", "Atpadi", "Palus"],
-    "Solapur": ["Pandharpur", "Mohol", "Malshiras", "Barshi", "Akkalkot", "Mangalvedhe"],
-    "Ahmednagar": ["Rahuri", "Shrirampur", "Kopargaon", "Sangamner", "Newasa", "Karjat"],
-    "Aurangabad": ["Paithan", "Gangapur", "Kannad", "Sillod", "Phulambri", "Khuldabad"]
+    "Pune": [
+        "Uruli Kanchan", "Loni Kalbhor", "Manjari BK", "Nande", "Kesnand",
+        "Koregaon Mul", "Wadki", "Nighoje", "Nhavare", "Khamgaon",
+        "Yavat", "Patas", "Malthan", "Alegaon", "Dive", "Nirapur",
+        "Panshet", "Ambavade", "Rajewadi", "Morgaon", "Supe",
+        "Malegaon BK", "Pargaon", "Kadepur", "Nimgaon Mhalungi"
+    ],
+    "Kolhapur": [
+        "Ghunki", "Arale", "Madilage", "Nool", "Hasur", "Kowad",
+        "Yalgud", "Talandage", "Shirati", "Nandani", "Shendur",
+        "Tamboli", "Haripur", "Daflapur", "Yadrav", "Kabbur",
+        "Nagaon", "Ujalaiwadi", "Balinge", "Masoli", "Bhuye",
+        "Tambave", "Kurukali", "Dhagewadi", "Wangi"
+    ],
+    "Nashik": [
+        "Saikheda", "Mohadi", "Wadivarhe", "Chandori", "Nandur Shingote",
+        "Vadnere", "Gaulane", "Sonaj", "Thergaon", "Vavi",
+        "Pale", "Khedgaon", "Karanjgaon", "Vashala", "Tokawade",
+        "Amboli", "Khambale", "Bhojan", "Dabhadi", "Khadki",
+        "Nanashi", "Vaghad", "Taharabad", "Nanduri", "Sakore"
+    ],
+    "Satara": [
+        "Dahivadi", "Pusegaon", "Aundh", "Bhuinj", "Vathar",
+        "Rantembhe", "Menavali", "Dhom", "Pasarni", "Bavdhan",
+        "Gursale", "Barad", "Lonand", "Padegaon", "Nimblak",
+        "Medha", "Tapola", "Bhilar", "Amral", "Bamnoli",
+        "Helwak", "Tarali", "Solashi", "Kasrud", "Limb"
+    ],
+    "Sangli": [
+        "Kavalapur", "Arjunwad", "Kupwad", "Kavathemahankal",
+        "Arag", "Digraj", "Mulikwadi", "Umarani", "Nandani",
+        "Kharsundi", "Rampur", "Asangi BK", "Yedur", "Ashta",
+        "Pal", "Kadegaon", "Vasumbe", "Burli", "Salgare",
+        "Ankalhop", "Savlaj", "Borgaon", "Padmale", "Yanke", "Manjarde"
+    ],
+    "Solapur": [
+        "Velapur", "Bhose", "Agalgaon", "Padvi", "Jeur",
+        "Bhogaon", "Narkhed", "Shendri", "Borkhal", "Dahitane",
+        "Korti", "Bhende", "Malinagar", "Tandulwadi", "Modnimb",
+        "Kushegaon", "Nannaj", "Shelgi", "Chincholi", "Honsal",
+        "Angar", "Karkamb", "Banali", "Chinchpur", "Kamati"
+    ],
+    "Ahmednagar": [
+        "Sonai", "Nimgaon Jali", "Varudi", "Mahalunge", "Dahigaon",
+        "Pimplas", "Belapur", "Harigaon", "Ghargaon", "Sawargaon",
+        "Pimpar", "Donwad", "Kothari", "Khadkewadi", "Kanhur",
+        "Ghogargaon", "Pimpalner", "Pangri", "Khamgaon", "Nighoj"
+    ],
+    "Aurangabad": [
+        "Georai", "Waluj", "Nandur", "Shendra", "Ladsawangi",
+        "Pimpalgaon Gogha", "Rauza", "Daulatabad", "Pohegaon",
+        "Pishor", "Soegaon", "Satara Parisar", "Kanchanwadi",
+        "Padegaon", "Garkheda", "Harsul", "Chitegaon",
+        "Gevrai", "Paithanwadi", "Naygaon"
+    ]
 }
 
 # Soil types common in Maharashtra
@@ -139,7 +186,7 @@ def generate_dataset():
     
     # Load existing data structure
     try:
-        with open('demo/knowledge_graph_dummy_data.json', 'r') as f:
+        with open('knowledge_graph_dummy_data.json', 'r') as f:
             data = json.load(f)
     except:
         data = {"metadata": {}, "farmers": []}
@@ -159,10 +206,10 @@ def generate_dataset():
     })
     
     # Save
-    with open('demo/knowledge_graph_dummy_data.json', 'w') as f:
+    with open('knowledge_graph_dummy_data.json', 'w') as f:
         json.dump(data, f, indent=2)
     
-    print(f"\n✅ Dataset saved to demo/knowledge_graph_dummy_data.json")
+    print(f"\n✅ Dataset saved to knowledge_graph_dummy_data.json")
     
     # Print statistics
     print("\n📊 Dataset Statistics:")
