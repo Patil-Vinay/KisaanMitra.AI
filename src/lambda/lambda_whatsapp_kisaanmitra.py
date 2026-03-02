@@ -2517,7 +2517,6 @@ def lambda_handler(event, context):
                     if ONBOARDING_AVAILABLE:
                         try:
                             from onboarding.farmer_onboarding import onboarding_manager
-                            profile = onboarding_manager.get_user_profile(from_number)
                             if profile and profile.get('village'):
                                 user_location = profile.get('village')
                                 print(f"[WEATHER] Using profile location: {user_location}")
@@ -2603,10 +2602,8 @@ def lambda_handler(event, context):
                         
                         # If onboarding completed, add to knowledge graph
                         if is_completed:
-                            profile = onboarding_manager.get_user_profile(from_number)
-                            if profile:
-                                knowledge_graph.add_farmer_to_graph(profile)
-                                print(f"✅ Onboarding completed! Added {profile.get('name')} to knowledge graph")
+                                # Profile already saved to DynamoDB
+                                print(f"✅ Onboarding completed for user {from_number}")
                                 
                                 # Clear any pending states after onboarding
                                 try:
@@ -2648,10 +2645,8 @@ def lambda_handler(event, context):
                         
                         # If onboarding completed, add to knowledge graph
                         if is_completed:
-                            profile = onboarding_manager.get_user_profile(from_number)
-                            if profile:
-                                knowledge_graph.add_farmer_to_graph(profile)
-                                print(f"✅ Onboarding completed! Added {profile.get('name')} to knowledge graph")
+                                # Profile already saved to DynamoDB
+                                print(f"✅ Onboarding completed for user {from_number}")
                                 
                                 # Clear any pending states after onboarding
                                 try:
@@ -2832,7 +2827,6 @@ Reply: """
                             if ONBOARDING_AVAILABLE:
                                 try:
                                     from onboarding.farmer_onboarding import onboarding_manager
-                                    profile = onboarding_manager.get_user_profile(from_number)
                                     if profile and profile.get('village'):
                                         user_location = profile.get('village')
                                         print(f"[WEATHER] Using profile location: {user_location}")

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KisaanMitra.AI - Knowledge Graph Dashboard</title>
+    <title>KisaanMitra.AI - Ultimate Knowledge Graph</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -13,156 +14,466 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000000;
+            color: #fff;
+            overflow-x: hidden;
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1920px;
             margin: 0 auto;
+            padding: 20px;
         }
         
         .header {
             text-align: center;
-            color: white;
-            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 20px 60px rgba(16, 185, 129, 0.2), inset 0 0 60px rgba(16, 185, 129, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
         }
         
         .header h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 4.5rem;
+            font-weight: 900;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #10b981 0%, #8b5cf6 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -3px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
         }
         
         .header p {
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             opacity: 0.9;
+            margin: 10px 0;
+            color: #10b981;
+            position: relative;
+            z-index: 1;
         }
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         
         .stat-card {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
             text-align: center;
-            transition: transform 0.3s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .stat-card:hover::before {
+            left: 100%;
         }
         
         .stat-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 25px 50px rgba(16, 185, 129, 0.4);
+            border-color: #10b981;
         }
         
-        .stat-card .icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        
-        .stat-card .number {
+        .stat-icon {
             font-size: 2.5rem;
-            font-weight: bold;
-            color: #667eea;
             margin-bottom: 10px;
+            filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.5));
         }
         
-        .stat-card .label {
-            font-size: 1rem;
-            color: #666;
+        .stat-number {
+            font-size: 2.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #10b981 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+        }
+        
+        .controls {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            font-weight: 600;
+        }
+        
+        .control-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        }
+        
+        .control-btn.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+        
+        input[type="text"], select {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .section {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .section h2 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        
+        .section-desc {
+            opacity: 0.7;
+            margin-bottom: 25px;
+            font-size: 1.05rem;
+        }
+        
+        #network {
+            width: 100%;
+            height: 800px;
+            background: radial-gradient(circle at center, rgba(16, 185, 129, 0.05) 0%, rgba(0, 0, 0, 0.8) 100%);
+            border-radius: 20px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #network::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            box-shadow: 0 0 10px currentColor;
+        }
+        
+        .stats-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            min-width: 250px;
+        }
+        
+        .stats-overlay h3 {
+            color: #10b981;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .stats-overlay .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.9rem;
+        }
+        
+        .stats-overlay .stat-row .label {
+            opacity: 0.7;
+        }
+        
+        .stats-overlay .stat-row .value {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .node {
+            cursor: pointer;
+            transition: all 0.3s;
+            filter: drop-shadow(0 0 5px currentColor);
+        }
+        
+        .node:hover {
+            filter: drop-shadow(0 0 15px currentColor);
+        }
+        
+        .node.highlighted {
+            stroke: #10b981;
+            stroke-width: 4px;
+            filter: drop-shadow(0 0 20px #10b981);
+        }
+        
+        .link {
+            stroke: rgba(16, 185, 129, 0.2);
+            stroke-opacity: 0.6;
+            transition: all 0.3s;
+        }
+        
+        .link.highlighted {
+            stroke: #10b981;
+            stroke-opacity: 1;
+            stroke-width: 3px;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            pointer-events: none;
+            font-size: 0.95rem;
+            border: 2px solid #10b981;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .tooltip strong {
+            color: #10b981;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
         }
         
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 30px;
-            margin-bottom: 40px;
-        }
-        
-        .chart-card {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .chart-card h2 {
-            margin-bottom: 20px;
-            color: #667eea;
-            font-size: 1.5rem;
-        }
-        
-        .info-section {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
             margin-bottom: 30px;
         }
         
-        .info-section h2 {
-            color: #667eea;
+        .chart-container {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .chart-container h3 {
+            color: #10b981;
             margin-bottom: 20px;
-            font-size: 1.8rem;
+            font-size: 1.4rem;
+            font-weight: 700;
         }
         
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
         }
         
-        .info-item {
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+        .info-card {
+            background: rgba(16, 185, 129, 0.05);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #10b981;
+            transition: all 0.3s;
         }
         
-        .info-item h3 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 1.2rem;
+        .info-card:hover {
+            background: rgba(16, 185, 129, 0.1);
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(16, 185, 129, 0.2);
         }
         
-        .info-item ul {
+        .info-card h3 {
+            color: #10b981;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+        
+        .info-card ul {
             list-style: none;
-            padding-left: 0;
+            padding: 0;
         }
         
-        .info-item li {
-            padding: 5px 0;
-            color: #666;
+        .info-card li {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .info-card li:last-child {
+            border-bottom: none;
+        }
+        
+        .badge {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
         
         .footer {
             text-align: center;
-            color: white;
-            margin-top: 40px;
-            padding: 20px;
+            padding: 40px;
+            margin-top: 60px;
+            opacity: 0.7;
         }
         
         .footer a {
-            color: white;
+            color: #10b981;
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+        
+        .footer a:hover {
+            color: #8b5cf6;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+        
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 5px currentColor); }
+            50% { filter: drop-shadow(0 0 15px currentColor); }
+        }
+        
+        .node.district {
+            animation: glow 3s ease-in-out infinite;
         }
         
         @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
             .charts-grid {
                 grid-template-columns: 1fr;
             }
-            
-            .header h1 {
-                font-size: 2rem;
+            #network {
+                height: 600px;
+            }
+            .controls {
+                flex-direction: column;
             }
         }
     </style>
@@ -170,198 +481,606 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌾 KisaanMitra.AI Knowledge Graph</h1>
-            <p>Hyperlocal Farmer Network - Maharashtra</p>
-            <p style="font-size: 0.9rem; margin-top: 10px;">Last Updated: March 02, 2026 at 12:28 IST</p>
+            <h1>🌾 KisaanMitra.AI</h1>
+            <p>Ultimate Knowledge Graph Dashboard</p>
+            <p style="font-size: 1rem; opacity: 0.6; margin-top: 10px;">
+                608 Farmers • 8 Districts • 179 Villages • 24 Crops
+            </p>
+            <p style="font-size: 0.85rem; opacity: 0.5; margin-top: 5px;">
+                Last Updated: March 02, 2026 at 12:45 IST
+            </p>
         </div>
-        
+
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="icon">👥</div>
-                <div class="number">608</div>
-                <div class="label">Total Farmers</div>
+                <div class="stat-icon">👥</div>
+                <div class="stat-number">608</div>
+                <div class="stat-label">Total Farmers</div>
             </div>
             
             <div class="stat-card">
-                <div class="icon">🏛️</div>
-                <div class="number">8</div>
-                <div class="label">Districts</div>
+                <div class="stat-icon">🏛️</div>
+                <div class="stat-number">8</div>
+                <div class="stat-label">Districts</div>
             </div>
             
             <div class="stat-card">
-                <div class="icon">🏘️</div>
-                <div class="number">179</div>
-                <div class="label">Villages</div>
+                <div class="stat-icon">🏘️</div>
+                <div class="stat-number">179</div>
+                <div class="stat-label">Villages</div>
             </div>
             
             <div class="stat-card">
-                <div class="icon">🌾</div>
-                <div class="number">24</div>
-                <div class="label">Crop Types</div>
+                <div class="stat-icon">🌾</div>
+                <div class="stat-number">24</div>
+                <div class="stat-label">Crop Types</div>
             </div>
             
             <div class="stat-card">
-                <div class="icon">📏</div>
-                <div class="number">21,953</div>
-                <div class="label">Total Land (acres)</div>
+                <div class="stat-icon">📏</div>
+                <div class="stat-number">21,953</div>
+                <div class="stat-label">Total Acres</div>
             </div>
             
             <div class="stat-card">
-                <div class="icon">📊</div>
-                <div class="number">36.1</div>
-                <div class="label">Avg Land/Farmer</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="icon">⭐</div>
-                <div class="number">74.6%</div>
-                <div class="label">Avg Success Rate</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="icon">🌱</div>
-                <div class="number">6</div>
-                <div class="label">Soil Types</div>
+                <div class="stat-icon">⭐</div>
+                <div class="stat-number">74.6%</div>
+                <div class="stat-label">Avg Success</div>
             </div>
         </div>
         
+        <div class="controls">
+            <div class="control-group">
+                <label>🔍 Search:</label>
+                <input type="text" id="searchInput" placeholder="Search nodes...">
+            </div>
+            
+            <div class="control-group">
+                <label>🎯 Filter:</label>
+                <select id="filterType">
+                    <option value="all">All Nodes</option>
+                    <option value="district">Districts Only</option>
+                    <option value="village">Villages Only</option>
+                    <option value="crop">Crops Only</option>
+                </select>
+            </div>
+            
+            <button class="control-btn" id="resetBtn">🔄 Reset View</button>
+            <button class="control-btn" id="clusterBtn">🎨 Toggle Clustering</button>
+            <button class="control-btn" id="exportBtn">💾 Export PNG</button>
+        </div>
+        
+        <div class="section">
+            <h2>🕸️ Interactive Network Graph</h2>
+            <p class="section-desc">
+                🎮 <strong>Controls:</strong> Drag nodes • Scroll to zoom • Click to highlight connections • Search to find • Filter by type
+            </p>
+            <div id="network">
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #8b5cf6;"></div>
+                        <span>Districts (8)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3b82f6;"></div>
+                        <span>Villages (60)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span>Crops (24)</span>
+                    </div>
+                </div>
+                
+                <div class="stats-overlay">
+                    <h3>📊 Graph Statistics</h3>
+                    <div class="stat-row">
+                        <span class="label">Nodes:</span>
+                        <span class="value" id="nodeCount">92</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">Connections:</span>
+                        <span class="value" id="linkCount">295</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">Visible:</span>
+                        <span class="value" id="visibleCount">92</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">Selected:</span>
+                        <span class="value" id="selectedNode">None</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="charts-grid">
-            <div class="chart-card">
-                <h2>📊 Farmers by District</h2>
+            <div class="chart-container">
+                <h3>📊 Farmers by District</h3>
                 <canvas id="districtChart"></canvas>
             </div>
             
-            <div class="chart-card">
-                <h2>🌾 Top 15 Crops</h2>
+            <div class="chart-container">
+                <h3>🌾 Top 15 Crops</h3>
                 <canvas id="cropChart"></canvas>
             </div>
             
-            <div class="chart-card">
-                <h2>🌱 Soil Type Distribution</h2>
+            <div class="chart-container">
+                <h3>🌱 Soil Type Distribution</h3>
                 <canvas id="soilChart"></canvas>
             </div>
         </div>
         
-        <div class="info-section">
-            <h2>🗺️ Coverage Details</h2>
+        <div class="section">
+            <h2>📈 Detailed Statistics</h2>
             <div class="info-grid">
-                <div class="info-item">
-                    <h3>🏛️ Districts (8)</h3>
+                <div class="info-card">
+                    <h3>🏘️ Top 15 Villages by Farmers</h3>
                     <ul>
-                        <li>• Ahmednagar</li><li>• Aurangabad</li><li>• Kolhapur</li><li>• Nashik</li><li>• Pune</li><li>• Sangli</li><li>• Satara</li><li>• Solapur</li>
+                        <li><span>Nandani</span><span class="badge">9 farmers</span></li><li><span>Ashta</span><span class="badge">9 farmers</span></li><li><span>Karkamb</span><span class="badge">9 farmers</span></li><li><span>Pasarni</span><span class="badge">8 farmers</span></li><li><span>Masoli</span><span class="badge">7 farmers</span></li><li><span>Kavathemahankal</span><span class="badge">7 farmers</span></li><li><span>Chitegaon</span><span class="badge">7 farmers</span></li><li><span>Arale</span><span class="badge">6 farmers</span></li><li><span>Daflapur</span><span class="badge">6 farmers</span></li><li><span>Bhuye</span><span class="badge">6 farmers</span></li><li><span>Thergaon</span><span class="badge">6 farmers</span></li><li><span>Padegaon</span><span class="badge">6 farmers</span></li><li><span>Jeur</span><span class="badge">6 farmers</span></li><li><span>Banali</span><span class="badge">6 farmers</span></li><li><span>Agalgaon</span><span class="badge">6 farmers</span></li>
                     </ul>
                 </div>
                 
-                <div class="info-item">
-                    <h3>🌱 Soil Types (6)</h3>
+                <div class="info-card">
+                    <h3>🌾 Top 15 Crops by Farmers</h3>
                     <ul>
-                        <li>• Alluvial Soil</li><li>• Black Cotton Soil (Regur)</li><li>• Laterite Soil</li><li>• Medium Black Soil</li><li>• Red Soil</li><li>• Shallow Black Soil</li>
+                        <li><span>Wheat</span><span class="badge">68 farmers</span></li><li><span>Cauliflower</span><span class="badge">65 farmers</span></li><li><span>Rice</span><span class="badge">64 farmers</span></li><li><span>Cabbage</span><span class="badge">60 farmers</span></li><li><span>Tomato</span><span class="badge">59 farmers</span></li><li><span>Groundnut</span><span class="badge">58 farmers</span></li><li><span>Tur (Pigeon Pea)</span><span class="badge">55 farmers</span></li><li><span>Turmeric</span><span class="badge">55 farmers</span></li><li><span>Orange</span><span class="badge">55 farmers</span></li><li><span>Potato</span><span class="badge">53 farmers</span></li><li><span>Sunflower</span><span class="badge">52 farmers</span></li><li><span>Onion</span><span class="badge">52 farmers</span></li><li><span>Grapes</span><span class="badge">50 farmers</span></li><li><span>Chilli</span><span class="badge">50 farmers</span></li><li><span>Cotton</span><span class="badge">49 farmers</span></li>
                     </ul>
                 </div>
                 
-                <div class="info-item">
-                    <h3>🌾 Sample Crops</h3>
+                <div class="info-card">
+                    <h3>🏛️ District-wise Farmers</h3>
                     <ul>
-                        <li>• Bajra</li><li>• Banana</li><li>• Cabbage</li><li>• Cauliflower</li><li>• Chilli</li><li>• Cotton</li><li>• Ginger</li><li>• Gram</li><li>• Grapes</li><li>• Groundnut</li>
-                        <li><em>...and 14 more</em></li>
+                        <li><span>Solapur</span><span class="badge">80 farmers</span></li><li><span>Kolhapur</span><span class="badge">79 farmers</span></li><li><span>Pune</span><span class="badge">78 farmers</span></li><li><span>Sangli</span><span class="badge">77 farmers</span></li><li><span>Nashik</span><span class="badge">76 farmers</span></li><li><span>Aurangabad</span><span class="badge">74 farmers</span></li><li><span>Satara</span><span class="badge">72 farmers</span></li><li><span>Ahmednagar</span><span class="badge">72 farmers</span></li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <h3>🌱 Soil Types</h3>
+                    <ul>
+                        <li><span>Black Cotton Soil (Regur)</span><span class="badge">121 farmers</span></li><li><span>Shallow Black Soil</span><span class="badge">102 farmers</span></li><li><span>Medium Black Soil</span><span class="badge">100 farmers</span></li><li><span>Alluvial Soil</span><span class="badge">97 farmers</span></li><li><span>Red Soil</span><span class="badge">96 farmers</span></li><li><span>Laterite Soil</span><span class="badge">92 farmers</span></li>
                     </ul>
                 </div>
             </div>
         </div>
         
         <div class="footer">
-            <p><strong>KisaanMitra.AI</strong> - Empowering Farmers with AI</p>
-            <p style="margin-top: 10px;">
-                <a href="https://github.com/parth-nikam/KisaanMitra.AI" target="_blank">View on GitHub</a> | 
+            <p style="font-size: 1.3rem; margin-bottom: 15px;"><strong>KisaanMitra.AI</strong></p>
+            <p>Empowering Farmers with AI-Powered Knowledge Graphs</p>
+            <p style="margin-top: 20px;">
+                <a href="https://github.com/parth-nikam/KisaanMitra.AI" target="_blank">GitHub</a> • 
                 Built with ❤️ for Indian Farmers
             </p>
         </div>
     </div>
     
     <script>
+        // Enhanced Network Graph with Advanced Features
+        const networkData = {"nodes": [{"id": "d_Pune", "name": "Pune", "type": "district", "count": 78, "land": 4229.1, "group": 1}, {"id": "d_Kolhapur", "name": "Kolhapur", "type": "district", "count": 79, "land": 2139.2, "group": 1}, {"id": "d_Nashik", "name": "Nashik", "type": "district", "count": 76, "land": 4413.600000000001, "group": 1}, {"id": "d_Satara", "name": "Satara", "type": "district", "count": 72, "land": 1824.5999999999995, "group": 1}, {"id": "d_Sangli", "name": "Sangli", "type": "district", "count": 77, "land": 2018.6999999999998, "group": 1}, {"id": "d_Solapur", "name": "Solapur", "type": "district", "count": 80, "land": 2067.2000000000003, "group": 1}, {"id": "d_Ahmednagar", "name": "Ahmednagar", "type": "district", "count": 72, "land": 3328.3999999999996, "group": 1}, {"id": "d_Aurangabad", "name": "Aurangabad", "type": "district", "count": 74, "land": 1932.3999999999992, "group": 1}, {"id": "v_Ashta|Sangli", "name": "Ashta", "type": "village", "count": 9, "land": 215.10000000000002, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil", "Shallow Black Soil", "Red Soil"], "crops": ["Potato", "Soybean", "Cabbage", "Jowar", "Turmeric", "Sunflower", "Rice", "Chilli", "Bajra", "Orange", "Pomegranate", "Tomato", "Wheat"], "group": 2}, {"id": "v_Karkamb|Solapur", "name": "Karkamb", "type": "village", "count": 9, "land": 235.70000000000002, "soil_types": ["Laterite Soil", "Medium Black Soil", "Alluvial Soil", "Shallow Black Soil", "Black Cotton Soil (Regur)"], "crops": ["Potato", "Cabbage", "Turmeric", "Jowar", "Onion", "Sunflower", "Tur (Pigeon Pea)", "Rice", "Chilli", "Sugarcane", "Grapes", "Bajra", "Cotton", "Tomato", "Orange", "Groundnut", "Wheat"], "group": 2}, {"id": "v_Pasarni|Satara", "name": "Pasarni", "type": "village", "count": 8, "land": 212.1, "soil_types": ["Laterite Soil", "Medium Black Soil", "Shallow Black Soil", "Black Cotton Soil (Regur)", "Red Soil"], "crops": ["Potato", "Sunflower", "Tur (Pigeon Pea)", "Cauliflower", "Sugarcane", "Grapes", "Orange", "Tomato", "Groundnut", "Gram", "Pomegranate", "Cotton"], "group": 2}, {"id": "v_Masoli|Kolhapur", "name": "Masoli", "type": "village", "count": 7, "land": 201.79999999999998, "soil_types": ["Medium Black Soil", "Alluvial Soil", "Shallow Black Soil", "Black Cotton Soil (Regur)", "Red Soil"], "crops": ["Potato", "Cabbage", "Jowar", "Cauliflower", "Banana", "Ginger", "Wheat", "Mango", "Bajra", "Orange", "Groundnut", "Cotton"], "group": 2}, {"id": "v_Kavathemahankal|Sangli", "name": "Kavathemahankal", "type": "village", "count": 7, "land": 186.7, "soil_types": ["Medium Black Soil", "Alluvial Soil", "Laterite Soil", "Red Soil"], "crops": ["Potato", "Cabbage", "Jowar", "Onion", "Sunflower", "Tur (Pigeon Pea)", "Banana", "Sugarcane", "Grapes", "Bajra", "Orange", "Gram"], "group": 2}, {"id": "v_Chitegaon|Aurangabad", "name": "Chitegaon", "type": "village", "count": 7, "land": 216.3, "soil_types": ["Laterite Soil", "Medium Black Soil", "Alluvial Soil", "Shallow Black Soil", "Red Soil"], "crops": ["Soybean", "Cabbage", "Jowar", "Onion", "Tur (Pigeon Pea)", "Sugarcane", "Ginger", "Bajra", "Mango", "Pomegranate", "Groundnut", "Gram"], "group": 2}, {"id": "v_Arale|Kolhapur", "name": "Arale", "type": "village", "count": 6, "land": 143.0, "soil_types": ["Laterite Soil", "Shallow Black Soil", "Red Soil"], "crops": ["Onion", "Tur (Pigeon Pea)", "Cauliflower", "Rice", "Sugarcane", "Bajra", "Wheat", "Gram", "Cotton"], "group": 2}, {"id": "v_Daflapur|Kolhapur", "name": "Daflapur", "type": "village", "count": 6, "land": 180.29999999999998, "soil_types": ["Black Cotton Soil (Regur)", "Shallow Black Soil"], "crops": ["Potato", "Cabbage", "Turmeric", "Jowar", "Tur (Pigeon Pea)", "Rice", "Chilli", "Ginger", "Grapes", "Mango"], "group": 2}, {"id": "v_Bhuye|Kolhapur", "name": "Bhuye", "type": "village", "count": 6, "land": 157.2, "soil_types": ["Medium Black Soil", "Alluvial Soil", "Laterite Soil", "Red Soil"], "crops": ["Turmeric", "Jowar", "Sunflower", "Cauliflower", "Banana", "Rice", "Bajra", "Mango", "Orange", "Tomato", "Pomegranate", "Cotton"], "group": 2}, {"id": "v_Thergaon|Nashik", "name": "Thergaon", "type": "village", "count": 6, "land": 384.40000000000003, "soil_types": ["Alluvial Soil", "Laterite Soil", "Shallow Black Soil", "Red Soil"], "crops": ["Potato", "Turmeric", "Onion", "Cauliflower", "Banana", "Rice", "Bajra", "Tomato", "Pomegranate", "Groundnut", "Wheat"], "group": 2}, {"id": "v_Jeur|Solapur", "name": "Jeur", "type": "village", "count": 6, "land": 236.10000000000002, "soil_types": ["Laterite Soil", "Medium Black Soil", "Alluvial Soil", "Shallow Black Soil", "Red Soil"], "crops": ["Soybean", "Jowar", "Onion", "Tur (Pigeon Pea)", "Banana", "Rice", "Sugarcane", "Tomato", "Cotton"], "group": 2}, {"id": "v_Banali|Solapur", "name": "Banali", "type": "village", "count": 6, "land": 182.3, "soil_types": ["Black Cotton Soil (Regur)", "Red Soil", "Laterite Soil", "Alluvial Soil"], "crops": ["Jowar", "Cauliflower", "Rice", "Ginger", "Bajra", "Mango", "Orange"], "group": 2}, {"id": "v_Agalgaon|Solapur", "name": "Agalgaon", "type": "village", "count": 6, "land": 147.20000000000002, "soil_types": ["Black Cotton Soil (Regur)", "Shallow Black Soil", "Laterite Soil"], "crops": ["Turmeric", "Tur (Pigeon Pea)", "Cauliflower", "Banana", "Chilli", "Ginger", "Grapes", "Bajra", "Tomato", "Groundnut", "Wheat"], "group": 2}, {"id": "v_Sawargaon|Ahmednagar", "name": "Sawargaon", "type": "village", "count": 6, "land": 235.8, "soil_types": ["Laterite Soil", "Alluvial Soil", "Medium Black Soil", "Black Cotton Soil (Regur)", "Red Soil"], "crops": ["Soybean", "Cabbage", "Onion", "Banana", "Chilli", "Ginger", "Sugarcane", "Mango", "Tomato", "Wheat"], "group": 2}, {"id": "v_Dahigaon|Ahmednagar", "name": "Dahigaon", "type": "village", "count": 6, "land": 358.9, "soil_types": ["Laterite Soil", "Alluvial Soil", "Medium Black Soil", "Shallow Black Soil", "Black Cotton Soil (Regur)", "Red Soil"], "crops": ["Cabbage", "Turmeric", "Onion", "Tur (Pigeon Pea)", "Rice", "Chilli", "Bajra", "Orange", "Groundnut", "Gram", "Cotton"], "group": 2}, {"id": "v_Soegaon|Aurangabad", "name": "Soegaon", "type": "village", "count": 6, "land": 183.10000000000002, "soil_types": ["Laterite Soil", "Medium Black Soil", "Shallow Black Soil", "Black Cotton Soil (Regur)", "Red Soil"], "crops": ["Cabbage", "Turmeric", "Sunflower", "Cauliflower", "Banana", "Sugarcane", "Ginger", "Mango", "Orange", "Groundnut"], "group": 2}, {"id": "v_Pishor|Aurangabad", "name": "Pishor", "type": "village", "count": 6, "land": 140.6, "soil_types": ["Red Soil", "Laterite Soil", "Medium Black Soil"], "crops": ["Potato", "Cabbage", "Onion", "Sunflower", "Cauliflower", "Sugarcane", "Bajra", "Tomato", "Groundnut"], "group": 2}, {"id": "v_Paithanwadi|Aurangabad", "name": "Paithanwadi", "type": "village", "count": 6, "land": 202.70000000000002, "soil_types": ["Medium Black Soil", "Alluvial Soil", "Black Cotton Soil (Regur)", "Red Soil"], "crops": ["Cabbage", "Tur (Pigeon Pea)", "Cauliflower", "Sugarcane", "Chilli", "Mango", "Pomegranate", "Cotton"], "group": 2}, {"id": "v_Yavat|Pune", "name": "Yavat", "type": "village", "count": 5, "land": 196.0, "soil_types": ["Laterite Soil", "Medium Black Soil", "Alluvial Soil", "Shallow Black Soil", "Red Soil"], "crops": ["Soybean", "Cabbage", "Turmeric", "Rice", "Ginger", "Tomato", "Groundnut", "Gram", "Wheat"], "group": 2}, {"id": "v_Patas|Pune", "name": "Patas", "type": "village", "count": 5, "land": 272.70000000000005, "soil_types": ["Black Cotton Soil (Regur)", "Shallow Black Soil", "Medium Black Soil"], "crops": ["Tur (Pigeon Pea)", "Chilli", "Bajra", "Mango", "Tomato", "Groundnut", "Cotton"], "group": 2}, {"id": "v_Nande|Pune", "name": "Nande", "type": "village", "count": 5, "land": 274.3, "soil_types": ["Red Soil", "Black Cotton Soil (Regur)", "Alluvial Soil"], "crops": ["Soybean", "Turmeric", "Sunflower", "Cauliflower", "Grapes", "Wheat", "Tomato", "Pomegranate", "Cotton"], "group": 2}, {"id": "v_Rajewadi|Pune", "name": "Rajewadi", "type": "village", "count": 5, "land": 276.6, "soil_types": ["Medium Black Soil", "Black Cotton Soil (Regur)", "Alluvial Soil"], "crops": ["Cabbage", "Banana", "Rice", "Chilli", "Cotton", "Orange", "Pomegranate", "Wheat"], "group": 2}, {"id": "v_Wadivarhe|Nashik", "name": "Wadivarhe", "type": "village", "count": 5, "land": 362.3, "soil_types": ["Alluvial Soil", "Laterite Soil", "Medium Black Soil"], "crops": ["Sunflower", "Cauliflower", "Chilli", "Bajra", "Tomato", "Groundnut"], "group": 2}, {"id": "v_Sonaj|Nashik", "name": "Sonaj", "type": "village", "count": 5, "land": 259.4, "soil_types": ["Laterite Soil", "Alluvial Soil", "Medium Black Soil", "Shallow Black Soil", "Black Cotton Soil (Regur)"], "crops": ["Potato", "Sunflower", "Rice", "Grapes", "Bajra", "Tomato", "Cotton"], "group": 2}, {"id": "v_Vavi|Nashik", "name": "Vavi", "type": "village", "count": 5, "land": 352.6, "soil_types": ["Medium Black Soil", "Shallow Black Soil", "Alluvial Soil"], "crops": ["Soybean", "Onion", "Tur (Pigeon Pea)", "Banana", "Sugarcane", "Grapes", "Pomegranate", "Cotton"], "group": 2}, {"id": "v_Chandori|Nashik", "name": "Chandori", "type": "village", "count": 5, "land": 178.2, "soil_types": ["Alluvial Soil", "Black Cotton Soil (Regur)", "Red Soil"], "crops": ["Soybean", "Turmeric", "Sunflower", "Banana", "Ginger", "Bajra", "Pomegranate", "Cotton"], "group": 2}, {"id": "v_Pale|Nashik", "name": "Pale", "type": "village", "count": 5, "land": 342.0, "soil_types": ["Medium Black Soil", "Alluvial Soil", "Laterite Soil", "Red Soil"], "crops": ["Sunflower", "Rice", "Sugarcane", "Chilli", "Wheat", "Groundnut", "Cotton"], "group": 2}, {"id": "v_Vathar|Satara", "name": "Vathar", "type": "village", "count": 5, "land": 105.00000000000001, "soil_types": ["Alluvial Soil", "Laterite Soil", "Shallow Black Soil", "Medium Black Soil"], "crops": ["Potato", "Soybean", "Sunflower", "Tur (Pigeon Pea)", "Cauliflower", "Banana", "Grapes", "Cotton", "Gram", "Wheat"], "group": 2}, {"id": "v_Dahivadi|Satara", "name": "Dahivadi", "type": "village", "count": 5, "land": 93.80000000000001, "soil_types": ["Medium Black Soil", "Black Cotton Soil (Regur)", "Shallow Black Soil", "Red Soil"], "crops": ["Potato", "Soybean", "Turmeric", "Tur (Pigeon Pea)", "Rice", "Sugarcane", "Grapes", "Tomato", "Gram"], "group": 2}, {"id": "v_Dhom|Satara", "name": "Dhom", "type": "village", "count": 5, "land": 124.29999999999998, "soil_types": ["Black Cotton Soil (Regur)", "Alluvial Soil"], "crops": ["Potato", "Turmeric", "Onion", "Sunflower", "Cauliflower", "Rice", "Chilli", "Grapes", "Mango", "Wheat"], "group": 2}, {"id": "v_Salgare|Sangli", "name": "Salgare", "type": "village", "count": 5, "land": 109.89999999999999, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil", "Shallow Black Soil"], "crops": ["Onion", "Ginger", "Grapes", "Tomato", "Groundnut", "Cotton"], "group": 2}, {"id": "v_Rampur|Sangli", "name": "Rampur", "type": "village", "count": 5, "land": 152.1, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil", "Alluvial Soil"], "crops": ["Cabbage", "Onion", "Sunflower", "Cauliflower", "Grapes", "Bajra", "Pomegranate", "Cotton"], "group": 2}, {"id": "v_Asangi BK|Sangli", "name": "Asangi BK", "type": "village", "count": 5, "land": 100.2, "soil_types": ["Red Soil", "Laterite Soil", "Shallow Black Soil", "Medium Black Soil"], "crops": ["Potato", "Soybean", "Onion", "Cauliflower", "Ginger", "Orange", "Groundnut", "Wheat"], "group": 2}, {"id": "v_Savlaj|Sangli", "name": "Savlaj", "type": "village", "count": 5, "land": 154.5, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil", "Medium Black Soil"], "crops": ["Soybean", "Cabbage", "Cauliflower", "Banana", "Ginger", "Orange", "Groundnut", "Wheat"], "group": 2}, {"id": "v_Nandani|Sangli", "name": "Nandani", "type": "village", "count": 5, "land": 70.7, "soil_types": ["Black Cotton Soil (Regur)", "Shallow Black Soil", "Medium Black Soil"], "crops": ["Onion", "Sunflower", "Cauliflower", "Rice", "Sugarcane", "Chilli", "Mango", "Orange", "Gram"], "group": 2}, {"id": "v_Padvi|Solapur", "name": "Padvi", "type": "village", "count": 5, "land": 135.39999999999998, "soil_types": ["Laterite Soil", "Black Cotton Soil (Regur)", "Shallow Black Soil", "Medium Black Soil"], "crops": ["Cabbage", "Sunflower", "Cauliflower", "Chilli", "Ginger", "Orange"], "group": 2}, {"id": "v_Belapur|Ahmednagar", "name": "Belapur", "type": "village", "count": 5, "land": 291.7, "soil_types": ["Black Cotton Soil (Regur)", "Red Soil", "Laterite Soil", "Medium Black Soil"], "crops": ["Potato", "Tur (Pigeon Pea)", "Cauliflower", "Banana", "Rice", "Sugarcane", "Chilli", "Grapes", "Ginger", "Mango"], "group": 2}, {"id": "v_Nimgaon Jali|Ahmednagar", "name": "Nimgaon Jali", "type": "village", "count": 5, "land": 238.2, "soil_types": ["Red Soil", "Black Cotton Soil (Regur)", "Alluvial Soil"], "crops": ["Cabbage", "Onion", "Sunflower", "Grapes", "Mango", "Pomegranate"], "group": 2}, {"id": "v_Sonai|Ahmednagar", "name": "Sonai", "type": "village", "count": 5, "land": 231.5, "soil_types": ["Medium Black Soil", "Red Soil", "Alluvial Soil"], "crops": ["Soybean", "Jowar", "Turmeric", "Sunflower", "Tur (Pigeon Pea)", "Ginger", "Bajra", "Mango", "Tomato", "Groundnut", "Gram", "Wheat"], "group": 2}, {"id": "v_Gevrai|Aurangabad", "name": "Gevrai", "type": "village", "count": 5, "land": 134.29999999999998, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil", "Red Soil"], "crops": ["Soybean", "Cabbage", "Sugarcane", "Cotton", "Mango", "Tomato", "Groundnut", "Gram", "Wheat"], "group": 2}, {"id": "v_Satara Parisar|Aurangabad", "name": "Satara Parisar", "type": "village", "count": 5, "land": 133.8, "soil_types": ["Laterite Soil", "Black Cotton Soil (Regur)", "Shallow Black Soil", "Medium Black Soil"], "crops": ["Soybean", "Cabbage", "Onion", "Sunflower", "Bajra", "Mango", "Orange", "Pomegranate", "Tomato", "Wheat"], "group": 2}, {"id": "v_Malthan|Pune", "name": "Malthan", "type": "village", "count": 4, "land": 231.1, "soil_types": ["Alluvial Soil", "Red Soil", "Black Cotton Soil (Regur)", "Medium Black Soil"], "crops": ["Cabbage", "Onion", "Sunflower", "Rice", "Chilli", "Ginger", "Orange", "Pomegranate", "Groundnut"], "group": 2}, {"id": "v_Pargaon|Pune", "name": "Pargaon", "type": "village", "count": 4, "land": 155.60000000000002, "soil_types": ["Laterite Soil", "Black Cotton Soil (Regur)", "Shallow Black Soil", "Red Soil"], "crops": ["Sunflower", "Tur (Pigeon Pea)", "Sugarcane", "Grapes", "Tomato", "Groundnut", "Gram"], "group": 2}, {"id": "v_Nhavare|Pune", "name": "Nhavare", "type": "village", "count": 4, "land": 218.5, "soil_types": ["Shallow Black Soil", "Red Soil"], "crops": ["Soybean", "Cabbage", "Cauliflower", "Ginger", "Bajra", "Tomato", "Pomegranate", "Gram"], "group": 2}, {"id": "v_Kesnand|Pune", "name": "Kesnand", "type": "village", "count": 4, "land": 291.3, "soil_types": ["Alluvial Soil", "Black Cotton Soil (Regur)", "Red Soil"], "crops": ["Cabbage", "Onion", "Tur (Pigeon Pea)", "Sugarcane", "Orange", "Groundnut", "Gram", "Wheat"], "group": 2}, {"id": "v_Koregaon Mul|Pune", "name": "Koregaon Mul", "type": "village", "count": 4, "land": 187.0, "soil_types": ["Alluvial Soil", "Black Cotton Soil (Regur)", "Shallow Black Soil", "Medium Black Soil"], "crops": ["Potato", "Cabbage", "Onion", "Banana", "Sugarcane", "Ginger", "Tomato", "Orange", "Wheat"], "group": 2}, {"id": "v_Nool|Kolhapur", "name": "Nool", "type": "village", "count": 4, "land": 132.39999999999998, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil"], "crops": ["Sunflower", "Chilli", "Tomato", "Pomegranate", "Orange", "Wheat"], "group": 2}, {"id": "v_Hasur|Kolhapur", "name": "Hasur", "type": "village", "count": 4, "land": 108.9, "soil_types": ["Medium Black Soil", "Laterite Soil", "Red Soil"], "crops": ["Soybean", "Sunflower", "Cauliflower", "Sugarcane", "Ginger", "Mango", "Groundnut", "Wheat"], "group": 2}, {"id": "v_Nandani|Kolhapur", "name": "Nandani", "type": "village", "count": 4, "land": 77.39999999999999, "soil_types": ["Red Soil", "Laterite Soil", "Shallow Black Soil", "Alluvial Soil"], "crops": ["Cabbage", "Turmeric", "Jowar", "Onion", "Ginger", "Tomato", "Pomegranate", "Gram", "Cotton"], "group": 2}, {"id": "v_Madilage|Kolhapur", "name": "Madilage", "type": "village", "count": 4, "land": 104.1, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil"], "crops": ["Soybean", "Wheat", "Orange", "Groundnut", "Cotton"], "group": 2}, {"id": "v_Kurukali|Kolhapur", "name": "Kurukali", "type": "village", "count": 4, "land": 101.8, "soil_types": ["Medium Black Soil", "Black Cotton Soil (Regur)", "Shallow Black Soil", "Laterite Soil"], "crops": ["Cabbage", "Jowar", "Onion", "Banana", "Cotton", "Pomegranate", "Groundnut", "Wheat"], "group": 2}, {"id": "v_Balinge|Kolhapur", "name": "Balinge", "type": "village", "count": 4, "land": 144.4, "soil_types": ["Black Cotton Soil (Regur)", "Alluvial Soil"], "crops": ["Potato", "Cabbage", "Banana", "Chilli", "Grapes", "Mango", "Pomegranate", "Cotton"], "group": 2}, {"id": "v_Taharabad|Nashik", "name": "Taharabad", "type": "village", "count": 4, "land": 168.2, "soil_types": ["Alluvial Soil", "Black Cotton Soil (Regur)", "Shallow Black Soil", "Red Soil"], "crops": ["Potato", "Turmeric", "Cauliflower", "Sugarcane", "Tomato", "Orange", "Gram"], "group": 2}, {"id": "v_Bhojan|Nashik", "name": "Bhojan", "type": "village", "count": 4, "land": 244.2, "soil_types": ["Laterite Soil", "Shallow Black Soil"], "crops": ["Potato", "Onion", "Sunflower", "Tur (Pigeon Pea)", "Bajra", "Wheat"], "group": 2}, {"id": "v_Khadki|Nashik", "name": "Khadki", "type": "village", "count": 4, "land": 196.3, "soil_types": ["Medium Black Soil", "Alluvial Soil", "Laterite Soil", "Red Soil"], "crops": ["Cabbage", "Jowar", "Mango", "Tomato", "Gram"], "group": 2}, {"id": "v_Gaulane|Nashik", "name": "Gaulane", "type": "village", "count": 4, "land": 223.60000000000002, "soil_types": ["Black Cotton Soil (Regur)", "Shallow Black Soil", "Alluvial Soil"], "crops": ["Soybean", "Jowar", "Ginger", "Tomato", "Orange", "Pomegranate", "Wheat"], "group": 2}, {"id": "v_Bamnoli|Satara", "name": "Bamnoli", "type": "village", "count": 4, "land": 98.5, "soil_types": ["Alluvial Soil", "Laterite Soil", "Shallow Black Soil", "Medium Black Soil"], "crops": ["Potato", "Jowar", "Onion", "Tur (Pigeon Pea)", "Banana", "Rice", "Orange", "Pomegranate"], "group": 2}, {"id": "v_Rantembhe|Satara", "name": "Rantembhe", "type": "village", "count": 4, "land": 145.7, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil", "Red Soil"], "crops": ["Potato", "Cabbage", "Jowar", "Turmeric", "Cauliflower", "Ginger", "Pomegranate"], "group": 2}, {"id": "v_Menavali|Satara", "name": "Menavali", "type": "village", "count": 4, "land": 158.4, "soil_types": ["Black Cotton Soil (Regur)", "Laterite Soil", "Shallow Black Soil", "Red Soil"], "crops": ["Soybean", "Jowar", "Turmeric", "Onion", "Tur (Pigeon Pea)", "Grapes", "Mango", "Gram"], "group": 2}, {"id": "v_Arag|Sangli", "name": "Arag", "type": "village", "count": 4, "land": 95.19999999999999, "soil_types": ["Shallow Black Soil", "Alluvial Soil"], "crops": ["Cabbage", "Turmeric", "Tur (Pigeon Pea)", "Cauliflower", "Rice", "Chilli", "Wheat", "Pomegranate", "Cotton"], "group": 2}, {"id": "c_Wheat", "name": "Wheat", "type": "crop", "count": 68, "land": 1124.2416666666666, "villages": 54, "districts": 8, "group": 3}, {"id": "c_Cauliflower", "name": "Cauliflower", "type": "crop", "count": 65, "land": 1057.4250000000002, "villages": 54, "districts": 8, "group": 3}, {"id": "c_Rice", "name": "Rice", "type": "crop", "count": 64, "land": 1001.45, "villages": 58, "districts": 8, "group": 3}, {"id": "c_Cabbage", "name": "Cabbage", "type": "crop", "count": 60, "land": 907.6500000000001, "villages": 53, "districts": 8, "group": 3}, {"id": "c_Tomato", "name": "Tomato", "type": "crop", "count": 59, "land": 1159.1916666666666, "villages": 50, "districts": 8, "group": 3}, {"id": "c_Groundnut", "name": "Groundnut", "type": "crop", "count": 58, "land": 1262.8, "villages": 52, "districts": 8, "group": 3}, {"id": "c_Tur (Pigeon Pea)", "name": "Tur (Pigeon Pea)", "type": "crop", "count": 55, "land": 1115.2083333333335, "villages": 47, "districts": 8, "group": 3}, {"id": "c_Turmeric", "name": "Turmeric", "type": "crop", "count": 55, "land": 875.7333333333332, "villages": 46, "districts": 8, "group": 3}, {"id": "c_Orange", "name": "Orange", "type": "crop", "count": 55, "land": 971.2000000000002, "villages": 50, "districts": 8, "group": 3}, {"id": "c_Potato", "name": "Potato", "type": "crop", "count": 53, "land": 957.1666666666665, "villages": 45, "districts": 8, "group": 3}, {"id": "c_Sunflower", "name": "Sunflower", "type": "crop", "count": 52, "land": 827.2999999999998, "villages": 48, "districts": 8, "group": 3}, {"id": "c_Onion", "name": "Onion", "type": "crop", "count": 52, "land": 1018.8999999999999, "villages": 47, "districts": 8, "group": 3}, {"id": "c_Grapes", "name": "Grapes", "type": "crop", "count": 50, "land": 898.8916666666667, "villages": 45, "districts": 7, "group": 3}, {"id": "c_Chilli", "name": "Chilli", "type": "crop", "count": 50, "land": 845.7333333333333, "villages": 42, "districts": 8, "group": 3}, {"id": "c_Cotton", "name": "Cotton", "type": "crop", "count": 49, "land": 983.8916666666665, "villages": 43, "districts": 8, "group": 3}, {"id": "c_Soybean", "name": "Soybean", "type": "crop", "count": 49, "land": 662.2500000000002, "villages": 44, "districts": 8, "group": 3}, {"id": "c_Jowar", "name": "Jowar", "type": "crop", "count": 49, "land": 921.7499999999999, "villages": 46, "districts": 8, "group": 3}, {"id": "c_Bajra", "name": "Bajra", "type": "crop", "count": 48, "land": 793.625, "villages": 41, "districts": 8, "group": 3}, {"id": "c_Gram", "name": "Gram", "type": "crop", "count": 47, "land": 568.3333333333334, "villages": 38, "districts": 8, "group": 3}, {"id": "c_Ginger", "name": "Ginger", "type": "crop", "count": 46, "land": 834.5750000000003, "villages": 41, "districts": 8, "group": 3}, {"id": "c_Pomegranate", "name": "Pomegranate", "type": "crop", "count": 45, "land": 856.1000000000001, "villages": 43, "districts": 8, "group": 3}, {"id": "c_Mango", "name": "Mango", "type": "crop", "count": 44, "land": 935.8333333333335, "villages": 38, "districts": 8, "group": 3}, {"id": "c_Sugarcane", "name": "Sugarcane", "type": "crop", "count": 43, "land": 645.3666666666667, "villages": 37, "districts": 8, "group": 3}, {"id": "c_Banana", "name": "Banana", "type": "crop", "count": 40, "land": 728.5833333333335, "villages": 32, "districts": 8, "group": 3}], "links": [{"source": "d_Sangli", "target": "v_Ashta|Sangli", "value": 9, "type": "district-village"}, {"source": "d_Solapur", "target": "v_Karkamb|Solapur", "value": 9, "type": "district-village"}, {"source": "d_Satara", "target": "v_Pasarni|Satara", "value": 8, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Masoli|Kolhapur", "value": 7, "type": "district-village"}, {"source": "d_Sangli", "target": "v_Kavathemahankal|Sangli", "value": 7, "type": "district-village"}, {"source": "d_Aurangabad", "target": "v_Chitegaon|Aurangabad", "value": 7, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Arale|Kolhapur", "value": 6, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Daflapur|Kolhapur", "value": 6, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Bhuye|Kolhapur", "value": 6, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Thergaon|Nashik", "value": 6, "type": "district-village"}, {"source": "d_Solapur", "target": "v_Jeur|Solapur", "value": 6, "type": "district-village"}, {"source": "d_Solapur", "target": "v_Banali|Solapur", "value": 6, "type": "district-village"}, {"source": "d_Solapur", "target": "v_Agalgaon|Solapur", "value": 6, "type": "district-village"}, {"source": "d_Ahmednagar", "target": "v_Sawargaon|Ahmednagar", "value": 6, "type": "district-village"}, {"source": "d_Ahmednagar", "target": "v_Dahigaon|Ahmednagar", "value": 6, "type": "district-village"}, {"source": "d_Aurangabad", "target": "v_Soegaon|Aurangabad", "value": 6, "type": "district-village"}, {"source": "d_Aurangabad", "target": "v_Pishor|Aurangabad", "value": 6, "type": "district-village"}, {"source": "d_Aurangabad", "target": "v_Paithanwadi|Aurangabad", "value": 6, "type": "district-village"}, {"source": "d_Pune", "target": "v_Yavat|Pune", "value": 5, "type": "district-village"}, {"source": "d_Pune", "target": "v_Patas|Pune", "value": 5, "type": "district-village"}, {"source": "d_Pune", "target": "v_Nande|Pune", "value": 5, "type": "district-village"}, {"source": "d_Pune", "target": "v_Rajewadi|Pune", "value": 5, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Wadivarhe|Nashik", "value": 5, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Sonaj|Nashik", "value": 5, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Vavi|Nashik", "value": 5, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Chandori|Nashik", "value": 5, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Pale|Nashik", "value": 5, "type": "district-village"}, {"source": "d_Satara", "target": "v_Vathar|Satara", "value": 5, "type": "district-village"}, {"source": "d_Satara", "target": "v_Dahivadi|Satara", "value": 5, "type": "district-village"}, {"source": "d_Satara", "target": "v_Dhom|Satara", "value": 5, "type": "district-village"}, {"source": "d_Sangli", "target": "v_Salgare|Sangli", "value": 5, "type": "district-village"}, {"source": "d_Sangli", "target": "v_Rampur|Sangli", "value": 5, "type": "district-village"}, {"source": "d_Sangli", "target": "v_Asangi BK|Sangli", "value": 5, "type": "district-village"}, {"source": "d_Sangli", "target": "v_Savlaj|Sangli", "value": 5, "type": "district-village"}, {"source": "d_Sangli", "target": "v_Nandani|Sangli", "value": 5, "type": "district-village"}, {"source": "d_Solapur", "target": "v_Padvi|Solapur", "value": 5, "type": "district-village"}, {"source": "d_Ahmednagar", "target": "v_Belapur|Ahmednagar", "value": 5, "type": "district-village"}, {"source": "d_Ahmednagar", "target": "v_Nimgaon Jali|Ahmednagar", "value": 5, "type": "district-village"}, {"source": "d_Ahmednagar", "target": "v_Sonai|Ahmednagar", "value": 5, "type": "district-village"}, {"source": "d_Aurangabad", "target": "v_Gevrai|Aurangabad", "value": 5, "type": "district-village"}, {"source": "d_Aurangabad", "target": "v_Satara Parisar|Aurangabad", "value": 5, "type": "district-village"}, {"source": "d_Pune", "target": "v_Malthan|Pune", "value": 4, "type": "district-village"}, {"source": "d_Pune", "target": "v_Pargaon|Pune", "value": 4, "type": "district-village"}, {"source": "d_Pune", "target": "v_Nhavare|Pune", "value": 4, "type": "district-village"}, {"source": "d_Pune", "target": "v_Kesnand|Pune", "value": 4, "type": "district-village"}, {"source": "d_Pune", "target": "v_Koregaon Mul|Pune", "value": 4, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Nool|Kolhapur", "value": 4, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Hasur|Kolhapur", "value": 4, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Nandani|Kolhapur", "value": 4, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Madilage|Kolhapur", "value": 4, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Kurukali|Kolhapur", "value": 4, "type": "district-village"}, {"source": "d_Kolhapur", "target": "v_Balinge|Kolhapur", "value": 4, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Taharabad|Nashik", "value": 4, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Bhojan|Nashik", "value": 4, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Khadki|Nashik", "value": 4, "type": "district-village"}, {"source": "d_Nashik", "target": "v_Gaulane|Nashik", "value": 4, "type": "district-village"}, {"source": "d_Satara", "target": "v_Bamnoli|Satara", "value": 4, "type": "district-village"}, {"source": "d_Satara", "target": "v_Rantembhe|Satara", "value": 4, "type": "district-village"}, {"source": "d_Satara", "target": "v_Menavali|Satara", "value": 4, "type": "district-village"}, {"source": "d_Sangli", "target": "v_Arag|Sangli", "value": 4, "type": "district-village"}, {"source": "v_Yavat|Pune", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Onion", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Pargaon|Pune", "target": "c_Grapes", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Pargaon|Pune", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Pargaon|Pune", "target": "c_Tur (Pigeon Pea)", "value": 1, "type": "village-crop"}, {"source": "v_Patas|Pune", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Patas|Pune", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Patas|Pune", "target": "c_Tur (Pigeon Pea)", "value": 1, "type": "village-crop"}, {"source": "v_Patas|Pune", "target": "c_Mango", "value": 1, "type": "village-crop"}, {"source": "v_Nhavare|Pune", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Nhavare|Pune", "target": "c_Soybean", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Patas|Pune", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Patas|Pune", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Pargaon|Pune", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Pargaon|Pune", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Kesnand|Pune", "target": "c_Tur (Pigeon Pea)", "value": 1, "type": "village-crop"}, {"source": "v_Kesnand|Pune", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Kesnand|Pune", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Soybean", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Pargaon|Pune", "target": "c_Sugarcane", "value": 1, "type": "village-crop"}, {"source": "v_Pargaon|Pune", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Kesnand|Pune", "target": "c_Onion", "value": 1, "type": "village-crop"}, {"source": "v_Kesnand|Pune", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Malthan|Pune", "target": "c_Chilli", "value": 1, "type": "village-crop"}, {"source": "v_Nhavare|Pune", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Potato", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Turmeric", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Patas|Pune", "target": "c_Chilli", "value": 1, "type": "village-crop"}, {"source": "v_Nhavare|Pune", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Nhavare|Pune", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Nhavare|Pune", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Turmeric", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Soybean", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Nande|Pune", "target": "c_Grapes", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Yavat|Pune", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Chilli", "value": 1, "type": "village-crop"}, {"source": "v_Rajewadi|Pune", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Nhavare|Pune", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Nhavare|Pune", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Kesnand|Pune", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Kesnand|Pune", "target": "c_Sugarcane", "value": 1, "type": "village-crop"}, {"source": "v_Kesnand|Pune", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Sugarcane", "value": 1, "type": "village-crop"}, {"source": "v_Koregaon Mul|Pune", "target": "c_Onion", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Madilage|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Tur (Pigeon Pea)", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Chilli", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Jowar", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Tur (Pigeon Pea)", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Potato", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Turmeric", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Jowar", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Turmeric", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Jowar", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Chilli", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Mango", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Mango", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Mango", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Soybean", "value": 1, "type": "village-crop"}, {"source": "v_Hasur|Kolhapur", "target": "c_Sugarcane", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Mango", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Jowar", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Madilage|Kolhapur", "target": "c_Soybean", "value": 1, "type": "village-crop"}, {"source": "v_Madilage|Kolhapur", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Potato", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Masoli|Kolhapur", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Tur (Pigeon Pea)", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Sugarcane", "value": 1, "type": "village-crop"}, {"source": "v_Balinge|Kolhapur", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Onion", "value": 1, "type": "village-crop"}, {"source": "v_Arale|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Turmeric", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Jowar", "value": 1, "type": "village-crop"}, {"source": "v_Madilage|Kolhapur", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Madilage|Kolhapur", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Kurukali|Kolhapur", "target": "c_Onion", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Onion", "value": 1, "type": "village-crop"}, {"source": "v_Balinge|Kolhapur", "target": "c_Chilli", "value": 1, "type": "village-crop"}, {"source": "v_Balinge|Kolhapur", "target": "c_Grapes", "value": 1, "type": "village-crop"}, {"source": "v_Balinge|Kolhapur", "target": "c_Potato", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Grapes", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Turmeric", "value": 1, "type": "village-crop"}, {"source": "v_Daflapur|Kolhapur", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Nandani|Kolhapur", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Balinge|Kolhapur", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Balinge|Kolhapur", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Balinge|Kolhapur", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Balinge|Kolhapur", "target": "c_Mango", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Nool|Kolhapur", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Madilage|Kolhapur", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Madilage|Kolhapur", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Bhuye|Kolhapur", "target": "c_Jowar", "value": 1, "type": "village-crop"}, {"source": "v_Taharabad|Nashik", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Bhojan|Nashik", "target": "c_Onion", "value": 1, "type": "village-crop"}, {"source": "v_Khadki|Nashik", "target": "c_Cabbage", "value": 1, "type": "village-crop"}, {"source": "v_Khadki|Nashik", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Khadki|Nashik", "target": "c_Jowar", "value": 1, "type": "village-crop"}, {"source": "v_Wadivarhe|Nashik", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Sonaj|Nashik", "target": "c_Grapes", "value": 1, "type": "village-crop"}, {"source": "v_Sonaj|Nashik", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Khadki|Nashik", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Khadki|Nashik", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Sonaj|Nashik", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Vavi|Nashik", "target": "c_Cotton", "value": 1, "type": "village-crop"}, {"source": "v_Wadivarhe|Nashik", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Chandori|Nashik", "target": "c_Turmeric", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Turmeric", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Gaulane|Nashik", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Gaulane|Nashik", "target": "c_Orange", "value": 1, "type": "village-crop"}, {"source": "v_Gaulane|Nashik", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Pale|Nashik", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Pale|Nashik", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Wadivarhe|Nashik", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Wadivarhe|Nashik", "target": "c_Cauliflower", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Potato", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Thergaon|Nashik", "target": "c_Groundnut", "value": 1, "type": "village-crop"}, {"source": "v_Chandori|Nashik", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Chandori|Nashik", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Chandori|Nashik", "target": "c_Soybean", "value": 1, "type": "village-crop"}, {"source": "v_Chandori|Nashik", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Pale|Nashik", "target": "c_Sugarcane", "value": 1, "type": "village-crop"}, {"source": "v_Pale|Nashik", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Bhojan|Nashik", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Bhojan|Nashik", "target": "c_Sunflower", "value": 1, "type": "village-crop"}, {"source": "v_Bhojan|Nashik", "target": "c_Wheat", "value": 1, "type": "village-crop"}, {"source": "v_Taharabad|Nashik", "target": "c_Gram", "value": 1, "type": "village-crop"}, {"source": "v_Chandori|Nashik", "target": "c_Pomegranate", "value": 1, "type": "village-crop"}, {"source": "v_Chandori|Nashik", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Sonaj|Nashik", "target": "c_Rice", "value": 1, "type": "village-crop"}, {"source": "v_Gaulane|Nashik", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Gaulane|Nashik", "target": "c_Ginger", "value": 1, "type": "village-crop"}, {"source": "v_Wadivarhe|Nashik", "target": "c_Bajra", "value": 1, "type": "village-crop"}, {"source": "v_Vavi|Nashik", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Vavi|Nashik", "target": "c_Onion", "value": 1, "type": "village-crop"}, {"source": "v_Vavi|Nashik", "target": "c_Banana", "value": 1, "type": "village-crop"}, {"source": "v_Vavi|Nashik", "target": "c_Soybean", "value": 1, "type": "village-crop"}, {"source": "v_Sonaj|Nashik", "target": "c_Tomato", "value": 1, "type": "village-crop"}, {"source": "v_Sonaj|Nashik", "target": "c_Potato", "value": 1, "type": "village-crop"}]};
+        let allNodes = networkData.nodes;
+        let allLinks = networkData.links;
+        let filteredNodes = [...allNodes];
+        let filteredLinks = [...allLinks];
+        let clusteringEnabled = false;
+        
+        const networkDiv = document.getElementById('network');
+        const width = networkDiv.clientWidth;
+        const height = 800;
+        
+        const svg = d3.select('#network')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height);
+        
+        // Add zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.3, 5])
+            .on('zoom', (event) => {
+                g.attr('transform', event.transform);
+            });
+        
+        svg.call(zoom);
+        
+        const g = svg.append('g');
+        
+        // Create simulation
+        let simulation = d3.forceSimulation(filteredNodes)
+            .force('link', d3.forceLink(filteredLinks).id(d => d.id).distance(d => {
+                if (d.type === 'district-village') return 150;
+                return 100;
+            }))
+            .force('charge', d3.forceManyBody().strength(d => {
+                if (d.type === 'district') return -800;
+                if (d.type === 'village') return -400;
+                return -300;
+            }))
+            .force('center', d3.forceCenter(width / 2, height / 2))
+            .force('collision', d3.forceCollide().radius(d => {
+                if (d.type === 'district') return 40;
+                if (d.type === 'village') return 25;
+                return 20;
+            }))
+            .force('x', d3.forceX(width / 2).strength(0.05))
+            .force('y', d3.forceY(height / 2).strength(0.05));
+        
+        let link, node, label, tooltip;
+        
+        function updateGraph() {
+            // Remove old elements
+            g.selectAll('*').remove();
+            
+            // Create links
+            link = g.append('g')
+                .selectAll('line')
+                .data(filteredLinks)
+                .enter().append('line')
+                .attr('class', 'link')
+                .attr('stroke-width', d => Math.sqrt(d.value) * 0.8);
+            
+            // Create nodes
+            node = g.append('g')
+                .selectAll('circle')
+                .data(filteredNodes)
+                .enter().append('circle')
+                .attr('class', d => `node ${d.type}`)
+                .attr('r', d => {
+                    if (d.type === 'district') return 28;
+                    if (d.type === 'village') return 16;
+                    return 13;
+                })
+                .attr('fill', d => {
+                    if (d.type === 'district') return '#8b5cf6';
+                    if (d.type === 'village') return '#3b82f6';
+                    return '#10b981';
+                })
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2.5)
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended))
+                .on('click', handleNodeClick)
+                .on('mouseover', handleNodeHover)
+                .on('mouseout', handleNodeOut);
+            
+            // Create labels for districts
+            label = g.append('g')
+                .selectAll('text')
+                .data(filteredNodes.filter(d => d.type === 'district'))
+                .enter().append('text')
+                .text(d => d.name)
+                .attr('font-size', '13px')
+                .attr('font-weight', 'bold')
+                .attr('fill', '#fff')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 40)
+                .style('pointer-events', 'none')
+                .style('text-shadow', '0 0 5px rgba(0,0,0,0.8)');
+            
+            // Create tooltip
+            tooltip = d3.select('body').append('div')
+                .attr('class', 'tooltip')
+                .style('opacity', 0);
+            
+            // Update simulation
+            simulation.nodes(filteredNodes);
+            simulation.force('link').links(filteredLinks);
+            simulation.alpha(1).restart();
+            
+            // Update stats
+            document.getElementById('visibleCount').textContent = filteredNodes.length;
+        }
+        
+        function handleNodeClick(event, d) {
+            event.stopPropagation();
+            
+            // Highlight connected nodes
+            const connectedNodeIds = new Set();
+            connectedNodeIds.add(d.id);
+            
+            filteredLinks.forEach(link => {
+                if (link.source.id === d.id) connectedNodeIds.add(link.target.id);
+                if (link.target.id === d.id) connectedNodeIds.add(link.source.id);
+            });
+            
+            // Update node styles
+            node.classed('highlighted', n => connectedNodeIds.has(n.id));
+            
+            // Update link styles
+            link.classed('highlighted', l => 
+                l.source.id === d.id || l.target.id === d.id
+            );
+            
+            // Update selected node display
+            document.getElementById('selectedNode').textContent = d.name;
+        }
+        
+        function handleNodeHover(event, d) {
+            tooltip.transition().duration(200).style('opacity', 1);
+            
+            let html = `<strong>${d.name}</strong>`;
+            html += `<br/>Type: ${d.type.charAt(0).toUpperCase() + d.type.slice(1)}`;
+            html += `<br/>Farmers: ${d.count || 'N/A'}`;
+            if (d.land) html += `<br/>Land: ${d.land.toFixed(1)} acres`;
+            if (d.villages) html += `<br/>Villages: ${d.villages}`;
+            if (d.districts) html += `<br/>Districts: ${d.districts}`;
+            
+            tooltip.html(html)
+                .style('left', (event.pageX + 15) + 'px')
+                .style('top', (event.pageY - 28) + 'px');
+            
+            d3.select(event.currentTarget)
+                .transition()
+                .duration(200)
+                .attr('r', d => {
+                    if (d.type === 'district') return 35;
+                    if (d.type === 'village') return 20;
+                    return 16;
+                });
+        }
+        
+        function handleNodeOut(event, d) {
+            tooltip.transition().duration(500).style('opacity', 0);
+            
+            d3.select(event.currentTarget)
+                .transition()
+                .duration(200)
+                .attr('r', d => {
+                    if (d.type === 'district') return 28;
+                    if (d.type === 'village') return 16;
+                    return 13;
+                });
+        }
+        
+        simulation.on('tick', () => {
+            link
+                .attr('x1', d => d.source.x)
+                .attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x)
+                .attr('y2', d => d.target.y);
+            
+            node
+                .attr('cx', d => d.x)
+                .attr('cy', d => d.y);
+            
+            if (label) {
+                label
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
+            }
+        });
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (searchTerm === '') {
+                node.style('opacity', 1);
+                link.style('opacity', 0.6);
+                return;
+            }
+            
+            const matchingNodes = filteredNodes.filter(n => 
+                n.name.toLowerCase().includes(searchTerm)
+            );
+            
+            const matchingIds = new Set(matchingNodes.map(n => n.id));
+            
+            node.style('opacity', n => matchingIds.has(n.id) ? 1 : 0.2);
+            link.style('opacity', l => 
+                matchingIds.has(l.source.id) || matchingIds.has(l.target.id) ? 0.6 : 0.1
+            );
+        });
+        
+        // Filter functionality
+        document.getElementById('filterType').addEventListener('change', (e) => {
+            const filterValue = e.target.value;
+            
+            if (filterValue === 'all') {
+                filteredNodes = [...allNodes];
+            } else {
+                filteredNodes = allNodes.filter(n => n.type === filterValue);
+            }
+            
+            // Filter links to only include those between visible nodes
+            const visibleIds = new Set(filteredNodes.map(n => n.id));
+            filteredLinks = allLinks.filter(l => 
+                visibleIds.has(l.source.id || l.source) && 
+                visibleIds.has(l.target.id || l.target)
+            );
+            
+            updateGraph();
+        });
+        
+        // Reset view
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+            );
+            node.classed('highlighted', false);
+            link.classed('highlighted', false);
+            document.getElementById('selectedNode').textContent = 'None';
+            document.getElementById('searchInput').value = '';
+            node.style('opacity', 1);
+            link.style('opacity', 0.6);
+        });
+        
+        // Toggle clustering
+        document.getElementById('clusterBtn').addEventListener('click', function() {
+            clusteringEnabled = !clusteringEnabled;
+            this.classList.toggle('active');
+            
+            if (clusteringEnabled) {
+                // Enable clustering by type
+                simulation.force('x', d3.forceX(d => {
+                    if (d.type === 'district') return width * 0.3;
+                    if (d.type === 'village') return width * 0.5;
+                    return width * 0.7;
+                }).strength(0.3));
+                simulation.force('y', d3.forceY(height / 2).strength(0.1));
+            } else {
+                // Disable clustering
+                simulation.force('x', d3.forceX(width / 2).strength(0.05));
+                simulation.force('y', d3.forceY(height / 2).strength(0.05));
+            }
+            
+            simulation.alpha(1).restart();
+        });
+        
+        // Export PNG
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const svgElement = document.querySelector('#network svg');
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            const img = new Image();
+            img.onload = () => {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0);
+                const pngFile = canvas.toDataURL('image/png');
+                const downloadLink = document.createElement('a');
+                downloadLink.download = 'kisaanmitra-knowledge-graph.png';
+                downloadLink.href = pngFile;
+                downloadLink.click();
+            };
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+        });
+        
+        // Initialize graph
+        updateGraph();
+        
+        // Clear highlights on background click
+        svg.on('click', () => {
+            node.classed('highlighted', false);
+            link.classed('highlighted', false);
+            document.getElementById('selectedNode').textContent = 'None';
+        });
+        
+        // Charts with Chart.js
+        const chartColors = {
+            green: 'rgba(16, 185, 129, 0.8)',
+            greenBorder: 'rgba(16, 185, 129, 1)',
+            purple: 'rgba(139, 92, 246, 0.8)',
+            purpleBorder: 'rgba(139, 92, 246, 1)',
+            blue: 'rgba(59, 130, 246, 0.8)',
+            blueBorder: 'rgba(59, 130, 246, 1)'
+        };
+        
+        const chartOptions = {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false,
+                    labels: {
+                        color: '#fff'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#fff'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#fff'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                }
+            }
+        };
+        
         // District Chart
-        const districtCtx = document.getElementById('districtChart').getContext('2d');
-        new Chart(districtCtx, {
+        new Chart(document.getElementById('districtChart'), {
             type: 'bar',
             data: {
                 labels: ["Solapur", "Kolhapur", "Pune", "Sangli", "Nashik", "Aurangabad", "Satara", "Ahmednagar"],
                 datasets: [{
-                    label: 'Number of Farmers',
+                    label: 'Farmers',
                     data: [80, 79, 78, 77, 76, 74, 72, 72],
-                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                    borderColor: 'rgba(102, 126, 234, 1)',
+                    backgroundColor: chartColors.purple,
+                    borderColor: chartColors.purpleBorder,
                     borderWidth: 2
                 }]
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
+            options: chartOptions
         });
         
         // Crop Chart
-        const cropCtx = document.getElementById('cropChart').getContext('2d');
-        new Chart(cropCtx, {
-            type: 'horizontalBar',
+        new Chart(document.getElementById('cropChart'), {
+            type: 'bar',
             data: {
                 labels: ["Wheat", "Cauliflower", "Rice", "Cabbage", "Tomato", "Groundnut", "Tur (Pigeon Pea)", "Turmeric", "Orange", "Potato", "Sunflower", "Onion", "Grapes", "Chilli", "Cotton"],
                 datasets: [{
-                    label: 'Number of Farmers',
+                    label: 'Farmers',
                     data: [68, 65, 64, 60, 59, 58, 55, 55, 55, 53, 52, 52, 50, 50, 49],
-                    backgroundColor: 'rgba(76, 175, 80, 0.8)',
-                    borderColor: 'rgba(76, 175, 80, 1)',
+                    backgroundColor: chartColors.green,
+                    borderColor: chartColors.greenBorder,
                     borderWidth: 2
                 }]
             },
             options: {
-                responsive: true,
-                indexAxis: 'y',
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true
-                    }
-                }
+                ...chartOptions,
+                indexAxis: 'y'
             }
         });
         
         // Soil Chart
-        const soilCtx = document.getElementById('soilChart').getContext('2d');
-        new Chart(soilCtx, {
+        new Chart(document.getElementById('soilChart'), {
             type: 'doughnut',
             data: {
                 labels: ["Black Cotton Soil (Regur)", "Shallow Black Soil", "Medium Black Soil", "Alluvial Soil", "Red Soil", "Laterite Soil"],
                 datasets: [{
                     data: [121, 102, 100, 97, 96, 92],
                     backgroundColor: [
-                        'rgba(255, 99, 132, 0.8)',
-                        'rgba(54, 162, 235, 0.8)',
-                        'rgba(255, 206, 86, 0.8)',
-                        'rgba(75, 192, 192, 0.8)',
-                        'rgba(153, 102, 255, 0.8)',
-                        'rgba(255, 159, 64, 0.8)'
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(236, 72, 153, 0.8)',
+                        'rgba(251, 146, 60, 0.8)',
+                        'rgba(234, 179, 8, 0.8)'
                     ],
-                    borderWidth: 2
+                    borderWidth: 2,
+                    borderColor: '#000000'
                 }]
             },
             options: {
                 responsive: true,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            color: '#fff',
+                            padding: 15
+                        }
                     }
                 }
             }
