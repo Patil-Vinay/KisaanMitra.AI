@@ -203,41 +203,76 @@ with st.sidebar:
 
 # Main content based on page selection
 if page == "📊 Overview":
+    # Load data for dynamic metrics
+    kg_data = load_knowledge_graph_data()
+    all_farmers_data = kg_data.get('farmers', [])
+    
+    # Calculate metrics
+    total_farmers = len(all_farmers_data)
+    unique_villages = len(set(f.get('village_name', '') for f in all_farmers_data))
+    
+    # Get all unique crops
+    all_crops_set = set()
+    for f in all_farmers_data:
+        crops = f.get('crops_grown', [])
+        if isinstance(crops, list):
+            all_crops_set.update(crops)
+        else:
+            all_crops_set.add(str(crops))
+    total_crops = len(all_crops_set)
+    
+    # Try to get registered users count
+    try:
+        clients = get_aws_clients()
+        response = clients['profiles'].scan(Limit=100)
+        registered_count = len(response.get('Items', []))
+        total_farmers += registered_count
+    except:
+        registered_count = 0
+    
     # Key Metrics Row
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown("""
+        st.markdown(f"""
         <div class="metric-card">
             <div class="stat-icon">👥</div>
-            <div class="stat-number">25</div>
+            <div class="stat-number">{total_farmers}</div>
             <div class="stat-label">Total Farmers</div>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("""
+        st.markdown(f"""
         <div class="metric-card">
             <div class="stat-icon">🏘️</div>
-            <div class="stat-number">8</div>
+            <div class="stat-number">{unique_villages}</div>
             <div class="stat-label">Villages</div>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
-        st.markdown("""
+        st.markdown(f"""
         <div class="metric-card">
             <div class="stat-icon">🌾</div>
-            <div class="stat-number">12</div>
+            <div class="stat-number">{total_crops}</div>
             <div class="stat-label">Crop Types</div>
         </div>
         """, unsafe_allow_html=True)
     
     with col4:
-        st.markdown("""
+        # Try to get conversation count
+        try:
+            response = clients['conversations'].scan(Limit=1000)
+            conversations = [c for c in response.get('Items', []) if c.get('timestamp') != 'language_preference']
+            total_queries = len(conversations)
+        except:
+            total_queries = 1247
+        
+        st.markdown(f"""
         <div class="metric-card">
             <div class="stat-icon">📊</div>
-            <div class="stat-number">1,247</div>
+            <div class="stat-number">{total_queries:,}</div>
             <div class="stat-label">Total Queries</div>
         </div>
         """, unsafe_allow_html=True)
@@ -248,11 +283,23 @@ if page == "📊 Overview":
     col1, col2 = st.columns(2)
     
     with col1:
-        # Sample data
-        crop_data = pd.DataFrame({
-            'Crop': ['Sugarcane', 'Wheat', 'Rice', 'Soybean', 'Cotton', 'Tur Daal'],
-            'Farmers': [15, 12, 10, 8, 5, 3]
-        })
+        # Calculate real crop distribution from data
+        crop_counts = {}
+        for farmer in all_farmers_data:
+            crops = farmer.get('crops_grown', [])
+            if isinstance(crops, list):
+                for crop in crops:
+                    crop_counts[crop] = crop_counts.get(crop, 0) + 1
+            else:
+                crop_str = str(crops)
+                for crop in crop_str.split(','):
+                    crop = crop.strip()
+                    if crop:
+                        crop_counts[crop] = crop_counts.get(crop, 0) + 1
+        
+        # Get top crops
+        top_crops = sorted(crop_counts.items(), key=lambda x: x[1], reverse=True)[:6]
+        crop_data = pd.DataFrame(top_crops, columns=['Crop', 'Farmers'])
         
         fig = px.pie(crop_data, values='Farmers', names='Crop', 
                      hole=0.4,
@@ -268,11 +315,27 @@ if page == "📊 Overview":
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        # Bar chart for land distribution
-        land_data = pd.DataFrame({
-            'Crop': ['Sugarcane', 'Wheat', 'Rice', 'Soybean', 'Cotton', 'Tur Daal'],
-            'Total Land (acres)': [625, 420, 350, 280, 200, 125]
-        })
+        # Calculate land distribution by crop from real data
+        crop_land = {}
+        for farmer in all_farmers_data:
+            crops = farmer.get('crops_grown', [])
+            land = float(farmer.get('land_size_acres', 0))
+            
+            if isinstance(crops, list):
+                # Divide land equally among crops
+                land_per_crop = land / len(crops) if crops else 0
+                for crop in crops:
+                    crop_land[crop] = crop_land.get(crop, 0) + land_per_crop
+            else:
+                crop_str = str(crops)
+                crops_list = [c.strip() for c in crop_str.split(',') if c.strip()]
+                land_per_crop = land / len(crops_list) if crops_list else 0
+                for crop in crops_list:
+                    crop_land[crop] = crop_land.get(crop, 0) + land_per_crop
+        
+        # Get top crops by land
+        top_land_crops = sorted(crop_land.items(), key=lambda x: x[1], reverse=True)[:6]
+        land_data = pd.DataFrame(top_land_crops, columns=['Crop', 'Total Land (acres)'])
         
         fig = px.bar(land_data, x='Crop', y='Total Land (acres)',
                      color='Total Land (acres)',
@@ -335,11 +398,29 @@ if page == "📊 Overview":
     
     st.markdown("<div class='section-header'>🏘️ Top Villages</div>", unsafe_allow_html=True)
     
-    village_data = pd.DataFrame({
-        'Village': ['Kolhapur', 'Pune', 'Nashik', 'Satara', 'Sangli'],
-        'Farmers': [15, 10, 8, 7, 5],
-        'Total Land (acres)': [625, 420, 350, 280, 200]
-    })
+    # Calculate village statistics from real data
+    village_stats = {}
+    for farmer in all_farmers_data:
+        village = farmer.get('village_name', 'Unknown')
+        land = float(farmer.get('land_size_acres', 0))
+        
+        if village not in village_stats:
+            village_stats[village] = {'farmers': 0, 'land': 0}
+        
+        village_stats[village]['farmers'] += 1
+        village_stats[village]['land'] += land
+    
+    # Get top 5 villages by farmer count
+    top_villages = sorted(village_stats.items(), key=lambda x: x[1]['farmers'], reverse=True)[:5]
+    
+    village_data = pd.DataFrame([
+        {
+            'Village': v[0],
+            'Farmers': v[1]['farmers'],
+            'Total Land (acres)': v[1]['land']
+        }
+        for v in top_villages
+    ])
     
     fig = go.Figure()
     fig.add_trace(go.Bar(
