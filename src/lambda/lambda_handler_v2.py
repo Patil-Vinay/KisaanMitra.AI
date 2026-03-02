@@ -365,9 +365,6 @@ def handle_interactive_response(msg, from_number):
         elif list_id == "weather":
             prompt = "🌤️ *Weather Forecast*\n\nWhich city do you want weather for?" if user_lang == 'english' else "🌤️ *मौसम पूर्वानुमान*\n\nआप किस शहर का मौसम जानना चाहते हैं?"
             WhatsAppService.send_message(from_number, prompt)
-        elif list_id == "sos":
-            prompt = "🆘 *Emergency Help*\n\nPlease describe your problem.\n\n*Call Now*:\n📞 Kisan Helpline: 1800-180-1551" if user_lang == 'english' else "🆘 *आपातकालीन सहायता*\n\nकृपया अपनी समस्या का वर्णन करें।\n\n*अभी कॉल करें*:\n📞 किसान हेल्पलाइन: 1800-180-1551"
-            WhatsAppService.send_message(from_number, prompt)
         
         return {'statusCode': 200, 'body': 'ok'}
     

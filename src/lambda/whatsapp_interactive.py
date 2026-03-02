@@ -83,11 +83,6 @@ def create_main_menu(language='hindi'):
                                     "id": "weather",
                                     "title": "🌤️ Weather Forecast",
                                     "description": "7-day weather & alerts"
-                                },
-                                {
-                                    "id": "sos",
-                                    "title": "🆘 Emergency Help",
-                                    "description": "Urgent support & helplines"
                                 }
                             ]
                         }
@@ -140,11 +135,6 @@ def create_main_menu(language='hindi'):
                                     "id": "weather",
                                     "title": "🌤️ मौसम पूर्वानुमान",
                                     "description": "7 दिन का मौसम और अलर्ट"
-                                },
-                                {
-                                    "id": "sos",
-                                    "title": "🆘 आपातकालीन मदद",
-                                    "description": "तत्काल सहायता और हेल्पलाइन"
                                 }
                             ]
                         }
@@ -302,8 +292,8 @@ def create_quick_actions():
                     {
                         "type": "reply",
                         "reply": {
-                            "id": "sos",
-                            "title": "🆘 SOS"
+                            "id": "crop_health",
+                            "title": "🔍 फसल जांच"
                         }
                     }
                 ]
