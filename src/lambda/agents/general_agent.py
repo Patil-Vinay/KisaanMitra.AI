@@ -55,19 +55,36 @@ CRITICAL: Respond ONLY in English."""
     @staticmethod
     def _handle_weather(user_message, user_id, language):
         """Handle weather-specific queries"""
-        # Extract location from message
-        location_prompt = f"""Extract the city/location name from this message. If not mentioned, return "none".
+        location = None
+        
+        # PRIORITY 1: Check user profile for district
+        try:
+            from onboarding.farmer_onboarding import onboarding_manager
+            if user_id != "unknown":
+                profile = onboarding_manager.get_user_profile(user_id)
+                if profile:
+                    # Use district from profile (villages are too small for weather APIs)
+                    location = profile.get('district')
+                    if location:
+                        print(f"[GENERAL AGENT] Using profile location: {location}")
+        except Exception as e:
+            print(f"[GENERAL AGENT] Could not get profile location: {e}")
+        
+        # PRIORITY 2: Extract location from message if not in profile
+        if not location:
+            location_prompt = f"""Extract the city/location name from this message. If not mentioned, return "none".
 
 Message: "{user_message}"
 
 Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur") or "none". No explanation."""
 
-        try:
-            extracted = AIService.ask(location_prompt, skip_context=True).strip().title()
-            location = extracted if extracted and extracted.lower() != "none" else "Pune"
-            print(f"[GENERAL AGENT] Weather location: {location}")
-        except:
-            location = "Pune"
+            try:
+                extracted = AIService.ask(location_prompt, skip_context=True).strip().title()
+                location = extracted if extracted and extracted.lower() != "none" else "Pune"
+                print(f"[GENERAL AGENT] Weather location from message: {location}")
+            except:
+                location = "Pune"
+                print(f"[GENERAL AGENT] Using default location: Pune")
         
         try:
             weather = get_weather_forecast(location)
