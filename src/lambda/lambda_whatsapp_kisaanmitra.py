@@ -41,6 +41,18 @@ except Exception as e:
     traceback.print_exc()
     ONBOARDING_AVAILABLE = False
 
+# Import hyperlocal disease tracker
+try:
+    from hyperlocal.disease_tracker import hyperlocal_tracker
+    HYPERLOCAL_AVAILABLE = True
+    print("✅ Hyperlocal Disease Tracker loaded successfully")
+except ImportError as e:
+    print(f"❌ Hyperlocal module not available: {e}")
+    HYPERLOCAL_AVAILABLE = False
+except Exception as e:
+    print(f"❌ Error loading hyperlocal module: {e}")
+    HYPERLOCAL_AVAILABLE = False
+
 # Import new hackathon features
 try:
     from whatsapp_interactive import (
@@ -397,6 +409,34 @@ def handle_crop_query(user_message, user_id="unknown", language='hindi', locatio
     print(f"[DEBUG] ===== CROP AGENT =====")
     print(f"[DEBUG] Processing crop query: {user_message}, Language: {language}")
     
+    # Get user profile for village and crops context
+    profile_context = ""
+    village = None
+    district = None
+    crops = None
+    
+    if ONBOARDING_AVAILABLE and user_id != "unknown":
+        try:
+            from onboarding.farmer_onboarding import onboarding_manager
+            profile = onboarding_manager.get_user_profile(user_id)
+            if profile:
+                village = profile.get('village')
+                district = profile.get('district')
+                crops = profile.get('current_crops') or profile.get('crops')
+                
+                if village and crops:
+                    if language == 'english':
+                        profile_context = f"\n\nUser Profile: Farmer from {village}, {district}. Currently growing: {crops}."
+                    else:
+                        profile_context = f"\n\nकिसान प्रोफाइल: {village}, {district} से। वर्तमान फसल: {crops}।"
+                    print(f"[PROFILE] Using profile context: {village}, {crops}")
+        except Exception as e:
+            print(f"[PROFILE ERROR] Failed to get profile: {e}")
+    
+    # Use district for weather if no location provided
+    if not location and district:
+        location = district
+    
     # Get weather context if location available
     weather_context = ""
     if WEATHER_AVAILABLE and location:
@@ -421,6 +461,66 @@ def handle_crop_query(user_message, user_id="unknown", language='hindi', locatio
             print(f"[WEATHER ERROR] {e}")
             weather_context = ""
     
+    # ═══════════════════════════════════════════════════════════════
+    # PRIORITY 1: Check hyperlocal data FIRST
+    # ═══════════════════════════════════════════════════════════════
+    hyperlocal_response = ""
+    if HYPERLOCAL_AVAILABLE and village and crops:
+        try:
+            print(f"[HYPERLOCAL] Checking disease reports for {village}, {crops}")
+            
+            # Get disease alert for village and crop
+            disease_alert = hyperlocal_tracker.format_disease_alert(village, crops, language)
+            
+            # Get nearby disease reports
+            nearby_reports = hyperlocal_tracker.get_nearby_diseases(village, district, days=30, crop=crops)
+            
+            if nearby_reports:
+                print(f"[HYPERLOCAL] Found {len(nearby_reports)} disease reports in {village}")
+                hyperlocal_response = disease_alert + "\n\n"
+                
+                # Get unique diseases from reports
+                diseases = list(set([r.get('disease_name') for r in nearby_reports if r.get('disease_name')]))
+                
+                # Add treatment recommendations for each disease
+                treatments_found = False
+                for disease in diseases[:3]:  # Top 3 diseases
+                    treatment_msg = hyperlocal_tracker.format_treatment_recommendations(disease, language)
+                    hyperlocal_response += treatment_msg + "\n"
+                    # Check if this disease has treatments
+                    if "✅" in treatment_msg:
+                        treatments_found = True
+                
+                # Add helpful footer
+                if language == 'hindi':
+                    if treatments_found:
+                        hyperlocal_response += "\n💡 *सलाह*: ये उपचार आपके क्षेत्र के किसानों द्वारा सफल पाए गए हैं। अपने स्थानीय कृषि विशेषज्ञ से भी परामर्श करें।"
+                    else:
+                        hyperlocal_response += "\n💡 *सलाह*: कृपया अपने नजदीकी कृषि विशेषज्ञ या कृषि विज्ञान केंद्र से संपर्क करें।"
+                else:
+                    if treatments_found:
+                        hyperlocal_response += "\n💡 *Advice*: These treatments worked for farmers in your area. Also consult your local agricultural expert."
+                    else:
+                        hyperlocal_response += "\n💡 *Advice*: Please contact your nearest agricultural expert or Krishi Vigyan Kendra."
+                
+                # If we have hyperlocal data, return it (no need for AI)
+                if hyperlocal_response.strip():
+                    print(f"[HYPERLOCAL] Using community data, skipping AI")
+                    if INTERACTIVE_MESSAGES_AVAILABLE:
+                        hyperlocal_response = add_navigation_text(hyperlocal_response, language)
+                    return hyperlocal_response
+            else:
+                print(f"[HYPERLOCAL] No disease reports found for {village}, {crops}")
+        except Exception as e:
+            print(f"[HYPERLOCAL ERROR] Failed to get hyperlocal data: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # ═══════════════════════════════════════════════════════════════
+    # FALLBACK: Use Claude AI if no hyperlocal data
+    # ═══════════════════════════════════════════════════════════════
+    print(f"[AI FALLBACK] No hyperlocal data available, using Claude AI")
+    
     if language == 'english':
         system_prompt = """You are a helpful farming assistant. 
 Help farmers with crop diseases, pests, and treatments.
@@ -432,8 +532,8 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
 सरल हिंदी में जवाब दें। संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।
 अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
     
-    # Add weather context to user message if available
-    enhanced_message = user_message + weather_context if weather_context else user_message
+    # Add profile context, weather context to user message
+    enhanced_message = user_message + profile_context + weather_context
     
     result = ask_bedrock(enhanced_message, system_prompt)
     
@@ -2233,6 +2333,75 @@ def send_whatsapp_message(to, message, interactive_payload=None):
         print(f"[ERROR] WhatsApp API error response: {response.data}")
 
 
+def send_disease_alert_notifications(report_id, disease_name, severity, village, 
+                                    reporter_name, crop, farmers_to_alert, language='english'):
+    """
+    Send disease alert notifications to nearby farmers
+    
+    Args:
+        report_id: Disease report ID
+        disease_name: Name of the disease
+        severity: low/medium/high
+        village: Village where disease was reported
+        reporter_name: Name of farmer who reported
+        crop: Affected crop
+        farmers_to_alert: List of farmer profiles to notify
+        language: Message language
+    
+    Returns:
+        Number of notifications sent successfully
+    """
+    if not HYPERLOCAL_AVAILABLE:
+        print("[ALERT] Hyperlocal module not available, skipping alerts")
+        return 0
+    
+    if not farmers_to_alert:
+        print("[ALERT] No farmers to alert")
+        return 0
+    
+    print(f"[ALERT] Sending disease alerts to {len(farmers_to_alert)} farmers")
+    
+    # Format the alert message
+    alert_message = hyperlocal_tracker.format_disease_alert_notification(
+        disease_name, severity, village, reporter_name, crop, language
+    )
+    
+    # Send notifications to each farmer
+    sent_count = 0
+    for farmer in farmers_to_alert:
+        try:
+            farmer_id = farmer.get('user_id') or farmer.get('phone')
+            if not farmer_id:
+                continue
+            
+            # Get farmer's language preference
+            farmer_lang = get_user_language(farmer_id)
+            
+            # Re-format message in farmer's language if different
+            if farmer_lang != language:
+                alert_message = hyperlocal_tracker.format_disease_alert_notification(
+                    disease_name, severity, village, reporter_name, crop, farmer_lang
+                )
+            
+            # Send the alert
+            send_whatsapp_message(farmer_id, alert_message)
+            sent_count += 1
+            print(f"[ALERT] ✅ Sent alert to {farmer.get('name', farmer_id)}")
+            
+            # Small delay to avoid rate limiting
+            time.sleep(0.1)
+            
+        except Exception as e:
+            print(f"[ALERT ERROR] Failed to send alert to {farmer.get('name', 'unknown')}: {e}")
+    
+    # Update the report with alerts sent count
+    if HYPERLOCAL_AVAILABLE:
+        hyperlocal_tracker.update_alerts_sent_count(report_id, sent_count)
+    
+    print(f"[ALERT] ✅ Sent {sent_count}/{len(farmers_to_alert)} disease alerts successfully")
+    return sent_count
+
+
 # ─── Onboarding ───────────────────────────────────────────────────────────────
 
 def check_user_status(user_id):
@@ -2512,14 +2681,17 @@ def lambda_handler(event, context):
                     # Get user's location from profile, or ask if not available
                     user_lang = get_user_language(from_number)
                     
-                    # Try to get user's village from profile
+                    # Try to get user's district from profile (district is better for weather than village)
                     user_location = None
                     if ONBOARDING_AVAILABLE:
                         try:
                             from onboarding.farmer_onboarding import onboarding_manager
-                            if profile and profile.get('village'):
-                                user_location = profile.get('village')
-                                print(f"[WEATHER] Using profile location: {user_location}")
+                            profile = onboarding_manager.get_user_profile(from_number)
+                            if profile:
+                                # Prefer district over village for weather (villages too small for weather APIs)
+                                user_location = profile.get('district') or profile.get('village')
+                                if user_location:
+                                    print(f"[WEATHER] Using profile location: {user_location}")
                         except Exception as e:
                             print(f"[WEATHER] Could not fetch profile: {e}")
                     
@@ -2529,6 +2701,10 @@ def lambda_handler(event, context):
                             weather = get_weather_forecast(user_location)
                             weather_analysis = analyze_weather_for_farming(weather)
                             reply = format_weather_response(user_location, weather_analysis)
+                            
+                            # Save conversation
+                            save_conversation(from_number, f"Weather for {user_location}", reply, "weather")
+                            
                             send_whatsapp_message(from_number, reply)
                             return {'statusCode': 200, 'body': 'ok'}
                         except Exception as e:
@@ -2823,13 +2999,16 @@ Reply: """
                             print(f"[WEATHER] AI detected weather query, checking profile for location")
                             user_location = None
                             
-                            # Try to get user's village from profile
+                            # Try to get user's district from profile (district is better for weather than village)
                             if ONBOARDING_AVAILABLE:
                                 try:
                                     from onboarding.farmer_onboarding import onboarding_manager
-                                    if profile and profile.get('village'):
-                                        user_location = profile.get('village')
-                                        print(f"[WEATHER] Using profile location: {user_location}")
+                                    profile = onboarding_manager.get_user_profile(from_number)
+                                    if profile:
+                                        # Prefer district over village for weather (villages too small for weather APIs)
+                                        user_location = profile.get('district') or profile.get('village')
+                                        if user_location:
+                                            print(f"[WEATHER] Using profile location: {user_location}")
                                 except Exception as e:
                                     print(f"[WEATHER] Could not fetch profile: {e}")
                             
@@ -2851,13 +3030,21 @@ Reply: """
                                 weather = get_weather_forecast(user_message)
                                 weather_analysis = analyze_weather_for_farming(weather)
                                 reply = format_weather_response(user_message, weather_analysis)
+                                
+                                # Save conversation
+                                save_conversation(from_number, f"Weather for {user_message}", reply, "weather")
+                                
                                 send_whatsapp_message(from_number, reply)
                             except Exception as e:
                                 print(f"[WEATHER ERROR] {e}")
                                 if user_lang == 'english':
-                                    send_whatsapp_message(from_number, f"Sorry, couldn't get weather for '{user_message}'. Please try another city name.")
+                                    error_msg = f"Sorry, couldn't get weather for '{user_message}'. Please try another city name."
                                 else:
-                                    send_whatsapp_message(from_number, f"क्षमा करें, '{user_message}' के लिए मौसम नहीं मिला। कृपया दूसरा शहर नाम आज़माएं।")
+                                    error_msg = f"क्षमा करें, '{user_message}' के लिए मौसम नहीं मिला। कृपया दूसरा शहर नाम आज़माएं।"
+                                
+                                # Save error conversation too
+                                save_conversation(from_number, f"Weather for {user_message}", error_msg, "weather")
+                                send_whatsapp_message(from_number, error_msg)
                         
                         # Clear state
                         clear_user_state(from_number)
@@ -2991,6 +3178,81 @@ Reply: """
                 save_disease_detection(from_number, diagnosis, conversation_table)
                 
                 print(f"[ENHANCED DETECTION] Disease: {diagnosis['primary_disease']}, Confidence: {diagnosis['confidence']}")
+                
+                # ═══════════════════════════════════════════════════════════════
+                # HYPERLOCAL: Report disease and get nearby insights
+                # ═══════════════════════════════════════════════════════════════
+                if HYPERLOCAL_AVAILABLE and ONBOARDING_AVAILABLE:
+                    try:
+                        from onboarding.farmer_onboarding import onboarding_manager
+                        profile = onboarding_manager.get_user_profile(from_number)
+                        
+                        if profile and diagnosis.get('primary_disease') != 'Healthy':
+                            village = profile.get('village')
+                            district = profile.get('district')
+                            crop = profile.get('current_crops', 'unknown')
+                            disease_name = diagnosis.get('primary_disease')
+                            severity = diagnosis.get('severity', 'medium')
+                            reporter_name = profile.get('name', 'A farmer')
+                            
+                            # Report this disease and get list of farmers to alert
+                            report_id, farmers_to_alert = hyperlocal_tracker.report_disease(
+                                user_id=from_number,
+                                village=village,
+                                district=district,
+                                crop=crop,
+                                disease_name=disease_name,
+                                severity=severity,
+                                symptoms=diagnosis.get('symptoms', ''),
+                                send_alerts=True  # Enable alert generation
+                            )
+                            print(f"[HYPERLOCAL] Disease reported: {disease_name} in {village}")
+                            
+                            # Send alerts to nearby farmers (async, don't block response)
+                            if farmers_to_alert:
+                                print(f"[ALERT] Sending disease alerts to {len(farmers_to_alert)} farmers...")
+                                alerts_sent = send_disease_alert_notifications(
+                                    report_id=report_id,
+                                    disease_name=disease_name,
+                                    severity=severity,
+                                    village=village,
+                                    reporter_name=reporter_name,
+                                    crop=crop,
+                                    farmers_to_alert=farmers_to_alert,
+                                    language=user_lang
+                                )
+                                print(f"[ALERT] ✅ Sent {alerts_sent} disease alerts")
+                            
+                            # Get successful treatments from other farmers
+                            treatment_msg = hyperlocal_tracker.format_treatment_recommendations(
+                                disease_name, language=user_lang
+                            )
+                            
+                            # Append hyperlocal insights to reply
+                            reply += f"\n\n{'─' * 30}\n"
+                            reply += treatment_msg
+                            
+                            # Check for nearby disease alerts
+                            nearby_reports = hyperlocal_tracker.get_nearby_diseases(
+                                village, district, days=7, crop=crop
+                            )
+                            if len(nearby_reports) > 1:  # More than just this report
+                                if user_lang == 'hindi':
+                                    reply += f"\n\n⚠️ चेतावनी: {len(nearby_reports)} किसानों ने {village} में {crop} में बीमारी की रिपोर्ट की है।"
+                                else:
+                                    reply += f"\n\n⚠️ Alert: {len(nearby_reports)} farmers in {village} reported diseases in {crop}."
+                            
+                            # Add confirmation that alerts were sent
+                            if farmers_to_alert:
+                                if user_lang == 'hindi':
+                                    reply += f"\n\n📢 {len(farmers_to_alert)} किसानों को चेतावनी भेजी गई।"
+                                else:
+                                    reply += f"\n\n📢 Alert sent to {len(farmers_to_alert)} nearby farmers."
+                    
+                    except Exception as e:
+                        print(f"[HYPERLOCAL ERROR] Failed to add hyperlocal insights: {e}")
+                        import traceback
+                        traceback.print_exc()
             else:
                 # Fallback to original Kindwise API
                 print(f"[DEBUG] Analyzing image with Kindwise API...")

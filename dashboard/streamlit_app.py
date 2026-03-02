@@ -472,11 +472,26 @@ elif page == "👥 Farmers":
             if phone != 'N/A' and not phone.startswith('+'):
                 phone = f'+{phone}'
             
+            # Get crops - handle both old and new onboarding formats
+            crops = user.get('crops', None)  # Old format
+            if not crops or crops == 'N/A':
+                # New comprehensive onboarding format
+                current_crops = user.get('current_crops', '')
+                past_crops = user.get('past_crops', '')
+                if current_crops:
+                    crops = current_crops
+                elif past_crops:
+                    # Take first 3 crops from past crops
+                    past_list = [c.strip() for c in past_crops.split(',')][:3]
+                    crops = ', '.join(past_list)
+                else:
+                    crops = 'N/A'
+            
             all_farmers.append({
                 'Phone': phone,
                 'Name': user.get('name', 'Unknown'),
                 'Village': user.get('village', 'N/A'),
-                'Crops': user.get('crops', 'N/A'),
+                'Crops': crops,
                 'Land (acres)': float(user.get('land_acres', 0)),
                 'Registered': user.get('registered_at', 'N/A'),
                 'Type': '✅ Registered'
@@ -623,19 +638,25 @@ elif page == "👥 Farmers":
         st.info("🌾 No farmers found in the system.")
 
 elif page == "💬 Conversations":
-    st.markdown("<div class='section-header'>💬 Recent Conversations</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>💬 Live Conversations</div>", unsafe_allow_html=True)
+    
+    # Add refresh button
+    col1, col2 = st.columns([6, 1])
+    with col2:
+        if st.button("🔄 Refresh", key="refresh_conversations"):
+            st.rerun()
     
     try:
         clients = get_aws_clients()
-        response = clients['conversations'].scan(Limit=20)
-        conversations = response.get('Items', [])
+        response = clients['conversations'].scan()
+        all_items = response.get('Items', [])
+        
+        # Filter out language preferences
+        conversations = [c for c in all_items if c.get('timestamp') != 'language_preference']
         
         if conversations:
-            # Filter out language preferences
-            conversations = [c for c in conversations if c.get('timestamp') != 'language_preference']
-            
             # Summary metrics
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("💬 Total Conversations", len(conversations))
             with col2:
@@ -644,11 +665,27 @@ elif page == "💬 Conversations":
             with col3:
                 avg_per_user = len(conversations) / unique_users if unique_users > 0 else 0
                 st.metric("📊 Avg/User", f"{avg_per_user:.1f}")
+            with col4:
+                # Count recent (last hour)
+                from datetime import datetime, timedelta
+                recent_count = 0
+                try:
+                    one_hour_ago = (datetime.utcnow() - timedelta(hours=1)).isoformat()
+                    recent_count = len([c for c in conversations if c.get('timestamp', '') > one_hour_ago])
+                except:
+                    pass
+                st.metric("🕐 Last Hour", recent_count)
             
             st.markdown("---")
             
-            for conv in sorted(conversations, key=lambda x: x.get('timestamp', ''), reverse=True)[:10]:
-                with st.expander(f"🗨️ {conv.get('user_id', 'Unknown')[-10:]} - {conv.get('timestamp', '')[:19]}"):
+            # Show most recent 20 conversations
+            sorted_convs = sorted(conversations, key=lambda x: x.get('timestamp', ''), reverse=True)[:20]
+            
+            for conv in sorted_convs:
+                timestamp = conv.get('timestamp', '')[:19].replace('T', ' ')
+                user_id_short = conv.get('user_id', 'Unknown')[-10:]
+                
+                with st.expander(f"🗨️ {user_id_short} • {timestamp} • {conv.get('agent', 'unknown')}"):
                     col1, col2 = st.columns(2)
                     with col1:
                         st.markdown("**👤 User Message:**")
@@ -656,14 +693,24 @@ elif page == "💬 Conversations":
                     with col2:
                         st.markdown("**🤖 Bot Response:**")
                         response_text = conv.get('response', 'N/A')
-                        if len(response_text) > 200:
-                            response_text = response_text[:200] + "..."
+                        if len(response_text) > 300:
+                            response_text = response_text[:300] + "..."
                         st.success(response_text)
-                    st.caption(f"🎯 Agent: {conv.get('agent', 'unknown')}")
+                    
+                    # Additional metadata
+                    st.caption(f"🎯 Agent: {conv.get('agent', 'unknown')} | 📱 User: {conv.get('user_id', 'N/A')}")
         else:
-            st.info("💬 No conversations yet.")
+            st.info("💬 No conversations yet. Conversations will appear here once users start chatting with the bot.")
+            st.markdown("""
+            **To see conversations:**
+            1. Send a message to the WhatsApp bot
+            2. Complete onboarding if you're a new user
+            3. Ask questions about crops, market prices, or budget planning
+            4. Refresh this page to see the conversations
+            """)
     except Exception as e:
         st.error(f"❌ Error loading conversations: {e}")
+        st.caption(f"Details: {str(e)}")
 
 elif page == "🌐 Knowledge Graph":
     st.markdown("<div class='section-header'>🌐 Hyperlocal Knowledge Graph</div>", unsafe_allow_html=True)

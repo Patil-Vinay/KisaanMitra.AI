@@ -750,6 +750,36 @@ Now I can help you with:
         except Exception as e:
             print(f"Error getting profile: {e}")
             return None
+    
+    def get_farmers_by_location(self, village: str, district: str) -> list:
+        """
+        Get all farmers in a specific village/district
+        
+        Args:
+            village: Village name
+            district: District name
+        
+        Returns:
+            List of farmer profiles
+        """
+        try:
+            # Scan the profile table for farmers in this location
+            # Note: In production, use a GSI (Global Secondary Index) for better performance
+            response = self.profile_table.scan(
+                FilterExpression='village = :v AND district = :d',
+                ExpressionAttributeValues={
+                    ':v': village,
+                    ':d': district
+                }
+            )
+            
+            farmers = response.get('Items', [])
+            print(f"[ONBOARDING] Found {len(farmers)} farmers in {village}, {district}")
+            return farmers
+            
+        except Exception as e:
+            print(f"[ONBOARDING ERROR] Failed to get farmers by location: {e}")
+            return []
 
 
 # Singleton instance

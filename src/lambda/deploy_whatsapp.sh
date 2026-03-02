@@ -71,6 +71,13 @@ else
         cd lambda
     fi
     
+    if [ -d "../hyperlocal" ]; then
+        echo "📦 Including hyperlocal module..."
+        cd ..
+        zip -r -q lambda/whatsapp_deployment.zip hyperlocal/
+        cd lambda
+    fi
+    
     # Add demo folder with knowledge graph data
     if [ -d "../../demo" ]; then
         echo "📊 Including knowledge graph demo data..."
