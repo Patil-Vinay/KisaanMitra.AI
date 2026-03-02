@@ -296,7 +296,7 @@ class HyperlocalDiseaseTracker:
         """
         try:
             # Import onboarding manager to query farmer profiles
-            from onboarding.farmer_onboarding import onboarding_manager
+            from farmer_onboarding import onboarding_manager
             
             # Get all farmers in the village
             farmers = onboarding_manager.get_farmers_by_location(village, district)

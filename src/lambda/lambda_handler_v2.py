@@ -266,18 +266,46 @@ def handle_image_message(msg, from_number):
                         
                         # Send alerts to nearby farmers
                         if farmers_to_alert:
-                            from lambda_whatsapp_kisaanmitra import send_disease_alert_notifications
-                            alerts_sent = send_disease_alert_notifications(
-                                report_id=report_id,
-                                disease_name=disease_name,
-                                severity=severity,
-                                village=village,
-                                reporter_name=reporter_name,
-                                crop=crop,
-                                farmers_to_alert=farmers_to_alert,
-                                language=user_lang
+                            print(f"[ALERT] Sending disease alerts to {len(farmers_to_alert)} farmers")
+                            
+                            # Format the alert message
+                            alert_message = hyperlocal_tracker.format_disease_alert_notification(
+                                disease_name, severity, village, reporter_name, crop, user_lang
                             )
-                            print(f"[IMAGE] Sent {alerts_sent} disease alerts")
+                            
+                            # Send notifications to each farmer
+                            alerts_sent = 0
+                            for farmer in farmers_to_alert:
+                                try:
+                                    farmer_id = farmer.get('user_id') or farmer.get('phone')
+                                    if not farmer_id:
+                                        continue
+                                    
+                                    # Get farmer's language preference
+                                    farmer_lang = LanguageService.get_user_language(farmer_id)
+                                    
+                                    # Re-format message in farmer's language if different
+                                    if farmer_lang != user_lang:
+                                        alert_message = hyperlocal_tracker.format_disease_alert_notification(
+                                            disease_name, severity, village, reporter_name, crop, farmer_lang
+                                        )
+                                    
+                                    # Send the alert
+                                    WhatsAppService.send_message(farmer_id, alert_message)
+                                    alerts_sent += 1
+                                    print(f"[ALERT] ✅ Sent alert to {farmer.get('name', farmer_id)}")
+                                    
+                                    # Small delay to avoid rate limiting
+                                    import time
+                                    time.sleep(0.1)
+                                    
+                                except Exception as e:
+                                    print(f"[ALERT ERROR] Failed to send alert to {farmer.get('name', 'unknown')}: {e}")
+                            
+                            # Update the report with alerts sent count
+                            hyperlocal_tracker.update_alerts_sent_count(report_id, alerts_sent)
+                            
+                            print(f"[ALERT] ✅ Sent {alerts_sent}/{len(farmers_to_alert)} disease alerts successfully")
                             
                             # Add confirmation to reply
                             if user_lang == 'hindi':
@@ -286,6 +314,8 @@ def handle_image_message(msg, from_number):
                                 reply += f"\n\n📢 Alert sent to {len(farmers_to_alert)} nearby farmers."
                 except Exception as e:
                     print(f"[IMAGE] Hyperlocal error: {e}")
+                    import traceback
+                    traceback.print_exc()
         else:
             # Fallback to basic analysis
             reply = "Image analysis not available. Please try again later."
