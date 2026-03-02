@@ -57,8 +57,7 @@ except Exception as e:
 try:
     from whatsapp_interactive import (
         create_main_menu, create_crop_selection_list, create_back_button,
-        create_quick_actions, send_interactive_message, create_language_selection,
-        add_navigation_text
+        create_quick_actions, send_interactive_message, create_language_selection
     )
     INTERACTIVE_MESSAGES_AVAILABLE = True
     print("✅ WhatsApp Interactive Messages loaded successfully")
@@ -506,9 +505,8 @@ def handle_crop_query(user_message, user_id="unknown", language='hindi', locatio
                 # If we have hyperlocal data, return it (no need for AI)
                 if hyperlocal_response.strip():
                     print(f"[HYPERLOCAL] Using community data, skipping AI")
-                    if INTERACTIVE_MESSAGES_AVAILABLE:
-                        hyperlocal_response = add_navigation_text(hyperlocal_response, language)
-                    return hyperlocal_response
+                    # Return tuple: (message, should_add_nav_buttons)
+                    return (hyperlocal_response, True)
             else:
                 print(f"[HYPERLOCAL] No disease reports found for {village}, {crops}")
         except Exception as e:
@@ -537,12 +535,9 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
     
     result = ask_bedrock(enhanced_message, system_prompt)
     
-    # Add navigation text
-    if INTERACTIVE_MESSAGES_AVAILABLE:
-        result = add_navigation_text(result, language)
-    
+    # Return tuple: (message, should_add_nav_buttons)
     print(f"[DEBUG] Crop agent response generated")
-    return result
+    return (result, True)
 
 def get_mandi_prices(commodity, state="Maharashtra", limit=10):
     """Fetch real-time mandi prices from AgMarkNet API"""
@@ -667,11 +662,8 @@ State: """
             print(f"[DEBUG] Average price: ₹{market_data.get('average_price')}, Trend: {market_data.get('trend')}")
             result = format_market_response_fast(detected_crop, market_data, language)
             
-            # Add navigation text
-            if INTERACTIVE_MESSAGES_AVAILABLE:
-                result = add_navigation_text(result, language)
-            
-            return result
+            # Return tuple: (message, should_add_nav_buttons)
+            return (result, True)
         else:
             print(f"[DEBUG] No market data found for {detected_crop}")
     
@@ -679,11 +671,8 @@ State: """
     print(f"[DEBUG] Falling back to AI for market query")
     result = ask_bedrock(user_message, system_prompt)
     
-    # Add navigation text
-    if INTERACTIVE_MESSAGES_AVAILABLE:
-        result = add_navigation_text(result, language)
-    
-    return result
+    # Return tuple: (message, should_add_nav_buttons)
+    return (result, True)
 
 def extract_crop_with_ai(user_message, bedrock_client, conversation_history=""):
     """Extract crop name from user message using Claude AI - NO hardcoded keywords"""
@@ -1854,12 +1843,9 @@ CRITICAL: Respond ONLY in English. Always use ₹ for currency. Follow the forma
         enhanced_message = user_message + profile_context
         result = ask_bedrock(enhanced_message, schemes_system_prompt, context)
         
-        # Add navigation text
-        if INTERACTIVE_MESSAGES_AVAILABLE:
-            result = add_navigation_text(result, language)
-        
+        # Return tuple: (message, should_add_nav_buttons)
         print(f"[DEBUG] Schemes response generated using Claude API")
-        return result
+        return (result, True)
 
     elif finance_type == "budget":
         print(f"[DEBUG] Processing budget request...")
@@ -1988,12 +1974,9 @@ Reply with ONLY the location name (e.g., "Kolhapur" or "Pune" or "Maharashtra").
         else:
             message += "\n"
         
-        # Add navigation text
-        if INTERACTIVE_MESSAGES_AVAILABLE:
-            message = add_navigation_text(message, language)
-        
+        # Return tuple: (message, should_add_nav_buttons)
         print(f"[DEBUG] Budget response formatted successfully")
-        return message
+        return (message, True)
 
     elif finance_type == "loan":
         print(f"[DEBUG] Processing loan query with Claude API")
@@ -2110,22 +2093,16 @@ CRITICAL: Respond ONLY in English. Always use ₹ for currency. Follow the forma
         enhanced_message = user_message + profile_context
         result = ask_bedrock(enhanced_message, loan_system_prompt, context)
         
-        # Add navigation text
-        if INTERACTIVE_MESSAGES_AVAILABLE:
-            result = add_navigation_text(result, language)
-        
+        # Return tuple: (message, should_add_nav_buttons)
         print(f"[DEBUG] Loan response generated using Claude API")
-        return result
+        return (result, True)
 
     # Fallback to AI with enhanced context
     print(f"[DEBUG] Falling back to AI for general finance query")
     result = ask_bedrock(user_message, system_prompt, context)
     
-    # Add navigation text
-    if INTERACTIVE_MESSAGES_AVAILABLE:
-        result = add_navigation_text(result, language)
-    
-    return result
+    # Return tuple: (message, should_add_nav_buttons)
+    return (result, True)
 
 def handle_general_query(user_message, user_id="unknown", language='hindi'):
     """Handle general queries - friendly conversation with language support (AI-based routing)"""
@@ -2276,12 +2253,9 @@ Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur") or "none". No e
                     weather_analysis = analyze_weather_for_farming(weather)
                     result = format_weather_response(location, weather_analysis)
                     
-                    # Add navigation text
-                    if INTERACTIVE_MESSAGES_AVAILABLE:
-                        result = add_navigation_text(result, language)
-                    
+                    # Return tuple: (message, should_add_nav_buttons)
                     print(f"[WEATHER] Weather response generated")
-                    return result
+                    return (result, True)
                 except Exception as e:
                     print(f"[WEATHER ERROR] {e}")
                     # Fall through to general AI response
@@ -2303,12 +2277,9 @@ CRITICAL: Respond ONLY in English."""
     # OPTIMIZATION: Skip context for speed
     result = ask_bedrock(user_message, system_prompt, skip_context=True)
     
-    # Add navigation text
-    if INTERACTIVE_MESSAGES_AVAILABLE:
-        result = add_navigation_text(result, language)
-    
+    # Return tuple: (message, should_add_nav_buttons)
     print(f"[DEBUG] General agent response generated, length: {len(result)} chars")
-    return result
+    return (result, True)
 
 # ─── WhatsApp ─────────────────────────────────────────────────────────────────
 
@@ -2760,8 +2731,10 @@ def lambda_handler(event, context):
                 elif list_id in ["rice", "wheat", "maize", "tomato", "onion", "potato", "sugarcane", "cotton", "soybean"]:
                     # Trigger market query
                     user_message = f"What is the price of {list_id}?"
-                    reply = handle_market_query(user_message)
-                    send_whatsapp_message(from_number, reply, create_back_button(user_lang))
+                    reply, should_add_nav = handle_market_query(user_message, user_lang, from_number)
+                    send_whatsapp_message(from_number, reply)
+                    if should_add_nav and INTERACTIVE_MESSAGES_AVAILABLE:
+                        send_whatsapp_message(from_number, None, create_back_button(user_lang))
                     return {'statusCode': 200, 'body': 'ok'}
             
             # If we reach here, unknown button/list action
@@ -3137,15 +3110,15 @@ Reply: """
                 except:
                     user_location = "Pune"  # Fallback
                 
-                reply = handle_crop_query(user_message, from_number, user_lang, location=user_location)
+                reply, should_add_nav = handle_crop_query(user_message, from_number, user_lang, location=user_location)
             elif agent == "market":
-                reply = handle_market_query(user_message, user_lang, from_number)
+                reply, should_add_nav = handle_market_query(user_message, user_lang, from_number)
             elif agent == "finance":
-                reply = handle_finance_query(user_message, from_number, user_lang)
+                reply, should_add_nav = handle_finance_query(user_message, from_number, user_lang)
             else:
                 # General agent - handles all other queries
                 print(f"[DEBUG] Routing to GENERAL agent for query: {user_message}")
-                reply = handle_general_query(user_message, from_number, user_lang)
+                reply, should_add_nav = handle_general_query(user_message, from_number, user_lang)
             
             print(f"[DEBUG] Agent execution complete, reply length: {len(reply)} chars")
             print(f"[DEBUG] Reply preview: {reply[:200]}...")
@@ -3161,8 +3134,13 @@ Reply: """
             # Save conversation with response
             save_conversation(from_number, user_message, reply, agent)
             
-            # Send reply without repetitive prompts
+            # Send reply text first
             send_whatsapp_message(from_number, reply)
+            
+            # Then send navigation buttons if needed
+            if should_add_nav and INTERACTIVE_MESSAGES_AVAILABLE:
+                print(f"[NAV] Sending navigation buttons")
+                send_whatsapp_message(from_number, None, create_back_button(user_lang))
             
             print(f"[INFO] ✅ Request completed successfully - Agent: {agent.upper()}")
             print(f"[INFO] ✅ Response sent to user")
@@ -3283,6 +3261,12 @@ Reply: """
                 reply = format_crop_result(result)
             
             send_whatsapp_message(from_number, reply)
+            
+            # Send navigation buttons after image analysis
+            if INTERACTIVE_MESSAGES_AVAILABLE:
+                user_lang = get_user_language(from_number)
+                print(f"[NAV] Sending navigation buttons after image analysis")
+                send_whatsapp_message(from_number, None, create_back_button(user_lang))
             
             print(f"[INFO] ✅ Image analysis completed successfully")
             
