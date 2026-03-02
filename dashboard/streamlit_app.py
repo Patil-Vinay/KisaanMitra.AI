@@ -666,38 +666,161 @@ elif page == "💬 Conversations":
         st.error(f"❌ Error loading conversations: {e}")
 
 elif page == "🌐 Knowledge Graph":
-    st.markdown("<div class='section-header'>🌐 Village Knowledge Graph</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>🌐 Hyperlocal Knowledge Graph</div>", unsafe_allow_html=True)
     
     kg_data = load_knowledge_graph_data()
-    
-    col1, col2, col3 = st.columns(3)
-    
     farmers = kg_data.get('farmers', [])
-    villages = list(set(f.get('village_name', '') for f in farmers))
-    all_crops = []
+    
+    # Calculate metrics
+    districts = list(set(f.get('district', '') for f in farmers if f.get('district')))
+    villages = list(set(f.get('village_name', '') for f in farmers if f.get('village_name')))
+    
+    all_crops_set = set()
     for f in farmers:
-        crops_str = f.get('crops_grown', '')
-        all_crops.extend([c.strip() for c in crops_str.split(',') if c.strip()])
-    unique_crops = list(set(all_crops))
+        crops = f.get('crops_grown', [])
+        if isinstance(crops, list):
+            all_crops_set.update(crops)
+    
+    soil_types = list(set(f.get('soil_type', '') for f in farmers if f.get('soil_type')))
+    
+    # Top metrics
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("👥 Farmers", len(farmers))
+        st.metric("👥 Total Farmers", len(farmers))
     with col2:
-        st.metric("🏘️ Villages", len(villages))
+        st.metric("🏛️ Districts", len(districts))
     with col3:
-        st.metric("🌾 Crops", len(unique_crops))
+        st.metric("🏘️ Villages", len(villages))
+    with col4:
+        st.metric("🌾 Crop Types", len(all_crops_set))
     
     st.markdown("---")
     
-    # Village selector
-    selected_village = st.selectbox("🏘️ Select Village", villages if villages else ['No villages'])
+    # Filters
+    col1, col2 = st.columns(2)
     
-    if selected_village and selected_village != 'No villages':
-        # Filter farmers by village
-        village_farmers = [f for f in farmers if f.get('village_name') == selected_village]
+    with col1:
+        selected_district = st.selectbox("🏛️ Select District", ["All"] + sorted(districts))
+    
+    with col2:
+        if selected_district != "All":
+            # Filter villages by district
+            district_villages = sorted(set(f.get('village_name', '') for f in farmers if f.get('district') == selected_district))
+            selected_village = st.selectbox("🏘️ Select Village", ["All"] + district_villages)
+        else:
+            selected_village = st.selectbox("🏘️ Select Village", ["All"] + sorted(villages))
+    
+    # Filter farmers
+    filtered_farmers = farmers
+    if selected_district != "All":
+        filtered_farmers = [f for f in filtered_farmers if f.get('district') == selected_district]
+    if selected_village != "All":
+        filtered_farmers = [f for f in filtered_farmers if f.get('village_name') == selected_village]
+    
+    st.markdown(f"**Showing {len(filtered_farmers)} farmers**")
+    
+    st.markdown("---")
+    
+    # Statistics
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📊 Key Statistics")
         
-        st.markdown(f"<div class='section-header'>📊 {selected_village} Statistics</div>", unsafe_allow_html=True)
+        total_land = sum(float(f.get('land_size_acres', 0)) for f in filtered_farmers)
+        avg_land = total_land / len(filtered_farmers) if filtered_farmers else 0
         
+        st.metric("📏 Total Land", f"{total_land:,.1f} acres")
+        st.metric("📊 Avg Land/Farmer", f"{avg_land:.1f} acres")
+        
+        # Soil type distribution
+        st.markdown("**🌱 Soil Types:**")
+        soil_counts = {}
+        for f in filtered_farmers:
+            soil = f.get('soil_type', 'Unknown')
+            soil_counts[soil] = soil_counts.get(soil, 0) + 1
+        
+        for soil, count in sorted(soil_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
+            st.write(f"• {soil}: {count} farmers")
+    
+    with col2:
+        st.markdown("### 🌾 Top Crops")
+        
+        # Crop distribution
+        crop_counts = {}
+        for f in filtered_farmers:
+            crops = f.get('crops_grown', [])
+            if isinstance(crops, list):
+                for crop in crops:
+                    crop_counts[crop] = crop_counts.get(crop, 0) + 1
+        
+        if crop_counts:
+            top_crops = sorted(crop_counts.items(), key=lambda x: x[1], reverse=True)[:8]
+            crop_df = pd.DataFrame(top_crops, columns=['Crop', 'Farmers'])
+            
+            fig = px.bar(crop_df, x='Crop', y='Farmers',
+                         color='Farmers',
+                         color_continuous_scale=['#0f172a', '#10b981', '#34d399'])
+            fig.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#f1f5f9', size=12),
+                xaxis=dict(showgrid=False),
+                yaxis=dict(showgrid=True, gridcolor='#334155'),
+                showlegend=False,
+                height=300
+            )
+            st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Farmers table
+    st.markdown(f"<div class='section-header'>👥 Farmers List</div>", unsafe_allow_html=True)
+    
+    if filtered_farmers:
+        # Create dataframe
+        farmers_df = pd.DataFrame([
+            {
+                'Name': f.get('name', 'Unknown'),
+                'District': f.get('district', 'N/A'),
+                'Village': f.get('village_name', 'N/A'),
+                'Land (acres)': f.get('land_size_acres', 0),
+                'Soil Type': f.get('soil_type', 'N/A'),
+                'Current Crop': f.get('current_crop', 'N/A'),
+                'Crops Grown': ', '.join(f.get('crops_grown', [])) if isinstance(f.get('crops_grown'), list) else f.get('crops_grown', 'N/A'),
+            }
+            for f in filtered_farmers[:100]  # Show first 100
+        ])
+        
+        st.dataframe(
+            farmers_df,
+            use_container_width=True,
+            height=400,
+            column_config={
+                "Land (acres)": st.column_config.NumberColumn(
+                    "Land (acres)",
+                    format="%.1f"
+                )
+            }
+        )
+        
+        if len(filtered_farmers) > 100:
+            st.info(f"Showing first 100 of {len(filtered_farmers)} farmers")
+        
+        # Download button
+        col1, col2, col3 = st.columns([1, 1, 2])
+        with col1:
+            csv = farmers_df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv,
+                file_name=f"farmers_{selected_district}_{selected_village}_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv"
+            )
+    
+    st.markdown("---")
+    st.info("🌐 **Live Dashboard:** http://kisaanmitra-knowledge-graph.s3-website.ap-south-1.amazonaws.com")
         col1, col2 = st.columns(2)
         
         with col1:

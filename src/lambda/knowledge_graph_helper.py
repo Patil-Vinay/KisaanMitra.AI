@@ -143,3 +143,55 @@ def format_farmers_list(farmers, language='english', current_user=None, query_ty
         response += "💡 'back' टाइप करें वापस जाने के लिए, 'home' मुख्य मेनू के लिए"
     
     return response
+
+
+def get_district_farmers(district_name, crop=None):
+    """
+    Get farmers from a district
+    
+    Args:
+        district_name: Name of the district
+        crop: Optional crop filter
+    """
+    data = load_knowledge_graph_data()
+    print(f"[KG] Searching for district: '{district_name}'")
+    
+    farmers = []
+    
+    for farmer in data.get("farmers", []):
+        farmer_district = farmer.get("district", "").lower()
+        
+        # Check district match
+        if district_name.lower() in farmer_district:
+            if crop:
+                crops = farmer.get("crops_grown", [])
+                crop_str = " ".join(crops).lower()
+                if crop.lower() in crop_str:
+                    farmers.append(farmer)
+            else:
+                farmers.append(farmer)
+    
+    print(f"[KG] Found {len(farmers)} farmers in district '{district_name}'")
+    
+    return farmers
+
+def get_all_districts():
+    """Get list of all unique districts"""
+    data = load_knowledge_graph_data()
+    districts = set()
+    for farmer in data.get("farmers", []):
+        district = farmer.get("district", "")
+        if district:
+            districts.add(district)
+    return sorted(list(districts))
+
+def get_all_villages():
+    """Get list of all unique villages with their districts"""
+    data = load_knowledge_graph_data()
+    villages = {}
+    for farmer in data.get("farmers", []):
+        village = farmer.get("village_name", "")
+        district = farmer.get("district", "")
+        if village and district:
+            villages[village] = district
+    return villages
