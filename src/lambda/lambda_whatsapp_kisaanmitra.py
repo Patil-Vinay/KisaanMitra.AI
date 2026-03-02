@@ -2237,19 +2237,39 @@ Reply: """
             if is_weather == "yes":
                 print(f"[WEATHER] AI detected weather query")
                 
-                # Extract location using AI
-                location_prompt = f"""Extract the city/location name from this message. If not mentioned, return "Pune".
+                # First, try to get location from user profile
+                location = None
+                if ONBOARDING_AVAILABLE and user_id != "unknown":
+                    try:
+                        from onboarding.farmer_onboarding import onboarding_manager
+                        profile = onboarding_manager.get_user_profile(user_id)
+                        if profile:
+                            # Use district from profile (villages are too small for weather APIs)
+                            location = profile.get('district')
+                            if location:
+                                print(f"[WEATHER] Using profile location: {location}")
+                    except Exception as e:
+                        print(f"[WEATHER] Could not get profile location: {e}")
+                
+                # If no profile location, extract from message
+                if not location:
+                    location_prompt = f"""Extract the city/location name from this message. If not mentioned, return "none".
 
 Message: "{user_message}"
 
-Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur" or "Pune"). No explanation."""
+Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur") or "none". No explanation."""
 
-                try:
-                    location = ask_bedrock(location_prompt, skip_context=True).strip().title()
-                    print(f"[WEATHER] AI extracted location: {location}")
-                except:
-                    location = "Pune"
-                    print(f"[WEATHER] Using default location: Pune")
+                    try:
+                        extracted = ask_bedrock(location_prompt, skip_context=True).strip().title()
+                        if extracted and extracted.lower() != "none":
+                            location = extracted
+                            print(f"[WEATHER] AI extracted location: {location}")
+                        else:
+                            location = "Pune"  # Default fallback
+                            print(f"[WEATHER] Using default location: Pune")
+                    except:
+                        location = "Pune"
+                        print(f"[WEATHER] Using default location: Pune")
                 
                 try:
                     weather = get_weather_forecast(location)
