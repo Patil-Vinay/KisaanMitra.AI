@@ -821,46 +821,6 @@ elif page == "🌐 Knowledge Graph":
     
     st.markdown("---")
     st.info("🌐 **Live Dashboard:** http://kisaanmitra-knowledge-graph.s3-website.ap-south-1.amazonaws.com")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.metric("Total Farmers", len(village_farmers))
-            total_land = sum(float(f.get('land_size_acres', 0)) for f in village_farmers)
-            st.metric("Total Land", f"{total_land:.1f} acres")
-        
-        with col2:
-            # Crop distribution
-            crop_counts = {}
-            for f in village_farmers:
-                crops_str = f.get('crops_grown', '')
-                for crop in crops_str.split(','):
-                    crop = crop.strip()
-                    if crop:
-                        crop_counts[crop] = crop_counts.get(crop, 0) + 1
-            
-            if crop_counts:
-                st.markdown("**🌾 Top Crops:**")
-                for crop, count in sorted(crop_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
-                    st.write(f"• {crop}: {count} farmers")
-        
-        st.markdown("---")
-        
-        # Farmers table
-        st.markdown(f"<div class='section-header'>👥 Farmers in {selected_village}</div>", unsafe_allow_html=True)
-        
-        if village_farmers:
-            farmers_df = pd.DataFrame([
-                {
-                    'Name': f.get('name', 'Unknown'),
-                    'Crops': f.get('crops_grown', 'N/A'),
-                    'Land (acres)': f.get('land_size_acres', 'N/A'),
-                }
-                for f in village_farmers
-            ])
-            st.dataframe(farmers_df, use_container_width=True, height=400)
-    
-    st.markdown("---")
-    st.info("🌐 **Live Dashboard:** http://kisaanmitra-knowledge-graph.s3-website.ap-south-1.amazonaws.com")
 
 elif page == "📈 Analytics":
     st.markdown("<div class='section-header'>📈 Advanced Analytics</div>", unsafe_allow_html=True)
