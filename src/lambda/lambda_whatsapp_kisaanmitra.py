@@ -2149,14 +2149,14 @@ def handle_price_forecast_query(crop, user_message, language='english'):
             else:
                 return f"❌ {crop.title()} के लिए मूल्य पूर्वानुमान उपलब्ध नहीं है"
         
-        # Filter forecasts to only include today and future dates
-        from datetime import datetime
-        today = datetime.now().date()
+        # Filter forecasts to only include tomorrow and future dates
+        from datetime import datetime, timedelta
+        tomorrow = (datetime.now() + timedelta(days=1)).date()
         
         future_forecasts = []
         for f in forecasts:
             forecast_date = datetime.strptime(f['date'], '%Y-%m-%d').date()
-            if forecast_date >= today:
+            if forecast_date >= tomorrow:
                 future_forecasts.append(f)
         
         if not future_forecasts:
@@ -2200,22 +2200,22 @@ def format_daily_forecast(crop, forecasts, language='english'):
         else:
             return f"❌ {crop_display} के लिए पूर्वानुमान डेटा उपलब्ध नहीं है"
     
-    today = forecasts[0]
-    tomorrow = forecasts[1] if len(forecasts) > 1 else None
+    tomorrow = forecasts[0]
+    day_after = forecasts[1] if len(forecasts) > 1 else None
     
     if language == 'english':
         msg = f"📊 *{crop_display} Price Forecast*\n\n"
-        msg += f"*Today ({today['day']})*\n"
-        msg += f"💰 Predicted: ₹{today['price']}/quintal\n"
-        msg += f"📈 Range: ₹{today['lower']} - ₹{today['upper']}\n\n"
+        msg += f"*Tomorrow ({tomorrow['day']}, {tomorrow['date']})*\n"
+        msg += f"💰 Predicted: ₹{tomorrow['price']}/quintal\n"
+        msg += f"📈 Range: ₹{tomorrow['lower']} - ₹{tomorrow['upper']}\n\n"
         
-        if tomorrow:
-            msg += f"*Tomorrow ({tomorrow['day']})*\n"
-            msg += f"💰 Predicted: ₹{tomorrow['price']}/quintal\n"
-            msg += f"📈 Range: ₹{tomorrow['lower']} - ₹{tomorrow['upper']}\n\n"
+        if day_after:
+            msg += f"*Day After ({day_after['day']}, {day_after['date']})*\n"
+            msg += f"💰 Predicted: ₹{day_after['price']}/quintal\n"
+            msg += f"📈 Range: ₹{day_after['lower']} - ₹{day_after['upper']}\n\n"
             
             # Price trend
-            diff = tomorrow['price'] - today['price']
+            diff = day_after['price'] - tomorrow['price']
             if diff > 0:
                 msg += f"📈 Expected to increase by ₹{abs(diff):.2f}\n"
             elif diff < 0:
@@ -2226,17 +2226,17 @@ def format_daily_forecast(crop, forecasts, language='english'):
         msg += "\n💡 Type 'week forecast {crop}' for 7-day prediction"
     else:
         msg = f"📊 *{crop_display} मूल्य पूर्वानुमान*\n\n"
-        msg += f"*आज ({today['day']})*\n"
-        msg += f"💰 अनुमानित: ₹{today['price']}/क्विंटल\n"
-        msg += f"📈 सीमा: ₹{today['lower']} - ₹{today['upper']}\n\n"
+        msg += f"*कल ({tomorrow['day']}, {tomorrow['date']})*\n"
+        msg += f"💰 अनुमानित: ₹{tomorrow['price']}/क्विंटल\n"
+        msg += f"📈 सीमा: ₹{tomorrow['lower']} - ₹{tomorrow['upper']}\n\n"
         
-        if tomorrow:
-            msg += f"*कल ({tomorrow['day']})*\n"
-            msg += f"💰 अनुमानित: ₹{tomorrow['price']}/क्विंटल\n"
-            msg += f"📈 सीमा: ₹{tomorrow['lower']} - ₹{tomorrow['upper']}\n\n"
+        if day_after:
+            msg += f"*परसों ({day_after['day']}, {day_after['date']})*\n"
+            msg += f"💰 अनुमानित: ₹{day_after['price']}/क्विंटल\n"
+            msg += f"📈 सीमा: ₹{day_after['lower']} - ₹{day_after['upper']}\n\n"
             
             # Price trend
-            diff = tomorrow['price'] - today['price']
+            diff = day_after['price'] - tomorrow['price']
             if diff > 0:
                 msg += f"📈 ₹{abs(diff):.2f} की वृद्धि की उम्मीद\n"
             elif diff < 0:
