@@ -143,7 +143,68 @@ Thu: ₹2,700 | Fri: ₹2,650 | Sat: ₹2,800
 
 ---
 
-### 4. 🌤️ Weather Forecast (Location-Aware)
+### 4. 🔮 AI-Powered Price Forecasting
+```
+Command: "What will be the price of sugarcane next week?"
+OR: "गन्ने की कीमत अगले सप्ताह क्या होगी?"
+OR: "Price forecast for onion"
+OR: "Will wheat prices increase?"
+```
+
+**Sample Response (Hindi):**
+```
+📊 *मूल्य पूर्वानुमान - Sugarcane*
+
+💰 वर्तमान मूल्य: ₹3,200/टन
+🔮 7 दिन का पूर्वानुमान: ₹3,350/टन
+   (+₹150, +4.7%)
+
+📈 रुझान: increasing
+📦 आपूर्ति: low
+📈 मांग: high
+✅ विश्वास: medium
+
+💡 *सिफारिश*: wait
+
+🔍 *मुख्य कारक*:
+• कम आपूर्ति के कारण मांग बढ़ रही है
+• मौसमी कारकों से उत्पादन प्रभावित
+• चीनी मिलों की खरीद सक्रिय
+```
+
+**Sample Response (English):**
+```
+📊 *Price Forecast - Onion*
+
+💰 Current Price: ₹22,000/ton
+🔮 7-Day Forecast: ₹20,500/ton
+   (-₹1,500, -6.8%)
+
+📉 Trend: Decreasing
+📦 Supply: High
+📈 Demand: Low
+✅ Confidence: Medium
+
+💡 *Recommendation*: Sell Now
+
+🔍 *Key Factors*:
+• High supply due to new harvest arrivals
+• Demand weakening in major markets
+• Storage costs increasing
+```
+
+**Features:**
+- Uses AWS Bedrock Claude AI for intelligent analysis
+- Realistic price ranges for Indian crops
+- Detects supply-demand signals
+- Provides confidence levels
+- Actionable recommendations (sell/wait/hold)
+- Explains key market factors
+- Prices in ₹/ton format
+
+---
+
+### 5. 🌤️ Weather Forecast (Location-Aware)
 ```
 Command: "Weather"
 OR: "Mausam batao"

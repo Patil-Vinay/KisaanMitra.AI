@@ -31,14 +31,25 @@
 - Best selling locations recommendations
 - Price alerts and notifications
 
-### 5. Weather-Based Advisory
+### 5. AI-Powered Price Forecasting
+- 7-day price predictions using AWS Bedrock Claude AI
+- Realistic price ranges for major crops (Sugarcane, Soybean, Wheat, Rice, Onion, Tomato, Cotton)
+- Supply-demand signal analysis
+- Price trend detection (increasing/decreasing/stable)
+- Confidence levels (high/medium/low)
+- Actionable recommendations (sell now/wait/hold)
+- Key market factors explanation
+- Bilingual support (Hindi/English)
+- Prices displayed in ₹/ton format
+
+### 6. Weather-Based Advisory
 - 7-day weather forecasts
 - Location-aware (uses farmer's district from profile)
 - Farming activity recommendations based on weather
 - Rain alerts and temperature warnings
 - Best planting/harvesting time suggestions
 
-### 6. Smart AI Routing
+### 7. Smart AI Routing
 - Context-aware query classification
 - Multi-agent architecture (Crop, Market, Finance, General)
 - Sub-routing within agents (budget/schemes/loans in Finance)
@@ -296,8 +307,8 @@
 
 ---
 
-**Total Features**: 35+ major features across 10 categories
-**Lines of Code**: 10,000+ (optimized from 15,000+)
+**Total Features**: 36+ major features across 10 categories
+**Lines of Code**: 10,400+ (optimized from 15,000+)
 **AWS Services**: 8 integrated services
 **API Integrations**: 4 (Bedrock, Anthropic, AgMarkNet, OpenWeather)
 **Database Tables**: 6 DynamoDB tables

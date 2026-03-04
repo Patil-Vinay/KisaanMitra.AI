@@ -18,6 +18,7 @@ zip -r whatsapp_deployment.zip \
     weather_service.py \
     reminder_manager.py \
     market_data_sources.py \
+    price_forecasting.py \
     enhanced_disease_detection.py \
     knowledge_graph_helper.py \
     crop_yield_database.py \
