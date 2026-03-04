@@ -1,0 +1,55 @@
+{
+  "crop": "Wheat",
+  "generated_at": "2026-03-04T15:37:42.597334",
+  "predictions": [
+    {
+      "date": "2026-03-03",
+      "day": "Tuesday",
+      "price": 2994.02,
+      "lower": 2612.95,
+      "upper": 3364.8
+    },
+    {
+      "date": "2026-03-04",
+      "day": "Wednesday",
+      "price": 2894.49,
+      "lower": 2519.95,
+      "upper": 3264.89
+    },
+    {
+      "date": "2026-03-05",
+      "day": "Thursday",
+      "price": 2815.92,
+      "lower": 2446.12,
+      "upper": 3170.11
+    },
+    {
+      "date": "2026-03-06",
+      "day": "Friday",
+      "price": 2882.77,
+      "lower": 2483.45,
+      "upper": 3233.62
+    },
+    {
+      "date": "2026-03-07",
+      "day": "Saturday",
+      "price": 2905.31,
+      "lower": 2512.03,
+      "upper": 3270.59
+    },
+    {
+      "date": "2026-03-08",
+      "day": "Sunday",
+      "price": 2454.14,
+      "lower": 2067.57,
+      "upper": 2833.84
+    },
+    {
+      "date": "2026-03-09",
+      "day": "Monday",
+      "price": 2882.63,
+      "lower": 2517.86,
+      "upper": 3240.36
+    }
+  ]
+}

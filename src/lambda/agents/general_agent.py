@@ -78,6 +78,34 @@ Reply: """
             except Exception as e:
                 print(f"[GENERAL AGENT] Community check error: {e}")
         
+        # Check if this is a price forecast query
+        price_forecast_check_prompt = f"""Is this asking for price forecast/prediction? Reply with ONLY "yes" or "no".
+
+Message: "{user_message}"
+
+Examples of price forecast queries:
+- "price forecast for wheat"
+- "week forecast for onion"
+- "7 day prices for tomato"
+- "future price of rice"
+- "price prediction for sugarcane"
+
+Examples of non-forecast:
+- "current market price"
+- "today's price"
+- "weather forecast"
+- "how to grow tomato"
+
+Reply: """
+
+        try:
+            is_price_forecast = AIService.ask(price_forecast_check_prompt, skip_context=True).strip().lower()
+            if is_price_forecast == "yes":
+                print(f"[GENERAL AGENT] Detected price forecast query, routing to price handler")
+                return GeneralAgent._handle_price_forecast(user_message, user_id, language, profile)
+        except Exception as e:
+            print(f"[GENERAL AGENT] Price forecast check error: {e}")
+        
         # Check if this is a weather query
         if WEATHER_AVAILABLE:
             weather_check_prompt = f"""Is this a weather-related query? Reply with ONLY "yes" or "no".
@@ -112,6 +140,61 @@ CRITICAL: Respond ONLY in English."""
         enhanced_message = user_message + profile_context
         result = AIService.ask(enhanced_message, system_prompt, skip_context=True)
         return (result, True)
+    
+    @staticmethod
+    def _handle_price_forecast(user_message, user_id, language, profile=None):
+        """Handle price forecast queries"""
+        print(f"[GENERAL AGENT] Handling price forecast query")
+        
+        # Extract crop name using AI
+        crop_prompt = f"""Extract the crop/commodity name from this message. Reply with ONLY the crop name in lowercase.
+
+Message: "{user_message}"
+
+Examples:
+"price forecast for wheat" → wheat
+"week forecast for onion" → onion
+"7 day prices for tomato" → tomato
+"rice future price" → rice
+"sugarcane prediction" → sugarcane
+
+Reply with ONLY the crop name:"""
+
+        try:
+            crop = AIService.ask(crop_prompt, skip_context=True).strip().lower()
+            print(f"[GENERAL AGENT] Extracted crop for forecast: {crop}")
+        except Exception as e:
+            print(f"[GENERAL AGENT] Could not extract crop: {e}")
+            if language == 'english':
+                return ("I couldn't understand which crop you're asking about. Please specify the crop name.", True)
+            else:
+                return ("मुझे समझ नहीं आया कि आप किस फसल के बारे में पूछ रहे हैं। कृपया फसल का नाम बताएं।", True)
+        
+        # Check if crop is supported
+        supported_crops = ['onion', 'rice', 'sugarcane', 'tomato', 'wheat']
+        if crop not in supported_crops:
+            print(f"[GENERAL AGENT] Unsupported crop: {crop}")
+            if language == 'english':
+                return (f"❌ I can only provide price forecasts for: Onion, Rice, Sugarcane, Tomato, and Wheat.\n\nYou asked about: {crop.title()}", True)
+            else:
+                return (f"❌ मैं केवल इन फसलों के लिए मूल्य पूर्वानुमान दे सकता हूं: प्याज, चावल, गन्ना, टमाटर, और गेहूं।\n\nआपने पूछा: {crop.title()}", True)
+        
+        # Import price forecast handler
+        try:
+            import sys
+            sys.path.append('/var/task')
+            from lambda_whatsapp_kisaanmitra import handle_price_forecast_query
+            
+            result = handle_price_forecast_query(crop, user_message, language)
+            return (result, True)
+        except Exception as e:
+            print(f"[GENERAL AGENT] Price forecast error: {e}")
+            import traceback
+            traceback.print_exc()
+            if language == 'english':
+                return (f"❌ Error fetching price forecast for {crop.title()}. Please try again later.", True)
+            else:
+                return (f"❌ {crop.title()} के लिए मूल्य पूर्वानुमान प्राप्त करने में त्रुटि। कृपया बाद में पुनः प्रयास करें।", True)
     
     @staticmethod
     def _handle_weather(user_message, user_id, language, profile=None):

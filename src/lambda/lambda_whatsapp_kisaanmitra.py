@@ -23,6 +23,15 @@ except ImportError:
     print("Fast market data not available")
     FAST_MARKET_DATA_AVAILABLE = False
 
+# Import price forecasting
+try:
+    PRICE_FORECAST_CROPS = ['onion', 'rice', 'sugarcane', 'tomato', 'wheat']
+    PRICE_FORECAST_AVAILABLE = True
+    print("✅ Price Forecasting module loaded successfully")
+except ImportError as e:
+    print(f"❌ Price Forecasting not available: {e}")
+    PRICE_FORECAST_AVAILABLE = False
+
 # Import onboarding and knowledge graph
 import sys
 sys.path.append('/opt/python')  # Lambda layer path
@@ -2104,10 +2113,224 @@ CRITICAL: Respond ONLY in English. Always use ₹ for currency. Follow the forma
     # Return tuple: (message, should_add_nav_buttons)
     return (result, True)
 
+
+def handle_price_forecast_query(crop, user_message, language='english'):
+    """
+    Handle price forecasting queries
+    Fetches forecast from DynamoDB or S3
+    """
+    print(f"[PRICE] ===== PRICE FORECAST HANDLER =====")
+    print(f"[PRICE] Crop: {crop}, Language: {language}")
+    
+    try:
+        # Initialize DynamoDB
+        dynamodb = boto3.resource('dynamodb')
+        table_name = os.environ.get('PRICE_FORECAST_TABLE', 'kisaanmitra-price-forecasts')
+        table = dynamodb.Table(table_name)
+        
+        # Fetch forecast from DynamoDB
+        response = table.get_item(Key={'commodity': crop})
+        
+        if 'Item' not in response:
+            print(f"[PRICE] No forecast found in DynamoDB for {crop}")
+            # Fallback message
+            if language == 'english':
+                return f"❌ Price forecast not available for {crop.title()} at the moment. Please try again later."
+            else:
+                return f"❌ {crop.title()} के लिए मूल्य पूर्वानुमान अभी उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।"
+        
+        forecast_data = response['Item']
+        forecasts = forecast_data.get('forecasts', [])
+        
+        if not forecasts:
+            print(f"[PRICE] Empty forecast data for {crop}")
+            if language == 'english':
+                return f"❌ Price forecast not available for {crop.title()}"
+            else:
+                return f"❌ {crop.title()} के लिए मूल्य पूर्वानुमान उपलब्ध नहीं है"
+        
+        # Filter forecasts to only include today and future dates
+        from datetime import datetime
+        today = datetime.now().date()
+        
+        future_forecasts = []
+        for f in forecasts:
+            forecast_date = datetime.strptime(f['date'], '%Y-%m-%d').date()
+            if forecast_date >= today:
+                future_forecasts.append(f)
+        
+        if not future_forecasts:
+            print(f"[PRICE] No future forecasts available for {crop}")
+            if language == 'english':
+                return f"❌ No future price forecasts available for {crop.title()}. Please try again later."
+            else:
+                return f"❌ {crop.title()} के लिए भविष्य का मूल्य पूर्वानुमान उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।"
+        
+        print(f"[PRICE] Found {len(future_forecasts)} future forecasts for {crop}")
+        
+        # Determine query type
+        msg_lower = user_message.lower()
+        is_week_forecast = 'week' in msg_lower or 'साप्ताहिक' in msg_lower or '7' in msg_lower
+        
+        if is_week_forecast:
+            # Return 7-day forecast
+            return format_week_forecast(crop, future_forecasts[:7], language)
+        else:
+            # Return today/tomorrow forecast
+            return format_daily_forecast(crop, future_forecasts[:2], language)
+            
+    except Exception as e:
+        print(f"[PRICE ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        
+        if language == 'english':
+            return f"❌ Error fetching price forecast for {crop.title()}. Please try again later."
+        else:
+            return f"❌ {crop.title()} के लिए मूल्य पूर्वानुमान प्राप्त करने में त्रुटि। कृपया बाद में पुनः प्रयास करें।"
+
+
+def format_daily_forecast(crop, forecasts, language='english'):
+    """Format today/tomorrow price forecast"""
+    crop_display = crop.title()
+    
+    if len(forecasts) == 0:
+        if language == 'english':
+            return f"❌ No forecast data available for {crop_display}"
+        else:
+            return f"❌ {crop_display} के लिए पूर्वानुमान डेटा उपलब्ध नहीं है"
+    
+    today = forecasts[0]
+    tomorrow = forecasts[1] if len(forecasts) > 1 else None
+    
+    if language == 'english':
+        msg = f"📊 *{crop_display} Price Forecast*\n\n"
+        msg += f"*Today ({today['day']})*\n"
+        msg += f"💰 Predicted: ₹{today['price']}/quintal\n"
+        msg += f"📈 Range: ₹{today['lower']} - ₹{today['upper']}\n\n"
+        
+        if tomorrow:
+            msg += f"*Tomorrow ({tomorrow['day']})*\n"
+            msg += f"💰 Predicted: ₹{tomorrow['price']}/quintal\n"
+            msg += f"📈 Range: ₹{tomorrow['lower']} - ₹{tomorrow['upper']}\n\n"
+            
+            # Price trend
+            diff = tomorrow['price'] - today['price']
+            if diff > 0:
+                msg += f"📈 Expected to increase by ₹{abs(diff):.2f}\n"
+            elif diff < 0:
+                msg += f"📉 Expected to decrease by ₹{abs(diff):.2f}\n"
+            else:
+                msg += f"➡️ Expected to remain stable\n"
+        
+        msg += "\n💡 Type 'week forecast {crop}' for 7-day prediction"
+    else:
+        msg = f"📊 *{crop_display} मूल्य पूर्वानुमान*\n\n"
+        msg += f"*आज ({today['day']})*\n"
+        msg += f"💰 अनुमानित: ₹{today['price']}/क्विंटल\n"
+        msg += f"📈 सीमा: ₹{today['lower']} - ₹{today['upper']}\n\n"
+        
+        if tomorrow:
+            msg += f"*कल ({tomorrow['day']})*\n"
+            msg += f"💰 अनुमानित: ₹{tomorrow['price']}/क्विंटल\n"
+            msg += f"📈 सीमा: ₹{tomorrow['lower']} - ₹{tomorrow['upper']}\n\n"
+            
+            # Price trend
+            diff = tomorrow['price'] - today['price']
+            if diff > 0:
+                msg += f"📈 ₹{abs(diff):.2f} की वृद्धि की उम्मीद\n"
+            elif diff < 0:
+                msg += f"📉 ₹{abs(diff):.2f} की कमी की उम्मीद\n"
+            else:
+                msg += f"➡️ स्थिर रहने की उम्मीद\n"
+        
+        msg += f"\n💡 7-दिन के पूर्वानुमान के लिए 'week forecast {crop}' टाइप करें"
+    
+    return msg
+
+
+def format_week_forecast(crop, forecasts, language='english'):
+    """Format 7-day price forecast"""
+    crop_display = crop.title()
+    
+    if len(forecasts) == 0:
+        if language == 'english':
+            return f"❌ No forecast data available for {crop_display}"
+        else:
+            return f"❌ {crop_display} के लिए पूर्वानुमान डेटा उपलब्ध नहीं है"
+    
+    if language == 'english':
+        msg = f"📅 *{crop_display} - 7 Day Forecast*\n\n"
+        for pred in forecasts[:7]:
+            msg += f"*{pred['day']}, {pred['date']}*\n"
+            msg += f"₹{pred['price']}/quintal (₹{pred['lower']}-₹{pred['upper']})\n\n"
+    else:
+        msg = f"📅 *{crop_display} - 7 दिन का पूर्वानुमान*\n\n"
+        for pred in forecasts[:7]:
+            msg += f"*{pred['day']}, {pred['date']}*\n"
+            msg += f"₹{pred['price']}/क्विंटल (₹{pred['lower']}-₹{pred['upper']})\n\n"
+    
+    return msg
+
+
 def handle_general_query(user_message, user_id="unknown", language='hindi'):
     """Handle general queries - friendly conversation with language support (AI-based routing)"""
     print(f"[DEBUG] ===== GENERAL AGENT =====")
     print(f"[DEBUG] Processing general query: {user_message}, Language: {language}")
+    
+    # Check for price forecasting queries
+    if PRICE_FORECAST_AVAILABLE:
+        msg_lower = user_message.lower()
+        
+        # Check if asking about price/forecast
+        if any(word in msg_lower for word in ['price', 'forecast', 'prediction', 'भाव', 'कीमत', 'पूर्वानुमान']):
+            print("[PRICE] Detected price forecast query")
+            
+            # Check which crop
+            detected_crop = None
+            for crop in PRICE_FORECAST_CROPS:
+                if crop in msg_lower:
+                    detected_crop = crop
+                    break
+            
+            if detected_crop:
+                print(f"[PRICE] Detected crop: {detected_crop}")
+                return handle_price_forecast_query(detected_crop, user_message, language)
+            else:
+                # No specific crop mentioned
+                print("[PRICE] No specific crop detected")
+                if language == 'english':
+                    return """📊 *Price Forecasting Available*
+
+I can provide price forecasts for these crops:
+🧅 Onion
+🌾 Rice
+🎋 Sugarcane
+🍅 Tomato
+🌾 Wheat
+
+Please ask about a specific crop, for example:
+• "What is onion price today?"
+• "Tomorrow wheat price"
+• "Week forecast for rice"
+
+💡 I can only forecast prices for these 5 crops."""
+                else:
+                    return """📊 *मूल्य पूर्वानुमान उपलब्ध*
+
+मैं इन फसलों के लिए मूल्य पूर्वानुमान प्रदान कर सकता हूं:
+🧅 प्याज
+🌾 चावल
+🎋 गन्ना
+🍅 टमाटर
+🌾 गेहूं
+
+कृपया किसी विशिष्ट फसल के बारे में पूछें, उदाहरण:
+• "आज प्याज का भाव क्या है?"
+• "कल गेहूं का रेट"
+• "चावल का साप्ताहिक पूर्वानुमान"
+
+💡 मैं केवल इन 5 फसलों के लिए मूल्य पूर्वानुमान कर सकता हूं।"""
     
     # Use AI to detect knowledge graph queries
     if ONBOARDING_AVAILABLE:

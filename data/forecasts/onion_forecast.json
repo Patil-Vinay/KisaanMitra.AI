@@ -1,0 +1,55 @@
+{
+  "crop": "Onion",
+  "generated_at": "2026-03-04T15:37:41.614063",
+  "predictions": [
+    {
+      "date": "2026-03-03",
+      "day": "Tuesday",
+      "price": 340.13,
+      "lower": -132.17,
+      "upper": 771.1
+    },
+    {
+      "date": "2026-03-04",
+      "day": "Wednesday",
+      "price": 305.49,
+      "lower": -157.15,
+      "upper": 725.24
+    },
+    {
+      "date": "2026-03-05",
+      "day": "Thursday",
+      "price": 261.83,
+      "lower": -208.45,
+      "upper": 739.72
+    },
+    {
+      "date": "2026-03-06",
+      "day": "Friday",
+      "price": 190.99,
+      "lower": -250.46,
+      "upper": 650.98
+    },
+    {
+      "date": "2026-03-07",
+      "day": "Saturday",
+      "price": 166.83,
+      "lower": -313.0,
+      "upper": 643.36
+    },
+    {
+      "date": "2026-03-08",
+      "day": "Sunday",
+      "price": 132.08,
+      "lower": -348.2,
+      "upper": 590.25
+    },
+    {
+      "date": "2026-03-09",
+      "day": "Monday",
+      "price": 101.49,
+      "lower": -359.05,
+      "upper": 553.24
+    }
+  ]
+}
