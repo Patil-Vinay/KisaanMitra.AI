@@ -54,3 +54,13 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+
+# Prophet/Lambda Layer artifacts (not needed for SageMaker solution)
+python_layer/
+prophet_layer.zip
+*.zip
+output.json
+
+# SageMaker temporary files
+sagemaker-forecasting/
+ml-data/
