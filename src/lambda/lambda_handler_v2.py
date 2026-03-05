@@ -393,8 +393,11 @@ def handle_interactive_response(msg, from_number):
             prompt = "💰 *Budget Planning*\n\nPlease tell me:\n• Which crop?\n• How much land (acres)?\n• Location?" if user_lang == 'english' else "💰 *बजट योजना*\n\nकृपया बताएं:\n• कौन सी फसल?\n• कितनी जमीन (एकड़)?\n• स्थान?"
             WhatsAppService.send_message(from_number, prompt)
         elif list_id == "weather":
-            prompt = "🌤️ *Weather Forecast*\n\nWhich city do you want weather for?" if user_lang == 'english' else "🌤️ *मौसम पूर्वानुमान*\n\nआप किस शहर का मौसम जानना चाहते हैं?"
-            WhatsAppService.send_message(from_number, prompt)
+            # Call GeneralAgent to handle weather with KG profile
+            reply, should_add_nav = GeneralAgent.handle("weather", from_number, user_lang)
+            WhatsAppService.send_message(from_number, reply)
+            if should_add_nav and INTERACTIVE_AVAILABLE:
+                WhatsAppService.send_message(from_number, None, create_back_button(user_lang))
         
         return {'statusCode': 200, 'body': 'ok'}
     

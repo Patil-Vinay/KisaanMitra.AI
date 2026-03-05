@@ -141,7 +141,7 @@ def create_batch_transform_job(input_uri):
                 'AssembleWith': 'Line'
             },
             TransformResources={
-                'InstanceType': 'ml.m5.large',  # Smaller instance, might have quota
+                'InstanceType': 'ml.m5.large',  # Quota approved for this instance
                 'InstanceCount': 1
             }
         )
