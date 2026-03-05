@@ -146,24 +146,35 @@ def fetch_latest_from_agmarknet(crop_name, api_key, days=7):
         return None
 
 
-def store_forecasts_in_dynamodb(forecasts):
+def store_forecasts_in_dynamodb(forecasts_by_crop):
     """
-    Store forecasts in DynamoDB
+    Store forecasts in DynamoDB in WhatsApp-compatible format
     
     Args:
-        forecasts: List of forecast items
+        forecasts_by_crop: Dict of {crop_name: list of forecast dicts}
     """
-    print(f"Storing {len(forecasts)} forecasts in DynamoDB...")
+    print(f"Storing forecasts for {len(forecasts_by_crop)} crops in DynamoDB...")
     
     stored_count = 0
-    for forecast in forecasts:
+    for crop_name, forecasts in forecasts_by_crop.items():
         try:
-            table.put_item(Item=forecast)
+            # Format for WhatsApp bot compatibility
+            item = {
+                'commodity': crop_name.lower(),  # 'tomato', 'onion', etc.
+                'forecasts': forecasts,  # List of {date, day, price, lower, upper}
+                'generated_at': datetime.now().isoformat(),
+                'model': 'sagemaker_automl',
+                'last_updated': datetime.now().isoformat()
+            }
+            
+            table.put_item(Item=item)
             stored_count += 1
+            print(f"  ✅ Stored {len(forecasts)} forecasts for {crop_name}")
+            
         except Exception as e:
-            print(f"  ⚠️ Failed to store forecast: {e}")
+            print(f"  ⚠️ Failed to store {crop_name} forecasts: {e}")
     
-    print(f"✅ Stored {stored_count}/{len(forecasts)} forecasts")
+    print(f"✅ Stored forecasts for {stored_count}/{len(forecasts_by_crop)} crops")
     return stored_count
 
 
