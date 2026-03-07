@@ -127,21 +127,10 @@ CROP_HEALTH_API_KEY = os.environ.get("CROP_HEALTH_API_KEY")
 AGMARKNET_API_KEY = os.environ.get("AGMARKNET_API_KEY")
 
 # AWS clients
-# Use direct Anthropic API for better accuracy and higher rate limits
-USE_ANTHROPIC_DIRECT = os.environ.get('USE_ANTHROPIC_DIRECT', 'true').lower() == 'true'
-
-if USE_ANTHROPIC_DIRECT:
-    print("[INIT] Using direct Anthropic Claude API for text")
-    from anthropic_client import get_anthropic_client
-    bedrock = get_anthropic_client()
-    # For image analysis, we need real AWS Bedrock (Anthropic wrapper doesn't support images)
-    # Use us-east-1 for cross-region inference with Claude 3.5 Sonnet
-    bedrock_for_images = boto3.client("bedrock-runtime", region_name="us-east-1")
-    print("[INIT] Using AWS Bedrock (us-east-1) for image analysis")
-else:
-    print("[INIT] Using AWS Bedrock for all operations")
-    bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")  # Cross-region inference
-    bedrock_for_images = bedrock  # Same client for both
+# Use AWS Bedrock Amazon Nova Pro for all operations
+print("[INIT] Using AWS Bedrock Amazon Nova Pro for all operations")
+bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")  # Cross-region inference
+bedrock_for_images = bedrock  # Same client for both text and images
 
 dynamodb = boto3.resource("dynamodb", region_name="ap-south-1")
 s3 = boto3.client("s3", region_name="ap-south-1")
@@ -862,15 +851,10 @@ DATA_SOURCES: [Government sources you researched]
 Now generate the complete analysis FOR 1 ACRE:"""
 
     try:
-        # Choose model based on API type
-        if USE_ANTHROPIC_DIRECT:
-            model_id = "claude-sonnet-4-6"
-            print(f"[DEBUG] Calling Anthropic Claude API for COMBINED crop extraction + budget generation...")
-            print(f"[DEBUG] Model: {model_id} (Claude Sonnet 4.6 - latest - direct API - best accuracy)")
-        else:
-            model_id = "us.amazon.nova-lite-v1:0"
-            print(f"[DEBUG] Calling Bedrock for COMBINED crop extraction + budget generation...")
-            print(f"[DEBUG] Model: {model_id} (optimized for speed)")
+        # Use Amazon Nova Pro for all operations
+        model_id = "us.amazon.nova-pro-v1:0"
+        print(f"[DEBUG] Calling AWS Bedrock for COMBINED crop extraction + budget generation...")
+        print(f"[DEBUG] Model: {model_id} (Amazon Nova Pro - high accuracy, cost-effective)")
         
         # Add retry logic for throttling with exponential backoff
         import time

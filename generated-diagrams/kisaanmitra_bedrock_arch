@@ -1,0 +1,31 @@
+digraph "KisaanMitra Production Architecture" {
+	graph [fontcolor="#2D3436" fontname="Sans-Serif" fontsize=15 label="KisaanMitra Production Architecture" nodesep=1.0 pad=2.0 rankdir=LR ranksep=2.0 splines=ortho]
+	node [fixedsize=true fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 height=1.4 imagescale=true labelloc=b shape=box style=rounded width=1.4]
+	edge [color="#7B8894"]
+	"86c17e34dff24545ad8bbc23b176e8df" [label=Farmer height=1.9 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/general\user.png" shape=none]
+	"76eab62b237748d7a3a93ae890a10347" [label="WhatsApp API" height=1.9 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/mobile\mobile.png" shape=none]
+	subgraph "cluster_AWS Lambda" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="AWS Lambda" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		c29e503a5f724812bf5da56b743a9795 [label="whatsapp-llama-bot" height=1.9 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/compute\lambda.png" shape=none]
+	}
+	subgraph "cluster_Amazon Bedrock" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="Amazon Bedrock" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"44d0c52278c142d88e017b4fbe462625" [label="Nova Pro Model" height=1.9 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/ml\bedrock.png" shape=none]
+	}
+	subgraph "cluster_Data Storage" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="Data Storage" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"7f8bbcd7dba646bbb2c6be9891e14ec2" [label=DynamoDB height=1.9 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/database\dynamodb.png" shape=none]
+		b71015e68d9b4b5e826c2db584ff6502 [label="S3 Bucket" height=1.9 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/storage\simple-storage-service-s3.png" shape=none]
+	}
+	"1e435d6c247a43738e8ee3da7f4d5fea" [label="Secrets Manager" height=1.9 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/security\secrets-manager.png" shape=none]
+	"86c17e34dff24545ad8bbc23b176e8df" -> "76eab62b237748d7a3a93ae890a10347" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"76eab62b237748d7a3a93ae890a10347" -> c29e503a5f724812bf5da56b743a9795 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	c29e503a5f724812bf5da56b743a9795 -> "44d0c52278c142d88e017b4fbe462625" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	c29e503a5f724812bf5da56b743a9795 -> "7f8bbcd7dba646bbb2c6be9891e14ec2" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	c29e503a5f724812bf5da56b743a9795 -> b71015e68d9b4b5e826c2db584ff6502 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	c29e503a5f724812bf5da56b743a9795 -> "1e435d6c247a43738e8ee3da7f4d5fea" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"44d0c52278c142d88e017b4fbe462625" -> c29e503a5f724812bf5da56b743a9795 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"7f8bbcd7dba646bbb2c6be9891e14ec2" -> c29e503a5f724812bf5da56b743a9795 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	c29e503a5f724812bf5da56b743a9795 -> "76eab62b237748d7a3a93ae890a10347" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"76eab62b237748d7a3a93ae890a10347" -> "86c17e34dff24545ad8bbc23b176e8df" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+}

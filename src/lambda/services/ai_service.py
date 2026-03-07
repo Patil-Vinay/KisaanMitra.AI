@@ -5,15 +5,10 @@ import os
 import time
 import boto3
 
-USE_ANTHROPIC_DIRECT = os.environ.get('USE_ANTHROPIC_DIRECT', 'true').lower() == 'true'
-
-if USE_ANTHROPIC_DIRECT:
-    from anthropic_client import get_anthropic_client
-    bedrock = get_anthropic_client()
-    bedrock_for_images = boto3.client("bedrock-runtime", region_name="us-east-1")
-else:
-    bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
-    bedrock_for_images = bedrock
+# Use AWS Bedrock Amazon Nova Pro for all operations
+print("[AI_SERVICE] Using AWS Bedrock Amazon Nova Pro")
+bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
+bedrock_for_images = bedrock
 
 
 class AIService:

@@ -1,0 +1,40 @@
+digraph "KisaanMitra.AI - Production Architecture
+AWS Bedrock Nova Pro | Multi-Agent System" {
+	graph [fontcolor="#2D3436" fontname="Sans-Serif" fontsize=15 label="KisaanMitra.AI - Production Architecture
+AWS Bedrock Nova Pro | Multi-Agent System" nodesep=0.60 pad=2.0 rankdir=LR ranksep=0.75 splines=ortho]
+	node [fixedsize=true fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 height=1.4 imagescale=true labelloc=b shape=box style=rounded width=1.4]
+	edge [color="#7B8894"]
+	c8daf4692b5b4ddebaa41f4d34b58fb7 [label=Farmer height=1.9 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/general\user.png" shape=none]
+	subgraph "cluster_WhatsApp Business API" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="WhatsApp Business API" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		e91e48d3521247d3a0a7084e1f79e42a [label="WhatsApp
+Interface" height=2.3 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/mobile\mobile.png" shape=none]
+	}
+	subgraph "cluster_AWS Lambda
+ap-south-1" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="AWS Lambda
+ap-south-1" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		ff9cbf4cc4174864a5fc77bd74b6bf33 [label="whatsapp-llama-bot
+1536MB | Python 3.14" height=2.3 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/compute\lambda.png" shape=none]
+	}
+	subgraph "cluster_Amazon Bedrock
+us-east-1" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="Amazon Bedrock
+us-east-1" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		"84af789b86e04fa29dba47045d333bf0" [label="Nova Pro
+100% Routing
+92.86% Extraction" height=2.7 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/ml\bedrock.png" shape=none]
+	}
+	subgraph "cluster_Data Storage" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="Data Storage" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		ac8cc9d280b1482ea5b588bd841d693a [label="DynamoDB
+5 Tables" height=2.3 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/database\dynamodb.png" shape=none]
+		"75803e891db14f4e86585cfc58c4d539" [label="S3 Bucket
+Images & Docs" height=2.3 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/storage\simple-storage-service-s3.png" shape=none]
+	}
+	"25aca11bfecf4b9cb1a16664fe555db9" [label="Secrets Manager
+API Keys" height=2.3 image="C:\Users\rane5\AppData\Local\uv\cache\archive-v0\Y8G1tToU4vVr05Rfuwhvb\Lib\site-packages\resources/aws/security\secrets-manager.png" shape=none]
+	subgraph "cluster_External Services" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="External Services" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+	}
+}

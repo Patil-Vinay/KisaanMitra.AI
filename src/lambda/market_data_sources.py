@@ -122,14 +122,15 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
         return None
 
 
-def get_claude_ai_fallback(crop_name, state="Maharashtra"):
+def get_bedrock_ai_fallback(crop_name, state="Maharashtra"):
     """
-    FALLBACK: Use Claude AI to get market prices from agmarknet.gov.in
+    FALLBACK: Use AWS Bedrock to get market prices from agmarknet.gov.in
     """
     try:
-        print(f"[CLAUDE FALLBACK] 🤖 Using AI to fetch {crop_name} prices for {state}...")
+        print(f"[BEDROCK FALLBACK] 🤖 Using AI to fetch {crop_name} prices for {state}...")
         
-        from anthropic_client import call_claude_with_retry
+        import boto3
+        bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
         
         prompt = f"""You are a market data expert. Get the current mandi prices for {crop_name} in {state}, India from agmarknet.gov.in.
 
@@ -156,15 +157,21 @@ CRITICAL RULES:
 
 Get {crop_name} prices for {state} now:"""
 
-        response = call_claude_with_retry(prompt, max_tokens=500, temperature=0.1)
+        response = bedrock.converse(
+            modelId="us.amazon.nova-pro-v1:0",
+            messages=[{"role": "user", "content": [{"text": prompt}]}],
+            inferenceConfig={"maxTokens": 500, "temperature": 0.1}
+        )
+        
+        response_text = response["output"]["message"]["content"][0]["text"]
         
         # Extract JSON from response
-        if "```json" in response:
-            response = response.split("```json")[1].split("```")[0].strip()
-        elif "```" in response:
-            response = response.split("```")[1].split("```")[0].strip()
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0].strip()
         
-        data = json.loads(response)
+        data = json.loads(response_text)
         
         # Convert UTC to IST (UTC+5:30)
         utc_now = datetime.utcnow()
@@ -173,22 +180,22 @@ Get {crop_name} prices for {state} now:"""
         # Add metadata
         data["crop"] = crop_name
         data["last_updated"] = ist_now.strftime("%Y-%m-%d %H:%M IST")
-        data["source"] = "claude_ai"
+        data["source"] = "bedrock_ai"
         
-        print(f"[CLAUDE FALLBACK] ✅ Got prices: Avg ₹{data['average_price']}, Trend: {data['trend']}")
+        print(f"[BEDROCK FALLBACK] ✅ Got prices: Avg ₹{data['average_price']}, Trend: {data['trend']}")
         return data
         
     except Exception as e:
-        print(f"[CLAUDE FALLBACK] Error: {e}")
+        print(f"[BEDROCK FALLBACK] Error: {e}")
         import traceback
-        print(f"[CLAUDE FALLBACK] Traceback: {traceback.format_exc()}")
+        print(f"[BEDROCK FALLBACK] Traceback: {traceback.format_exc()}")
         return None
 
 
 def get_fast_market_prices(crop_name, state="Maharashtra"):
     """
     Get real-time market prices
-    Priority: AgMarkNet API > Claude AI Fallback
+    Priority: AgMarkNet API > Bedrock AI Fallback
     NO STATIC DATA
     """
     print(f"[MARKET DATA] Fetching prices for: {crop_name}, state: {state}")
@@ -199,12 +206,12 @@ def get_fast_market_prices(crop_name, state="Maharashtra"):
         print(f"[MARKET DATA] ✅ Using AgMarkNet API data")
         return agmarknet_data
     
-    # Method 2: Claude AI Fallback (SECONDARY - AI-powered scraping)
-    print(f"[MARKET DATA] AgMarkNet API failed, trying Claude AI fallback...")
-    claude_data = get_claude_ai_fallback(crop_name, state)
-    if claude_data:
-        print(f"[MARKET DATA] ✅ Using Claude AI fallback data")
-        return claude_data
+    # Method 2: Bedrock AI Fallback (SECONDARY - AI-powered data)
+    print(f"[MARKET DATA] AgMarkNet API failed, trying Bedrock AI fallback...")
+    bedrock_data = get_bedrock_ai_fallback(crop_name, state)
+    if bedrock_data:
+        print(f"[MARKET DATA] ✅ Using Bedrock AI fallback data")
+        return bedrock_data
     
     # No data available
     print(f"[MARKET DATA] ❌ No data available for {crop_name}")

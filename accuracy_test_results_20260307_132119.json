@@ -1,0 +1,47 @@
+{
+  "test_date": "2026-03-07T13:21:19.513854",
+  "model": "Amazon Nova Pro",
+  "routing_accuracy": 100.0,
+  "crop_extraction_accuracy": 92.85714285714286,
+  "average_response_time": 2.9646392464637756,
+  "routing_results": {
+    "total": 40,
+    "correct": 40,
+    "incorrect": 0,
+    "errors": 0,
+    "by_category": {
+      "crop": {
+        "total": 10,
+        "correct": 10
+      },
+      "market": {
+        "total": 10,
+        "correct": 10
+      },
+      "finance": {
+        "total": 10,
+        "correct": 10
+      },
+      "greeting": {
+        "total": 2,
+        "correct": 2
+      },
+      "general": {
+        "total": 8,
+        "correct": 8
+      }
+    }
+  },
+  "crop_results": {
+    "total": 14,
+    "correct": 13,
+    "incorrect": 1,
+    "errors": 0
+  },
+  "response_times": [
+    4.458531379699707,
+    2.672417640686035,
+    3.7295937538146973,
+    0.9980142116546631
+  ]
+}
