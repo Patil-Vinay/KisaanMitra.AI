@@ -387,8 +387,31 @@ def handle_interactive_response(msg, from_number):
             prompt = "🌿 *Crop Health Check*\n\nPlease send a photo of your crop or describe the problem in detail." if user_lang == 'english' else "🌿 *फसल स्वास्थ्य जांच*\n\nकृपया अपनी फसल की तस्वीर भेजें या समस्या का विस्तार से वर्णन करें।"
             WhatsAppService.send_message(from_number, prompt)
         elif list_id == "market_price":
-            prompt = "📊 *Market Prices*\n\nWhich crop price do you want to check?\n\nJust type the crop name." if user_lang == 'english' else "📊 *बाजार भाव*\n\nआप किस फसल का भाव जानना चाहते हैं?\n\nबस फसल का नाम लिखें।"
-            WhatsAppService.send_message(from_number, prompt)
+            # Call MarketAgent to provide actual market intelligence with live rates and forecasting
+            from agents.market_agent import MarketAgent
+            
+            # Get user profile to determine default crop or provide general market intelligence
+            profile = None
+            if ONBOARDING_AVAILABLE:
+                try:
+                    from farmer_onboarding import onboarding_manager
+                    profile = onboarding_manager.get_user_profile(from_number)
+                except:
+                    pass
+            
+            # Provide market intelligence for common crops or user's profile crop
+            if profile and profile.get('crops'):
+                # Use first crop from profile
+                crop_name = profile['crops'][0] if isinstance(profile['crops'], list) else profile['crops']
+                market_query = f"{crop_name} market price forecast"
+            else:
+                # Provide general market intelligence for popular crops
+                market_query = "tomato onion potato market prices and forecast"
+            
+            reply, should_add_nav = MarketAgent.handle(market_query, from_number, user_lang)
+            WhatsAppService.send_message(from_number, reply)
+            if should_add_nav and INTERACTIVE_AVAILABLE:
+                WhatsAppService.send_message(from_number, None, create_back_button(user_lang))
         elif list_id == "budget_plan":
             prompt = "💰 *Budget Planning*\n\nPlease tell me:\n• Which crop?\n• How much land (acres)?\n• Location?" if user_lang == 'english' else "💰 *बजट योजना*\n\nकृपया बताएं:\n• कौन सी फसल?\n• कितनी जमीन (एकड़)?\n• स्थान?"
             WhatsAppService.send_message(from_number, prompt)
