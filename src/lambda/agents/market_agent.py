@@ -69,9 +69,9 @@ class MarketAgent:
     }
     
     @staticmethod
-    def handle(user_message, language='hindi', user_id="unknown"):
+    def handle(user_message, user_id="unknown", language='hindi'):
         """Handle market-related queries"""
-        print(f"[MARKET AGENT] Processing query: {user_message}, Language: {language}")
+        print(f"[MARKET AGENT] Processing query: {user_message}, User: {user_id}, Language: {language}")
         
         # ALWAYS fetch user profile first
         profile = None

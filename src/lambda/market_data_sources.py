@@ -1,106 +1,169 @@
 """
 Real-time Market Data from AgMarkNet API + Claude AI Fallback
-NO STATIC DATA - Always fetch live prices
+Optimized with caching and rate limiting
 """
 
 import json
 import os
 from datetime import datetime, timedelta
 
+# Import caching and rate limiting
+try:
+    from services.cache_service import CacheService, RateLimiter
+    CACHE_AVAILABLE = True
+except ImportError:
+    CACHE_AVAILABLE = False
+    print("[MARKET DATA] Cache service not available")
+
 
 def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
     """
-    PRIMARY: Fetch real-time prices from AgMarkNet API
+    PRIMARY: Fetch real-time prices from AgMarkNet API with caching and rate limiting
     """
     import urllib3
-    
+    from urllib3.exceptions import MaxRetryError, TimeoutError
+
+    # Input validation
+    if not crop_name or not crop_name.strip():
+        print(f"[AGMARKNET] Invalid crop name provided")
+        return None
+
+    # Check cache first
+    if CACHE_AVAILABLE:
+        cache_key = CacheService.get_market_data_key(crop_name, state)
+        cached_data = CacheService.get(cache_key)
+        if cached_data:
+            print(f"[AGMARKNET] Using cached data for {crop_name}")
+            return cached_data
+
+        # Rate limiting for API calls
+        api_key_rate = RateLimiter.get_api_key("agmarknet")
+        if not RateLimiter.is_allowed(api_key_rate, max_requests=20, window_seconds=60):
+            print(f"[AGMARKNET] Rate limited, using fallback")
+            return None
+
     api_key = os.environ.get("AGMARKNET_API_KEY")
     if not api_key or api_key == "not_available":
         print(f"[AGMARKNET] API key not configured")
         return None
-    
+
     try:
         print(f"[AGMARKNET] 📡 Calling API for {crop_name} in {state}...")
-        http = urllib3.PoolManager()
-        
-        # AgMarkNet API endpoint
+
+        # Create HTTP pool with optimized configuration
+        http = urllib3.PoolManager(
+            timeout=urllib3.Timeout(connect=3.0, read=8.0),  # Reduced timeouts
+            retries=urllib3.Retry(
+                total=2,  # Reduced retries for faster response
+                backoff_factor=0.3,
+                status_forcelist=[500, 502, 503, 504]
+            ),
+            maxsize=5  # Connection pool size
+        )
+
+        # AgMarkNet API endpoint with optimized parameters
         url = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
         params = {
             "api-key": api_key,
             "format": "json",
-            "limit": "20",
+            "limit": "15",  # Reduced limit for faster response
             "filters[commodity]": crop_name.title(),
             "filters[state]": state
         }
-        
+
         query_string = "&".join([f"{k}={v}" for k, v in params.items()])
         full_url = f"{url}?{query_string}"
-        
-        response = http.request("GET", full_url, timeout=8.0)
-        
+
+        response = http.request("GET", full_url)
+
         if response.status != 200:
             print(f"[AGMARKNET] API returned status: {response.status}")
+            if response.status == 429:
+                print(f"[AGMARKNET] Rate limited by API")
+            elif response.status >= 500:
+                print(f"[AGMARKNET] Server error from API")
             return None
-        
-        data = json.loads(response.data)
+
+        if not response.data:
+            print(f"[AGMARKNET] Empty response from API")
+            return None
+
+        try:
+            data = json.loads(response.data)
+        except json.JSONDecodeError as e:
+            print(f"[AGMARKNET] Invalid JSON response: {e}")
+            return None
+
         records = data.get("records", [])
-        
+
         if not records:
             print(f"[AGMARKNET] No records found")
             return None
-        
+
         print(f"[AGMARKNET] ✅ Got {len(records)} records")
-        
-        # Calculate statistics from records
+
+        # Optimized price processing with validation
         prices = []
         mandis = []
-        
+
         for r in records:
+            if not isinstance(r, dict):
+                continue
+
             try:
-                price = float(r.get("modal_price", 0))
-                if price > 0:
+                price_str = r.get("modal_price", "0")
+                if not price_str or price_str in ["", "0", "null", "None"]:
+                    continue
+
+                price = float(price_str)
+                if 10 <= price <= 500000:  # Reasonable price range validation
                     prices.append(price)
                     mandis.append({
-                        "name": r.get("market", "Unknown"),
+                        "name": r.get("market", "Unknown")[:30],  # Truncate for memory
                         "price": int(price),
-                        "district": r.get("district", "")
+                        "district": r.get("district", "")[:30]  # Truncate for memory
                     })
-            except:
+            except (ValueError, TypeError):
                 continue
-        
+
         if not prices:
             print(f"[AGMARKNET] No valid prices found")
             return None
-        
+
+        # Efficient statistics calculation
         avg_price = int(sum(prices) / len(prices))
         min_price = int(min(prices))
         max_price = int(max(prices))
-        
-        # Determine trend
+
+        # Optimized trend calculation
         trend = "stable"
         if len(prices) >= 4:
-            recent_avg = sum(prices[:len(prices)//2]) / (len(prices)//2)
-            older_avg = sum(prices[len(prices)//2:]) / (len(prices) - len(prices)//2)
-            if recent_avg > older_avg * 1.05:
+            mid_point = len(prices) // 2
+            recent_avg = sum(prices[:mid_point]) / mid_point
+            older_avg = sum(prices[mid_point:]) / (len(prices) - mid_point)
+
+            change_pct = ((recent_avg - older_avg) / older_avg) * 100
+            if change_pct > 3:  # More sensitive threshold
                 trend = "increasing"
-            elif recent_avg < older_avg * 0.95:
+            elif change_pct < -3:
                 trend = "decreasing"
-        
-        # Get top 3 unique mandis
+
+        # Get top 3 unique mandis efficiently
         seen_mandis = set()
         top_mandis = []
         for mandi in mandis:
-            if mandi["name"] not in seen_mandis and len(top_mandis) < 3:
-                seen_mandis.add(mandi["name"])
+            mandi_name = mandi["name"]
+            if mandi_name and mandi_name not in seen_mandis and len(top_mandis) < 3:
+                seen_mandis.add(mandi_name)
                 top_mandis.append({
-                    "name": mandi["name"],
+                    "name": mandi_name,
                     "price": mandi["price"]
                 })
-        
-        # Convert UTC to IST (UTC+5:30)
+
+        # Optimized timestamp calculation
         utc_now = datetime.utcnow()
         ist_now = utc_now + timedelta(hours=5, minutes=30)
-        
+
         result = {
             "crop": crop_name,
             "average_price": avg_price,
@@ -109,12 +172,21 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
             "trend": trend,
             "top_mandis": top_mandis,
             "last_updated": ist_now.strftime("%Y-%m-%d %H:%M IST"),
-            "source": "agmarknet_api"
+            "source": "agmarknet_api",
+            "data_points": len(prices)
         }
-        
+
+        # Cache the result
+        if CACHE_AVAILABLE:
+            cache_key = CacheService.get_market_data_key(crop_name, state)
+            CacheService.set(cache_key, result, ttl_seconds=300)  # 5 minutes cache
+
         print(f"[AGMARKNET] ✅ Avg: ₹{avg_price}, Min: ₹{min_price}, Max: ₹{max_price}, Trend: {trend}")
         return result
-        
+
+    except (MaxRetryError, TimeoutError) as e:
+        print(f"[AGMARKNET] Network timeout: {e}")
+        return None
     except Exception as e:
         print(f"[AGMARKNET] API error: {e}")
         import traceback
@@ -124,15 +196,38 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
 
 def get_bedrock_ai_fallback(crop_name, state="Maharashtra"):
     """
-    FALLBACK: Use AWS Bedrock to get market prices from agmarknet.gov.in
+    FALLBACK: Use AWS Bedrock with caching and rate limiting
     """
     try:
+        # Check cache first
+        if CACHE_AVAILABLE:
+            cache_key = f"ai_fallback:{crop_name.lower()}:{state.lower()}"
+            cached_data = CacheService.get(cache_key)
+            if cached_data:
+                print(f"[BEDROCK FALLBACK] Using cached AI data for {crop_name}")
+                return cached_data
+
+            # Rate limiting for AI calls
+            ai_rate_key = RateLimiter.get_api_key("bedrock_market")
+            if not RateLimiter.is_allowed(ai_rate_key, max_requests=15, window_seconds=60):
+                print(f"[BEDROCK FALLBACK] Rate limited")
+                return None
+
         print(f"[BEDROCK FALLBACK] 🤖 Using AI to fetch {crop_name} prices for {state}...")
-        
+
         import boto3
-        bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
-        
-        prompt = f"""You are a market data expert. Get the current mandi prices for {crop_name} in {state}, India from agmarknet.gov.in.
+        bedrock = boto3.client(
+            "bedrock-runtime",
+            region_name="us-east-1",
+            config=boto3.session.Config(
+                retries={'max_attempts': 2, 'mode': 'adaptive'},
+                read_timeout=15,  # Reduced timeout
+                connect_timeout=5
+            )
+        )
+
+        # Optimized prompt for faster response
+        prompt = f"""Get current mandi prices for {crop_name} in {state}, India (March 2026).
 
 Provide realistic market data in this EXACT JSON format:
 
@@ -148,43 +243,50 @@ Provide realistic market data in this EXACT JSON format:
   ]
 }}
 
-CRITICAL RULES:
-1. Use REAL current market prices (March 2026)
-2. Mandis MUST be from {state} only
+RULES:
+1. Use REAL current market prices
+2. Mandis from {state} only
 3. Prices in ₹ per quintal
 4. Trend: "increasing", "decreasing", or "stable"
-5. Reply with ONLY valid JSON, no explanation
+5. Reply with ONLY valid JSON
 
-Get {crop_name} prices for {state} now:"""
+{crop_name} prices for {state}:"""
 
         response = bedrock.converse(
             modelId="us.amazon.nova-pro-v1:0",
             messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": 500, "temperature": 0.1}
+            inferenceConfig={"maxTokens": 400, "temperature": 0.1}  # Reduced tokens
         )
-        
+
         response_text = response["output"]["message"]["content"][0]["text"]
-        
-        # Extract JSON from response
+
+        # Optimized JSON extraction
         if "```json" in response_text:
             response_text = response_text.split("```json")[1].split("```")[0].strip()
         elif "```" in response_text:
             response_text = response_text.split("```")[1].split("```")[0].strip()
-        
+
         data = json.loads(response_text)
-        
-        # Convert UTC to IST (UTC+5:30)
+
+        # Optimized timestamp
         utc_now = datetime.utcnow()
         ist_now = utc_now + timedelta(hours=5, minutes=30)
-        
-        # Add metadata
-        data["crop"] = crop_name
-        data["last_updated"] = ist_now.strftime("%Y-%m-%d %H:%M IST")
-        data["source"] = "bedrock_ai"
-        
+
+        # Add metadata efficiently
+        data.update({
+            "crop": crop_name,
+            "last_updated": ist_now.strftime("%Y-%m-%d %H:%M IST"),
+            "source": "bedrock_ai"
+        })
+
+        # Cache the result
+        if CACHE_AVAILABLE:
+            cache_key = f"ai_fallback:{crop_name.lower()}:{state.lower()}"
+            CacheService.set(cache_key, data, ttl_seconds=600)  # 10 minutes cache for AI
+
         print(f"[BEDROCK FALLBACK] ✅ Got prices: Avg ₹{data['average_price']}, Trend: {data['trend']}")
         return data
-        
+
     except Exception as e:
         print(f"[BEDROCK FALLBACK] Error: {e}")
         import traceback

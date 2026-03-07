@@ -201,13 +201,28 @@ Reply with ONLY the crop name:"""
         """Handle weather-specific queries"""
         location = None
         
-        # PRIORITY 1: Use profile district if available
-        if profile:
+        # PRIORITY 1: Extract location from message first
+        location_prompt = f"""Extract the city/location name from this message. If not mentioned, return "none".
+
+Message: "{user_message}"
+
+Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur") or "none". No explanation."""
+
+        try:
+            extracted = AIService.ask(location_prompt, skip_context=True).strip().title()
+            if extracted and extracted.lower() != "none":
+                location = extracted
+                print(f"[GENERAL AGENT] Weather location from message: {location}")
+        except Exception as e:
+            print(f"[GENERAL AGENT] Could not extract location from message: {e}")
+        
+        # PRIORITY 2: Use profile district if no location in message
+        if not location and profile:
             location = profile.get('district')
             if location:
                 print(f"[GENERAL AGENT] Using profile district: {location}")
         
-        # PRIORITY 2: Try to get profile if not passed
+        # PRIORITY 3: Try to get profile if not passed and no location found
         if not location and ONBOARDING_AVAILABLE and user_id != "unknown":
             try:
                 if not profile:
@@ -219,21 +234,10 @@ Reply with ONLY the crop name:"""
             except Exception as e:
                 print(f"[GENERAL AGENT] Could not get profile location: {e}")
         
-        # PRIORITY 3: Extract location from message if not in profile
+        # PRIORITY 4: Default to Pune if nothing found
         if not location:
-            location_prompt = f"""Extract the city/location name from this message. If not mentioned, return "none".
-
-Message: "{user_message}"
-
-Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur") or "none". No explanation."""
-
-            try:
-                extracted = AIService.ask(location_prompt, skip_context=True).strip().title()
-                location = extracted if extracted and extracted.lower() != "none" else "Pune"
-                print(f"[GENERAL AGENT] Weather location from message: {location}")
-            except:
-                location = "Pune"
-                print(f"[GENERAL AGENT] Using default location: Pune")
+            location = "Pune"
+            print(f"[GENERAL AGENT] Using default location: Pune")
         
         try:
             weather = get_weather_forecast(location)

@@ -269,21 +269,56 @@ JSON के रूप में प्रारूपित करें:
     
     def get_complete_forecast(self, crop_name, state="Maharashtra", language='hindi'):
         """
-        Complete forecasting pipeline:
-        1. Try DynamoDB forecasts (pre-computed from SageMaker/Statistical)
-        2. If not available, use AI-only forecast as fallback
+        Complete forecasting pipeline with caching optimization:
+        1. Check cache first
+        2. Try DynamoDB forecasts (pre-computed)
+        3. If not available, use AI-only forecast as fallback
         """
         print(f"[FORECAST] Starting complete forecast for {crop_name} in {state}")
-        
+
+        # Import caching if available
+        try:
+            from services.cache_service import CacheService, RateLimiter
+            CACHE_AVAILABLE = True
+        except ImportError:
+            CACHE_AVAILABLE = False
+
+        # Check cache first
+        if CACHE_AVAILABLE:
+            cache_key = CacheService.get_forecast_key(crop_name, state)
+            cached_forecast = CacheService.get(cache_key)
+            if cached_forecast:
+                print(f"[FORECAST] ✅ Using cached forecast")
+                return cached_forecast
+
+            # Rate limiting for forecast requests
+            rate_key = RateLimiter.get_api_key("forecasting")
+            if not RateLimiter.is_allowed(rate_key, max_requests=20, window_seconds=60):
+                print(f"[FORECAST] Rate limited")
+                return None
+
         # Step 1: Try to get pre-computed forecast from DynamoDB
         dynamodb_forecast = self.get_dynamodb_forecast(crop_name, language)
         if dynamodb_forecast:
             print(f"[FORECAST] ✅ Using DynamoDB forecast")
+
+            # Cache the result
+            if CACHE_AVAILABLE:
+                cache_key = CacheService.get_forecast_key(crop_name, state)
+                CacheService.set(cache_key, dynamodb_forecast, ttl_seconds=1800)  # 30 minutes
+
             return dynamodb_forecast
-        
+
         # Step 2: Fallback to AI-only forecast
         print(f"[FORECAST] No DynamoDB forecast available, using AI-only forecast")
-        return self.get_ai_only_forecast(crop_name, state, language)
+        ai_forecast = self.get_ai_only_forecast(crop_name, state, language)
+
+        # Cache AI forecast with shorter TTL
+        if CACHE_AVAILABLE and ai_forecast:
+            cache_key = CacheService.get_forecast_key(crop_name, state)
+            CacheService.set(cache_key, ai_forecast, ttl_seconds=900)  # 15 minutes for AI
+
+        return ai_forecast
     
     def get_dynamodb_forecast(self, crop_name, language='hindi'):
         """
@@ -429,116 +464,103 @@ JSON के रूप में प्रारूपित करें:
     
     def get_ai_only_forecast(self, crop_name, state="Maharashtra", language='hindi'):
         """
-        Generate forecast using AI without historical data (fallback when API fails)
+        Generate optimized forecast using AI without historical data
         """
         try:
             import boto3
-            
+
             print(f"[FORECAST] Generating AI-only forecast for {crop_name} in {state}")
-            bedrock = boto3.client('bedrock-runtime', region_name='ap-south-1')
-            
+
+            # Optimized bedrock client
+            bedrock = boto3.client(
+                'bedrock-runtime', 
+                region_name='ap-south-1',
+                config=boto3.session.Config(
+                    retries={'max_attempts': 2, 'mode': 'adaptive'},
+                    read_timeout=15,  # Reduced timeout
+                    connect_timeout=5
+                )
+            )
+
+            # Optimized prompt for faster response
             if language == 'english':
-                prompt = f"""You are an agricultural market analyst. Provide a 7-day price forecast for {crop_name} in {state}, India.
+                prompt = f"""Agricultural market analyst: Provide 7-day price forecast for {crop_name} in {state}, India.
 
-IMPORTANT: Use realistic Indian market prices. Typical ranges:
-- Sugarcane: ₹2,500-3,500/ton
-- Soybean: ₹40,000-50,000/ton  
-- Wheat: ₹20,000-25,000/ton
-- Rice: ₹25,000-35,000/ton
-- Onion: ₹15,000-30,000/ton
-- Tomato: ₹20,000-40,000/ton
-- Cotton: ₹50,000-70,000/ton
+    Use realistic Indian prices. Typical ranges:
+    - Sugarcane: ₹2,500-3,500/ton
+    - Soybean: ₹40,000-50,000/ton  
+    - Wheat: ₹20,000-25,000/ton
+    - Rice: ₹25,000-35,000/ton
+    - Onion: ₹15,000-30,000/ton
+    - Tomato: ₹20,000-40,000/ton
 
-Based on current market conditions, seasonal factors, and typical price patterns:
+    JSON format:
+    {{
+      "current_price": <price>,
+      "forecast_7d": <price>,
+      "trend": "increasing/decreasing/stable",
+      "supply": "high/low/normal",
+      "demand": "high/low/stable",
+      "confidence": "medium",
+      "factors": ["factor1", "factor2"],
+      "recommendation": "sell now/wait/hold",
+      "reasoning": "brief explanation"
+    }}
 
-Provide:
-1. Current estimated price (₹/ton) - MUST be within realistic range
-2. 7-day forecast price (₹/ton) - MUST be within realistic range
-3. Trend (increasing/decreasing/stable)
-4. Supply signal (high/low/normal)
-5. Demand signal (high/low/stable)
-6. Confidence level (medium - since no historical data)
-7. 2-3 key factors affecting prices
-8. Recommendation (sell now/wait/hold)
-
-Format as JSON:
-{{
-  "current_price": <price>,
-  "forecast_7d": <price>,
-  "trend": "<trend>",
-  "supply": "<signal>",
-  "demand": "<signal>",
-  "confidence": "medium",
-  "factors": ["factor1", "factor2"],
-  "recommendation": "<action>",
-  "reasoning": "<brief explanation>"
-}}"""
+    {crop_name} forecast:"""
             else:
-                prompt = f"""आप एक कृषि बाजार विश्लेषक हैं। {state}, भारत में {crop_name} के लिए 7 दिन का मूल्य पूर्वानुमान प्रदान करें।
+                prompt = f"""{state}, भारत में {crop_name} के लिए 7 दिन का मूल्य पूर्वानुमान।
 
-महत्वपूर्ण: वास्तविक भारतीय बाजार मूल्य का उपयोग करें। सामान्य सीमा:
-- गन्ना: ₹2,500-3,500/टन
-- सोयाबीन: ₹40,000-50,000/टन
-- गेहूं: ₹20,000-25,000/टन
-- चावल: ₹25,000-35,000/टन
-- प्याज: ₹15,000-30,000/टन
-- टमाटर: ₹20,000-40,000/टन
-- कपास: ₹50,000-70,000/टन
+    वास्तविक भारतीय मूल्य सीमा:
+    - गन्ना: ₹2,500-3,500/टन
+    - सोयाबीन: ₹40,000-50,000/टन
+    - गेहूं: ₹20,000-25,000/टन
 
-वर्तमान बाजार स्थितियों, मौसमी कारकों और सामान्य मूल्य पैटर्न के आधार पर:
+    JSON प्रारूप:
+    {{
+      "current_price": <मूल्य>,
+      "forecast_7d": <मूल्य>,
+      "trend": "increasing/decreasing/stable",
+      "supply": "high/low/normal",
+      "demand": "high/low/stable",
+      "confidence": "medium",
+      "factors": ["कारक1", "कारक2"],
+      "recommendation": "sell now/wait/hold",
+      "reasoning": "संक्षिप्त स्पष्टीकरण"
+    }}
 
-प्रदान करें:
-1. वर्तमान अनुमानित मूल्य (₹/टन) - वास्तविक सीमा के भीतर होना चाहिए
-2. 7 दिन का पूर्वानुमान मूल्य (₹/टन) - वास्तविक सीमा के भीतर होना चाहिए
-3. रुझान (increasing/decreasing/stable)
-4. आपूर्ति संकेत (high/low/normal)
-5. मांग संकेत (high/low/stable)
-6. विश्वास स्तर (medium - क्योंकि कोई ऐतिहासिक डेटा नहीं)
-7. मूल्यों को प्रभावित करने वाले 2-3 मुख्य कारक
-8. सिफारिश (sell now/wait/hold)
+    {crop_name} पूर्वानुमान:"""
 
-JSON के रूप में प्रारूपित करें:
-{{
-  "current_price": <मूल्य>,
-  "forecast_7d": <मूल्य>,
-  "trend": "<रुझान>",
-  "supply": "<संकेत>",
-  "demand": "<संकेत>",
-  "confidence": "medium",
-  "factors": ["कारक1", "कारक2"],
-  "recommendation": "<कार्रवाई>",
-  "reasoning": "<संक्षिप्त स्पष्टीकरण>"
-}}"""
-            
+            # Optimized API call
             request_body = {
                 "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 1000,
-                "temperature": 0.5,
+                "max_tokens": 800,  # Reduced tokens
+                "temperature": 0.3,  # Lower for consistency
                 "messages": [{"role": "user", "content": prompt}]
             }
-            
+
             response = bedrock.invoke_model(
                 modelId='anthropic.claude-3-sonnet-20240229-v1:0',
                 body=json.dumps(request_body)
             )
-            
+
             response_body = json.loads(response['body'].read())
             ai_response = response_body['content'][0]['text']
-            
-            # Extract JSON
+
+            # Optimized JSON extraction
             import re
             json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
             if json_match:
                 forecast_data = json.loads(json_match.group())
-                
-                # Format into standard structure
-                current_price = forecast_data.get('current_price', 3000)
-                forecast_price = forecast_data.get('forecast_7d', current_price)
+
+                # Validate and format data
+                current_price = max(100, min(200000, forecast_data.get('current_price', 3000)))
+                forecast_price = max(100, min(200000, forecast_data.get('forecast_7d', current_price)))
                 price_change = ((forecast_price - current_price) / current_price) * 100
-                
+
                 trend = forecast_data.get('trend', 'stable')
                 trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "➡️"
-                
+
                 complete_forecast = {
                     "crop": crop_name,
                     "state": state,
@@ -550,20 +572,20 @@ JSON के रूप में प्रारूपित करें:
                     "price_change_pct": round(price_change, 2),
                     "supply_signal": forecast_data.get('supply', 'normal'),
                     "demand_signal": forecast_data.get('demand', 'stable'),
-                    "factors": forecast_data.get('factors', []),
+                    "factors": forecast_data.get('factors', [])[:3],  # Limit factors
                     "recommendation": forecast_data.get('recommendation', 'hold'),
-                    "reasoning": forecast_data.get('reasoning', ''),
+                    "reasoning": forecast_data.get('reasoning', '')[:200],  # Truncate reasoning
                     "data_points": 0,  # No historical data
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M IST"),
                     "ai_only": True
                 }
-                
+
                 print(f"[FORECAST] ✅ AI-only forecast generated: ₹{current_price} → ₹{forecast_price}")
                 return complete_forecast
             else:
                 print(f"[FORECAST] Could not parse AI response")
                 return None
-                
+
         except Exception as e:
             print(f"[FORECAST] Error in AI-only forecast: {e}")
             import traceback
@@ -592,48 +614,54 @@ def format_forecast_response(forecast, language='hindi'):
     from_dynamodb = forecast.get('from_dynamodb', False)
     
     if language == 'english':
-        msg = f"📊 *Price Forecast - {crop}*\n\n"
-        msg += f"💰 Current Price: ₹{current}/ton\n"
+        msg = f"📊 *Market Analysis - {crop.title()}*\n\n"
+        msg += f"💰 *Current Market Price*: ₹{current:,}/ton\n"
         
         if forecast_price:
             change = forecast_price - current
             change_pct = (change / current) * 100
-            msg += f"🔮 7-Day Forecast: ₹{int(forecast_price)}/ton\n"
-            msg += f"   ({'+' if change > 0 else ''}₹{int(change)}, {'+' if change_pct > 0 else ''}{change_pct:.1f}%)\n\n"
+            direction = "↗️" if change > 0 else "↘️" if change < 0 else "➡️"
+            msg += f"🔮 *7-Day Forecast*: ₹{int(forecast_price):,}/ton\n"
+            msg += f"   {direction} Change: {'+' if change > 0 else ''}₹{int(change):,} ({'+' if change_pct > 0 else ''}{change_pct:.1f}%)\n\n"
         
-        msg += f"{trend_emoji} Trend: {forecast['trend'].title()}\n"
-        msg += f"📦 Supply: {supply.title()}\n"
-        msg += f"📈 Demand: {demand.title()}\n"
-        msg += f"✅ Confidence: {confidence.title()}\n\n"
+        msg += f"📈 *Market Indicators*\n"
+        msg += f"• Trend: {trend_emoji} {forecast['trend'].title()}\n"
+        msg += f"• Supply: {supply.title()}\n"
+        msg += f"• Demand: {demand.title()}\n"
+        msg += f"• Confidence: {confidence.title()}\n\n"
         
-        msg += f"💡 *Recommendation*: {recommendation.title()}\n\n"
+        msg += f"💡 *Trading Recommendation*\n"
+        msg += f"Action: *{recommendation.title()}*\n\n"
         
         if forecast.get('factors'):
-            msg += f"🔍 *Key Factors*:\n"
-            for factor in forecast['factors'][:3]:
-                msg += f"• {factor}\n"
+            msg += f"🔍 *Market Factors*\n"
+            for i, factor in enumerate(forecast['factors'][:3], 1):
+                msg += f"{i}. {factor}\n"
         
     else:
-        msg = f"📊 *मूल्य पूर्वानुमान - {crop}*\n\n"
-        msg += f"💰 वर्तमान मूल्य: ₹{current}/टन\n"
+        msg = f"📊 *बाजार विश्लेषण - {crop}*\n\n"
+        msg += f"💰 *वर्तमान बाजार मूल्य*: ₹{current:,}/टन\n"
         
         if forecast_price:
             change = forecast_price - current
             change_pct = (change / current) * 100
-            msg += f"🔮 7 दिन का पूर्वानुमान: ₹{int(forecast_price)}/टन\n"
-            msg += f"   ({'+' if change > 0 else ''}₹{int(change)}, {'+' if change_pct > 0 else ''}{change_pct:.1f}%)\n\n"
+            direction = "↗️" if change > 0 else "↘️" if change < 0 else "➡️"
+            msg += f"🔮 *7 दिन का पूर्वानुमान*: ₹{int(forecast_price):,}/टन\n"
+            msg += f"   {direction} परिवर्तन: {'+' if change > 0 else ''}₹{int(change):,} ({'+' if change_pct > 0 else ''}{change_pct:.1f}%)\n\n"
         
-        msg += f"{trend_emoji} रुझान: {forecast['trend']}\n"
-        msg += f"📦 आपूर्ति: {supply}\n"
-        msg += f"📈 मांग: {demand}\n"
-        msg += f"✅ विश्वास: {confidence}\n\n"
+        msg += f"📈 *बाजार संकेतक*\n"
+        msg += f"• रुझान: {trend_emoji} {forecast['trend']}\n"
+        msg += f"• आपूर्ति: {supply}\n"
+        msg += f"• मांग: {demand}\n"
+        msg += f"• विश्वास: {confidence}\n\n"
         
-        msg += f"💡 *सिफारिश*: {recommendation}\n\n"
+        msg += f"💡 *व्यापारिक सिफारिश*\n"
+        msg += f"कार्रवाई: *{recommendation}*\n\n"
         
         if forecast.get('factors'):
-            msg += f"🔍 *मुख्य कारक*:\n"
-            for factor in forecast['factors'][:3]:
-                msg += f"• {factor}\n"
+            msg += f"🔍 *बाजार कारक*\n"
+            for i, factor in enumerate(forecast['factors'][:3], 1):
+                msg += f"{i}. {factor}\n"
     
     return msg
 

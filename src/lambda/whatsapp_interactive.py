@@ -13,7 +13,7 @@ def create_language_selection():
                 "text": "🌾 KisaanMitra"
             },
             "body": {
-                "text": "*Welcome to KisaanMitra!*\n\nYour AI-powered farming assistant for:\n✓ Crop disease detection\n✓ Market prices\n✓ Budget planning\n✓ Weather alerts\n\n*Please select your language:*\nकृपया अपनी भाषा चुनें:"
+                "text": "*Welcome to KisaanMitra*\n\nYour comprehensive AI-powered agricultural assistant providing:\n\n✓ Advanced crop disease detection\n✓ Real-time market price analysis\n✓ Intelligent budget planning\n✓ Weather forecasting & alerts\n\n*Please select your preferred language:*\nकृपया अपनी भाषा चुनें:"
             },
             "action": {
                 "buttons": [
@@ -48,10 +48,10 @@ def create_main_menu(language='hindi'):
                     "text": "🌾 KisaanMitra"
                 },
                 "body": {
-                    "text": "*Main Menu*\n\nHow can I help you today?"
+                    "text": "*Service Menu*\n\nSelect the service you need assistance with:"
                 },
                 "footer": {
-                    "text": "Powered by AI"
+                    "text": "AI-Powered Agricultural Solutions"
                 },
                 "action": {
                     "button": "Select Service",
@@ -61,18 +61,18 @@ def create_main_menu(language='hindi'):
                             "rows": [
                                 {
                                     "id": "crop_health",
-                                    "title": "🔍 Crop Health",
-                                    "description": "Disease detection & treatment"
+                                    "title": "🔍 Crop Health Analysis",
+                                    "description": "Disease detection & treatment recommendations"
                                 },
                                 {
                                     "id": "market_price",
-                                    "title": "📊 Market Prices",
-                                    "description": "Live mandi rates"
+                                    "title": "📊 Market Intelligence",
+                                    "description": "Live market rates & price forecasting"
                                 },
                                 {
                                     "id": "budget_plan",
-                                    "title": "💰 Budget Planning",
-                                    "description": "Crop cost & profit analysis"
+                                    "title": "💰 Financial Planning",
+                                    "description": "Crop cost analysis & profit optimization"
                                 }
                             ]
                         },
@@ -81,8 +81,8 @@ def create_main_menu(language='hindi'):
                             "rows": [
                                 {
                                     "id": "weather",
-                                    "title": "🌤️ Weather Forecast",
-                                    "description": "7-day weather & alerts"
+                                    "title": "🌤️ Weather Intelligence",
+                                    "description": "7-day forecasts & agricultural alerts"
                                 }
                             ]
                         }
@@ -100,10 +100,10 @@ def create_main_menu(language='hindi'):
                     "text": "🌾 KisaanMitra"
                 },
                 "body": {
-                    "text": "*मुख्य मेनू*\n\nमैं आपकी कैसे मदद कर सकता हूं?"
+                    "text": "*सेवा मेनू*\n\nकृपया वह सेवा चुनें जिसमें आपको सहायता चाहिए:"
                 },
                 "footer": {
-                    "text": "AI द्वारा संचालित"
+                    "text": "AI-संचालित कृषि समाधान"
                 },
                 "action": {
                     "button": "सेवा चुनें",
@@ -113,18 +113,18 @@ def create_main_menu(language='hindi'):
                             "rows": [
                                 {
                                     "id": "crop_health",
-                                    "title": "🔍 फसल स्वास्थ्य",
-                                    "description": "रोग पहचान और उपचार"
+                                    "title": "🔍 फसल स्वास्थ्य विश्लेषण",
+                                    "description": "रोग पहचान और उपचार सुझाव"
                                 },
                                 {
                                     "id": "market_price",
-                                    "title": "📊 बाजार भाव",
-                                    "description": "लाइव मंडी दरें"
+                                    "title": "📊 बाजार बुद्धिमत्ता",
+                                    "description": "लाइव बाजार दरें और मूल्य पूर्वानुमान"
                                 },
                                 {
                                     "id": "budget_plan",
-                                    "title": "💰 बजट योजना",
-                                    "description": "फसल लागत और लाभ विश्लेषण"
+                                    "title": "💰 वित्तीय योजना",
+                                    "description": "फसल लागत विश्लेषण और लाभ अनुकूलन"
                                 }
                             ]
                         },
@@ -133,8 +133,8 @@ def create_main_menu(language='hindi'):
                             "rows": [
                                 {
                                     "id": "weather",
-                                    "title": "🌤️ मौसम पूर्वानुमान",
-                                    "description": "7 दिन का मौसम और अलर्ट"
+                                    "title": "🌤️ मौसम बुद्धिमत्ता",
+                                    "description": "7 दिन का पूर्वानुमान और कृषि अलर्ट"
                                 }
                             ]
                         }

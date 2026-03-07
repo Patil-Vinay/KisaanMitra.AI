@@ -64,58 +64,148 @@ print(f"[INIT] Disease Detection: {ENHANCED_DISEASE_AVAILABLE}, Hyperlocal: {HYP
 
 
 def lambda_handler(event, context):
-    """Main Lambda handler - simplified and modular"""
+    """Main Lambda handler - optimized with monitoring and memory management"""
+    import gc  # Garbage collection for memory optimization
+
     print(f"[LAMBDA] ========================================")
     print(f"[LAMBDA] INVOCATION STARTED")
+    print(f"[LAMBDA] Memory limit: {context.memory_limit_in_mb}MB")
+    print(f"[LAMBDA] Remaining time: {context.get_remaining_time_in_millis()}ms")
     print(f"[LAMBDA] ========================================")
-    
+
+    # Import monitoring if available
+    try:
+        from services.cache_service import CacheService
+        cache_stats = CacheService.get_stats()
+        print(f"[LAMBDA] Cache stats: {cache_stats}")
+    except:
+        pass
+
     # Webhook verification
     if event.get("queryStringParameters"):
         params = event["queryStringParameters"]
-        if params.get("hub.verify_token") == VERIFY_TOKEN:
+        if params and params.get("hub.verify_token") == VERIFY_TOKEN:
             print(f"[LAMBDA] Webhook verification successful")
-            return {'statusCode': 200, 'body': params.get("hub.challenge")}
-    
+            return {'statusCode': 200, 'body': params.get("hub.challenge", "")}
+
     try:
-        body = json.loads(event["body"])
-        value = body["entry"][0]["changes"][0]["value"]
-        
-        # Ignore status updates
-        if "statuses" in value:
+        # Enhanced input validation
+        if not event.get("body"):
+            print(f"[ERROR] No body in event")
+            return {'statusCode': 400, 'body': 'No body provided'}
+
+        try:
+            body = json.loads(event["body"])
+        except json.JSONDecodeError as e:
+            print(f"[ERROR] Invalid JSON in body: {e}")
+            return {'statusCode': 400, 'body': 'Invalid JSON'}
+
+        # Validate WhatsApp webhook structure with better error handling
+        if not body.get("entry") or not isinstance(body["entry"], list) or not body["entry"]:
+            print(f"[ERROR] Invalid webhook structure - no entry")
+            return {'statusCode': 200, 'body': 'ok'}  # Return 200 to avoid webhook retries
+
+        entry = body["entry"][0]
+        if not entry.get("changes") or not isinstance(entry["changes"], list) or not entry["changes"]:
+            print(f"[ERROR] Invalid webhook structure - no changes")
             return {'statusCode': 200, 'body': 'ok'}
-        
-        if "messages" not in value:
+
+        change = entry["changes"][0]
+        value = change.get("value", {})
+
+        # Ignore status updates and other non-message events
+        if "statuses" in value or "contacts" in value:
             return {'statusCode': 200, 'body': 'ok'}
-        
+
+        if "messages" not in value or not isinstance(value["messages"], list) or not value["messages"]:
+            return {'statusCode': 200, 'body': 'ok'}
+
         msg = value["messages"][0]
-        from_number = msg["from"]
+        from_number = msg.get("from")
         msg_type = msg.get("type")
-        
+
+        # Enhanced field validation
+        if not from_number or not msg_type:
+            print(f"[ERROR] Missing required fields: from={from_number}, type={msg_type}")
+            return {'statusCode': 200, 'body': 'ok'}
+
+        # Rate limiting per user
+        try:
+            from services.cache_service import RateLimiter
+            user_rate_key = RateLimiter.get_user_key(from_number, "message")
+            if not RateLimiter.is_allowed(user_rate_key, max_requests=20, window_seconds=60):
+                print(f"[RATE LIMIT] User {from_number} rate limited")
+                WhatsAppService.send_message(
+                    from_number,
+                    "You're sending messages too quickly. Please wait a moment before trying again."
+                )
+                return {'statusCode': 200, 'body': 'ok'}
+        except:
+            pass  # Continue without rate limiting if service unavailable
+
         print(f"[LAMBDA] Message from: {from_number}, Type: {msg_type}")
-        
+
+        # Memory check before processing
+        remaining_time = context.get_remaining_time_in_millis()
+        if remaining_time < 5000:  # Less than 5 seconds remaining
+            print(f"[WARNING] Low remaining time: {remaining_time}ms")
+            WhatsAppService.send_message(from_number, "Processing timeout. Please try again.")
+            return {'statusCode': 200, 'body': 'timeout'}
+
         # Handle interactive button/list responses
         if msg_type == "interactive":
-            return handle_interactive_response(msg, from_number)
-        
+            result = handle_interactive_response(msg, from_number)
+            gc.collect()  # Memory cleanup
+            return result
+
         # Check user onboarding status
         is_new_user, onboarding_state = check_user_status(from_number)
-        
+
         # Handle new users or users in onboarding
         if is_new_user or (onboarding_state and onboarding_state != "completed"):
-            return handle_onboarding(msg, from_number, msg_type)
-        
+            result = handle_onboarding(msg, from_number, msg_type)
+            gc.collect()  # Memory cleanup
+            return result
+
         # Handle existing users
         if msg_type == "text":
-            return handle_text_message(msg, from_number)
+            result = handle_text_message(msg, from_number)
         elif msg_type == "image":
-            return handle_image_message(msg, from_number)
+            result = handle_image_message(msg, from_number)
         else:
-            return handle_unsupported_message(from_number, msg_type)
-    
+            result = handle_unsupported_message(from_number, msg_type)
+
+        # Final memory cleanup
+        gc.collect()
+
+        # Log final stats
+        final_time = context.get_remaining_time_in_millis()
+        processing_time = remaining_time - final_time
+        print(f"[LAMBDA] Processing completed in {processing_time}ms")
+
+        return result
+
+    except KeyError as e:
+        print(f"[ERROR] Missing required key in webhook data: {e}")
+        return {'statusCode': 200, 'body': 'ok'}  # Return 200 to avoid retries
     except Exception as e:
         print(f"[ERROR] Lambda error: {e}")
         import traceback
         traceback.print_exc()
+
+        # Enhanced error reporting
+        try:
+            if 'from_number' in locals() and from_number:
+                WhatsAppService.send_message(
+                    from_number,
+                    "Sorry, I encountered an error. Please try again in a moment."
+                )
+        except:
+            pass  # Don't let error handling cause more errors
+
+        # Memory cleanup on error
+        gc.collect()
+
         return {'statusCode': 500, 'body': 'error'}
 
 
@@ -195,7 +285,7 @@ def handle_text_message(msg, from_number):
     if agent == "crop":
         reply, should_add_nav = CropAgent.handle(user_message, from_number, user_lang)
     elif agent == "market":
-        reply, should_add_nav = MarketAgent.handle(user_message, user_lang, from_number)
+        reply, should_add_nav = MarketAgent.handle(user_message, from_number, user_lang)
     elif agent == "finance":
         reply, should_add_nav = FinanceAgent.handle(user_message, from_number, user_lang)
     else:  # general or greeting

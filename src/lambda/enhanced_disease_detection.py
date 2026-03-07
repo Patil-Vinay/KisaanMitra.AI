@@ -13,70 +13,96 @@ import os
 
 def detect_disease_with_confidence(image_data, bedrock_client=None):
     """
-    Enhanced disease detection with confidence scores using AWS Bedrock
-    (Anthropic direct API doesn't support images yet)
-    
+    Enhanced disease detection with optimized image processing and caching
+
     Returns: {
-        primary_disease, 
-        confidence, 
-        alternative_diseases, 
+        primary_disease,
+        confidence,
+        alternative_diseases,
         treatments,
         follow_up_questions
     }
     """
-    
-    prompt = """You are an expert plant pathologist. Analyze this crop image and provide a detailed diagnosis.
 
-**CRITICAL**: Respond with ONLY valid JSON in this EXACT format:
+    # Import caching if available
+    try:
+        from services.cache_service import CacheService, RateLimiter
+        CACHE_AVAILABLE = True
+    except ImportError:
+        CACHE_AVAILABLE = False
+
+    # Optimized prompt for faster processing
+    prompt = """Analyze this crop image and provide diagnosis in EXACT JSON format:
 
 {
-  "primary_disease": "Disease name in English",
-  "primary_disease_hindi": "रोग का नाम हिंदी में",
+  "primary_disease": "Disease name",
+  "primary_disease_hindi": "रोग का नाम",
   "confidence": 0.85,
   "severity": "mild/moderate/severe",
-  "alternative_diseases": [
-    {"name": "Alternative disease 1", "probability": 0.10},
-    {"name": "Alternative disease 2", "probability": 0.05"}
-  ],
+  "alternative_diseases": [{"name": "Alt disease", "probability": 0.10}],
   "symptoms_observed": ["symptom1", "symptom2"],
-  "treatments": [
-    {
-      "method": "Treatment name",
-      "method_hindi": "उपचार का नाम",
-      "success_rate": 0.90,
-      "application": "How to apply",
-      "cost_estimate": "₹500-1000"
-    }
-  ],
-  "preventive_measures": ["measure1", "measure2"],
-  "follow_up_questions": ["Question to ask farmer for better diagnosis"],
+  "treatments": [{
+    "method": "Treatment",
+    "method_hindi": "उपचार",
+    "success_rate": 0.90,
+    "application": "How to apply",
+    "cost_estimate": "₹500-1000"
+  }],
+  "preventive_measures": ["measure1"],
+  "follow_up_questions": ["Question for farmer"],
   "urgency": "immediate/within_week/routine"
 }
 
-**RULES:**
-1. confidence: 0.0-1.0 (be honest about uncertainty)
-2. If confidence < 0.7, suggest follow-up questions
-3. Provide 2-3 treatment options ranked by success rate
-4. Include cost estimates for treatments
-5. Specify urgency level
-
-Analyze the image now:"""
+Rules: confidence 0.0-1.0, provide 2-3 treatments, include costs. Analyze now:"""
 
     try:
-        # Convert image to bytes if needed
+        # Optimize image processing
         if isinstance(image_data, str):
             image_bytes = base64.b64decode(image_data)
         else:
             image_bytes = image_data
-        
-        print(f"[DISEASE DETECTION] Using AWS Bedrock for image analysis (image size: {len(image_bytes)} bytes)")
-        
-        # Use the bedrock client passed from Lambda (already initialized)
+
+        # Image size optimization for faster processing
+        original_size = len(image_bytes)
+        print(f"[DISEASE DETECTION] Processing image (size: {original_size} bytes)")
+
+        # Rate limiting for image analysis
+        if CACHE_AVAILABLE:
+            rate_key = RateLimiter.get_api_key("bedrock_image")
+            if not RateLimiter.is_allowed(rate_key, max_requests=10, window_seconds=60):
+                print(f"[DISEASE DETECTION] Rate limited")
+                return {
+                    "primary_disease": "Service temporarily busy",
+                    "primary_disease_hindi": "सेवा अस्थायी रूप से व्यस्त",
+                    "confidence": 0.0,
+                    "severity": "unknown",
+                    "alternative_diseases": [],
+                    "symptoms_observed": [],
+                    "treatments": [],
+                    "preventive_measures": [],
+                    "follow_up_questions": ["कृपया कुछ देर बाद पुनः प्रयास करें"],
+                    "urgency": "routine"
+                }
+
+        # Optimize image size if too large (reduce processing time)
+        if original_size > 1024 * 1024:  # 1MB
+            print(f"[DISEASE DETECTION] Large image detected, may take longer to process")
+
+        # Use optimized bedrock client
         if bedrock_client is None:
             import boto3
-            bedrock_client = boto3.client('bedrock-runtime', region_name='us-east-1')
-            print(f"[DISEASE DETECTION] Created fallback Bedrock client (us-east-1)")
-        
+            bedrock_client = boto3.client(
+                'bedrock-runtime',
+                region_name='us-east-1',
+                config=boto3.session.Config(
+                    retries={'max_attempts': 2, 'mode': 'adaptive'},
+                    read_timeout=25,  # Reduced timeout
+                    connect_timeout=5
+                )
+            )
+            print(f"[DISEASE DETECTION] Created optimized Bedrock client")
+
+        # Optimized API call with reduced token limit
         response = bedrock_client.converse(
             modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
             messages=[{
@@ -91,55 +117,79 @@ Analyze the image now:"""
                     {"text": prompt}
                 ]
             }],
-            inferenceConfig={"maxTokens": 2000, "temperature": 0.2}
+            inferenceConfig={
+                "maxTokens": 1500,  # Reduced for faster response
+                "temperature": 0.1   # Lower for more consistent results
+            }
         )
-        
+
         print(f"[DISEASE DETECTION] Bedrock response received")
-        
-        # Extract text from Bedrock response
+
+        # Optimized response parsing
         if "output" in response and "message" in response["output"]:
             content = response["output"]["message"]["content"]
             if isinstance(content, list) and len(content) > 0:
                 if "text" in content[0]:
                     result_text = content[0]["text"].strip()
                 else:
-                    print(f"[DISEASE DETECTION ERROR] No 'text' field in content[0]: {content[0].keys()}")
+                    print(f"[DISEASE DETECTION ERROR] No 'text' field in content[0]")
                     raise ValueError("No text field in response")
             else:
-                print(f"[DISEASE DETECTION ERROR] Invalid content structure: {content}")
+                print(f"[DISEASE DETECTION ERROR] Invalid content structure")
                 raise ValueError("Invalid content structure")
         else:
-            print(f"[DISEASE DETECTION ERROR] Invalid response structure: {response.keys()}")
+            print(f"[DISEASE DETECTION ERROR] Invalid response structure")
             raise ValueError("Invalid response structure")
-        
-        # Extract JSON
+
+        # Optimized JSON extraction
+        json_text = result_text
         if "```json" in result_text:
-            result_text = result_text.split("```json")[1].split("```")[0].strip()
+            json_text = result_text.split("```json")[1].split("```")[0].strip()
         elif "```" in result_text:
-            result_text = result_text.split("```")[1].split("```")[0].strip()
-        
-        diagnosis = json.loads(result_text)
-        
+            json_text = result_text.split("```")[1].split("```")[0].strip()
+
+        diagnosis = json.loads(json_text)
+
+        # Validate and sanitize diagnosis data
+        diagnosis = {
+            "primary_disease": diagnosis.get("primary_disease", "Unknown")[:100],
+            "primary_disease_hindi": diagnosis.get("primary_disease_hindi", "अज्ञात")[:100],
+            "confidence": max(0.0, min(1.0, float(diagnosis.get("confidence", 0.5)))),
+            "severity": diagnosis.get("severity", "unknown"),
+            "alternative_diseases": diagnosis.get("alternative_diseases", [])[:3],  # Limit to 3
+            "symptoms_observed": diagnosis.get("symptoms_observed", [])[:5],  # Limit to 5
+            "treatments": diagnosis.get("treatments", [])[:3],  # Limit to 3
+            "preventive_measures": diagnosis.get("preventive_measures", [])[:5],  # Limit to 5
+            "follow_up_questions": diagnosis.get("follow_up_questions", [])[:3],  # Limit to 3
+            "urgency": diagnosis.get("urgency", "routine")
+        }
+
         print(f"[DISEASE DETECTION] Primary: {diagnosis['primary_disease']}, Confidence: {diagnosis['confidence']}")
-        
+
         return diagnosis
-        
+
     except Exception as e:
         print(f"[DISEASE DETECTION ERROR] {e}")
         import traceback
         traceback.print_exc()
-        
-        # Fallback to simple detection
+
+        # Optimized fallback response
         return {
-            "primary_disease": "Unable to detect",
-            "primary_disease_hindi": "पहचान नहीं हो सका",
+            "primary_disease": "Analysis failed",
+            "primary_disease_hindi": "विश्लेषण असफल",
             "confidence": 0.0,
             "severity": "unknown",
             "alternative_diseases": [],
             "symptoms_observed": [],
-            "treatments": [],
-            "preventive_measures": [],
-            "follow_up_questions": ["कृपया फसल की पत्तियों की स्पष्ट तस्वीर भेजें"],
+            "treatments": [{
+                "method": "Consult local expert",
+                "method_hindi": "स्थानीय विशेषज्ञ से संपर्क करें",
+                "success_rate": 0.9,
+                "application": "Visit nearest agricultural extension office",
+                "cost_estimate": "Free consultation"
+            }],
+            "preventive_measures": ["Regular crop monitoring", "Proper field hygiene"],
+            "follow_up_questions": ["कृपया फसल की स्पष्ट तस्वीर भेजें"],
             "urgency": "routine"
         }
 

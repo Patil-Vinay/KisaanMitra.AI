@@ -58,16 +58,26 @@ def get_mock_weather(location):
     print(f"[CRITICAL] This is NOT real weather! Get OpenWeather API key!")
     print(f"[ACTION] Visit https://openweathermap.org/api to get API key")
     
+    # Generate mock data with proper datetime stamps
+    import time
+    current_time = int(time.time())
+    
+    mock_forecasts = []
+    for i in range(56):  # 7 days * 8 intervals (3-hour intervals)
+        mock_forecasts.append({
+            'dt': current_time + (i * 3 * 3600),  # Add 3 hours for each interval
+            'main': {
+                'temp': 28 + (i % 10) - 5,  # Vary temperature
+                'humidity': 65 + (i % 20) - 10
+            },
+            'weather': [{'main': 'Clear', 'description': '⚠️ MOCK DATA - NOT REAL'}],
+            'rain': {'3h': 0.5} if i % 12 == 0 else None  # Mock rain every 12 intervals
+        })
+    
     # FAKE DATA - DO NOT USE IN PRODUCTION
     return {
         'city': {'name': location},
-        'list': [
-            {
-                'main': {'temp': 28, 'humidity': 65},
-                'weather': [{'main': 'Clear', 'description': '⚠️ MOCK DATA - NOT REAL'}],
-                'rain': None
-            }
-        ] * 8
+        'list': mock_forecasts
     }
 
 def analyze_weather_for_farming(forecast):
@@ -146,16 +156,16 @@ def analyze_weather_for_farming(forecast):
     recommendations = []
     
     if rain_coming and days_until_rain <= 1:
-        recommendations.append("⚠️ 24 घंटे में बारिश संभव - अभी कीटनाशक स्प्रे करें!")
+        recommendations.append("Rain expected within 24 hours - Apply pesticides immediately")
     
     if max_temp > 38:
-        recommendations.append("🌡️ अत्यधिक गर्मी - सिंचाई बढ़ाएं")
+        recommendations.append("High temperature alert - Increase irrigation frequency")
     
     if min_temp < 12:
-        recommendations.append("❄️ ठंड - फसल को ढकें")
+        recommendations.append("Cold weather warning - Protect crops with covering")
     
     if not recommendations:
-        recommendations.append("✅ मौसम अनुकूल है")
+        recommendations.append("Weather conditions are favorable for farming")
     
     return {
         'rain_expected': rain_coming,
@@ -172,7 +182,8 @@ def format_weather_response(location, analysis):
     
     # Show 7-day forecast if available
     if analysis.get('daily_forecast'):
-        message += "📅 *7-Day Forecast*\n"
+        message += "📅 *7-Day Weather Outlook*\n"
+        message += "```\n"
         
         weather_emoji = {
             'Clear': '☀️',
@@ -187,26 +198,26 @@ def format_weather_response(location, analysis):
         
         for day in analysis['daily_forecast']:
             emoji = weather_emoji.get(day['weather'], '🌤️')
-            rain_icon = '💧' if day['rain'] else ''
-            message += f"{day['day']}: {emoji} {int(day['min_temp'])}°-{int(day['max_temp'])}°C {rain_icon}\n"
+            rain_status = 'Rain' if day['rain'] else 'Dry'
+            message += f"{day['day']:<3} {emoji} {int(day['min_temp'])}°-{int(day['max_temp'])}°C  {rain_status}\n"
         
-        message += "\n"
+        message += "```\n\n"
     else:
         # Fallback to simple format
-        message += f"📅 *Next 7 Days*\n"
-        message += f"🌡️ Temperature: {analysis['min_temp']}°C - {analysis['max_temp']}°C\n"
+        message += f"📅 *Weather Summary*\n"
+        message += f"🌡️ Temperature Range: {analysis['min_temp']}°C - {analysis['max_temp']}°C\n"
         
         if analysis['rain_expected']:
-            message += f"🌧️ Rain Expected: In {analysis['days_until_rain']} day(s)\n"
+            message += f"🌧️ Rain Expected: Within {analysis['days_until_rain']} day(s)\n"
         else:
             message += "☀️ Rain: Not expected in next 3 days\n"
         
         message += "\n"
     
-    message += "*🌾 Farming Advice*:\n"
-    for rec in analysis['recommendations']:
-        message += f"• {rec}\n"
+    message += "*🌾 Agricultural Recommendations*\n"
+    for i, rec in enumerate(analysis['recommendations'], 1):
+        message += f"{i}. {rec}\n"
     
-    message += "\n💡 *Tip*: Check weather daily for best farming decisions!"
+    message += "\n💡 *Advisory*: Monitor weather conditions daily for optimal farming decisions"
     
     return message
