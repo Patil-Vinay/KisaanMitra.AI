@@ -38,13 +38,22 @@ Status: Successful
 ### Web Demo - ✅ WORKING
 - Endpoint: https://8zu6u7bc48.execute-api.ap-south-1.amazonaws.com/prod/chat
 - Test 1: New user greeting - SUCCESS
-- Test 2: Weather query - SUCCESS (onboarding flow triggered)
+- Test 2: Weather query - SUCCESS (direct response, no onboarding)
+- Test 3: Market price query - SUCCESS (direct response)
 - Status: Fully functional
 
 ### WhatsApp Bot - Ready for Testing
 - Function: whatsapp-llama-bot
 - Handler: Unified (routes WhatsApp webhooks correctly)
 - Status: Deployed and ready
+
+## Fixes Applied
+
+### 1. Web Demo Onboarding Skip
+- Issue: Web users were forced through onboarding before getting answers
+- Fix: Disabled onboarding for web demo users to allow immediate query responses
+- Result: Weather, market, and other queries now work instantly on web demo
+- File: `src/lambda/lambda_handler_web.py`
 
 ## What Was Reverted
 The following changes made after bd43a03 were reverted:
