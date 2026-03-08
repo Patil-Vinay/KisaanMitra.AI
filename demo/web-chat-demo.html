@@ -146,6 +146,79 @@
             display: none;
         }
 
+        /* Footer */
+        .footer {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .footer-team {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .footer-team strong {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .footer-members {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .footer-member {
+            background: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            font-size: 12px;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .footer-github {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #1e293b;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .footer-github:hover {
+            background: #11998e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .footer-team {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
         .header-icon {
             width: 56px;
             height: 56px;
@@ -735,6 +808,22 @@
                 >
             </div>
             <button class="btn" id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-team">
+                <strong>Team:</strong>
+                <div class="footer-members">
+                    <span class="footer-member">Aditya Rane</span>
+                    <span class="footer-member">Parth Nikam</span>
+                    <span class="footer-member">Vinay Patil</span>
+                </div>
+            </div>
+            <a href="https://github.com/parth-nikam/KisaanMitra.AI" target="_blank" class="footer-github">
+                <span>⭐</span>
+                <span>View on GitHub</span>
+            </a>
         </div>
     </div>
 
