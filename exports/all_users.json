@@ -1,0 +1,148 @@
+{
+    "Items": [
+        {
+            "experience": {
+                "S": "15"
+            },
+            "current_crops": {
+                "S": "sugarcane"
+            },
+            "past_crops": {
+                "S": "rice, soybean, sugarcane"
+            },
+            "challenges": {
+                "S": "\"Pests\" → Pest infestations"
+            },
+            "water_source": {
+                "S": "Drip Irrigation"
+            },
+            "land_acres": {
+                "S": "50"
+            },
+            "goals": {
+                "S": "**Summary:**"
+            },
+            "soil_type": {
+                "S": "Black Cotton Soil"
+            },
+            "name": {
+                "S": "Vinay Patil"
+            },
+            "user_id": {
+                "S": "919000000001"
+            },
+            "district": {
+                "S": "Sangli"
+            },
+            "village": {
+                "S": "Nandani"
+            },
+            "profile_complete": {
+                "BOOL": true
+            },
+            "registered_at": {
+                "S": "2026-03-02T07:43:35.277298"
+            },
+            "phone": {
+                "S": "919000000001"
+            }
+        },
+        {
+            "experience": {
+                "S": "5"
+            },
+            "current_crops": {
+                "S": "Mango"
+            },
+            "past_crops": {
+                "S": "Mango"
+            },
+            "challenges": {
+                "S": "There are no farming challenges mentioned in the input \"Hi.\" The input does not contain any information related"
+            },
+            "water_source": {
+                "S": "Well"
+            },
+            "land_acres": {
+                "S": "5"
+            },
+            "goals": {
+                "S": "Summary: The farming goal extracted from the statement \"increase income\" is to achieve higher earnings through farming"
+            },
+            "soil_type": {
+                "S": "Alluvial Soil"
+            },
+            "name": {
+                "S": "Aditya"
+            },
+            "user_id": {
+                "S": "919000000003"
+            },
+            "district": {
+                "S": "Mumbai"
+            },
+            "village": {
+                "S": "Alibaug"
+            },
+            "profile_complete": {
+                "BOOL": true
+            },
+            "registered_at": {
+                "S": "2026-03-07T08:00:24.770271"
+            },
+            "phone": {
+                "S": "919000000003"
+            }
+        },
+        {
+            "experience": {
+                "S": "6"
+            },
+            "current_crops": {
+                "S": "sugarcane"
+            },
+            "past_crops": {
+                "S": "sugarcane"
+            },
+            "challenges": {
+                "S": "\"Weather uncertainty\" → Unpredictable weather patterns, increased risk of crop failure, difficulty in planning"
+            },
+            "water_source": {
+                "S": "Canal"
+            },
+            "land_acres": {
+                "S": "20"
+            },
+            "goals": {
+                "S": "Summary: The farming goal extracted from the statement \"Increase income\" is to enhance the financial returns from"
+            },
+            "soil_type": {
+                "S": "Black Cotton Soil"
+            },
+            "name": {
+                "S": "Parth Nikam"
+            },
+            "user_id": {
+                "S": "919000000002"
+            },
+            "district": {
+                "S": "Sangli"
+            },
+            "village": {
+                "S": "Nandani"
+            },
+            "profile_complete": {
+                "BOOL": true
+            },
+            "registered_at": {
+                "S": "2026-03-02T16:40:53.275514"
+            },
+            "phone": {
+                "S": "919000000002"
+            }
+        }
+    ],
+    "Count": 3,
+    "ScannedCount": 3,
+    "ConsumedCapacity": null
+}
