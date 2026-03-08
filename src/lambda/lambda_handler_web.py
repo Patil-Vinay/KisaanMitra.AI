@@ -201,8 +201,9 @@ def handle_image_message_web(image_data, user_id, language):
         
         image_bytes = base64.b64decode(image_data)
         
-        # Detect disease
-        result = detect_disease_with_confidence(image_bytes, language)
+        # Get Bedrock client for image analysis
+        # Note: We pass None to let the function create its own optimized client
+        result = detect_disease_with_confidence(image_bytes, bedrock_client=None)
         
         if result:
             response = format_disease_response(result, language)
