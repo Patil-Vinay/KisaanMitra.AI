@@ -495,10 +495,10 @@ def handle_interactive_response(msg, from_number):
             if profile and profile.get('crops'):
                 # Use first crop from profile
                 crop_name = profile['crops'][0] if isinstance(profile['crops'], list) else profile['crops']
-                market_query = f"{crop_name} market price forecast"
+                market_query = f"What is the current price of {crop_name}?"
             else:
-                # Provide general market intelligence for popular crops
-                market_query = "tomato onion potato market prices and forecast"
+                # Provide market intelligence for tomato (most common crop)
+                market_query = "What is the current price of tomato?"
             
             reply, should_add_nav = MarketAgent.handle(market_query, from_number, user_lang)
             WhatsAppService.send_message(from_number, reply)

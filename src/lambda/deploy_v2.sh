@@ -49,9 +49,10 @@ echo "✅ Package created"
 
 # Deploy to Lambda
 echo "🚀 Deploying to Lambda..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 aws lambda update-function-code \
     --function-name whatsapp-llama-bot \
-    --zip-file fileb://whatsapp_deployment.zip \
+    --zip-file fileb://${SCRIPT_DIR}/whatsapp_deployment.zip \
     --region ap-south-1
 
 # Wait for update to complete

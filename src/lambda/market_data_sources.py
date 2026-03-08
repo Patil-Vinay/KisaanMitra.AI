@@ -194,9 +194,9 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
         return None
 
 
-def get_bedrock_ai_fallback(crop_name, state="Maharashtra"):
+def get_claude_ai_fallback(crop_name, state="Maharashtra"):
     """
-    FALLBACK: Use AWS Bedrock with caching and rate limiting
+    FALLBACK: Use Claude API (Anthropic) with caching and rate limiting
     """
     try:
         # Check cache first
@@ -204,28 +204,20 @@ def get_bedrock_ai_fallback(crop_name, state="Maharashtra"):
             cache_key = f"ai_fallback:{crop_name.lower()}:{state.lower()}"
             cached_data = CacheService.get(cache_key)
             if cached_data:
-                print(f"[BEDROCK FALLBACK] Using cached AI data for {crop_name}")
+                print(f"[CLAUDE FALLBACK] Using cached AI data for {crop_name}")
                 return cached_data
 
             # Rate limiting for AI calls
-            ai_rate_key = RateLimiter.get_api_key("bedrock_market")
+            ai_rate_key = RateLimiter.get_api_key("claude_market")
             if not RateLimiter.is_allowed(ai_rate_key, max_requests=15, window_seconds=60):
-                print(f"[BEDROCK FALLBACK] Rate limited")
+                print(f"[CLAUDE FALLBACK] Rate limited")
                 return None
 
-        print(f"[BEDROCK FALLBACK] 🤖 Using AI to fetch {crop_name} prices for {state}...")
+        print(f"[CLAUDE FALLBACK] 🤖 Using Claude AI to fetch {crop_name} prices for {state}...")
 
-        import boto3
-        bedrock = boto3.client(
-            "bedrock-runtime",
-            region_name="us-east-1",
-            config=boto3.session.Config(
-                retries={'max_attempts': 2, 'mode': 'adaptive'},
-                read_timeout=15,  # Reduced timeout
-                connect_timeout=5
-            )
-        )
-
+        # Use Anthropic client via call_claude function
+        from anthropic_client import call_claude_with_retry
+        
         # Optimized prompt for faster response
         prompt = f"""Get current mandi prices for {crop_name} in {state}, India (March 2026).
 
@@ -244,21 +236,20 @@ Provide realistic market data in this EXACT JSON format:
 }}
 
 RULES:
-1. Use REAL current market prices
+1. Use REAL current market prices for March 2026
 2. Mandis from {state} only
 3. Prices in ₹ per quintal
 4. Trend: "increasing", "decreasing", or "stable"
-5. Reply with ONLY valid JSON
+5. Reply with ONLY valid JSON, no explanation
 
 {crop_name} prices for {state}:"""
 
-        response = bedrock.converse(
-            modelId="us.amazon.nova-pro-v1:0",
-            messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={"maxTokens": 400, "temperature": 0.1}  # Reduced tokens
+        response_text = call_claude_with_retry(
+            prompt=prompt,
+            max_tokens=400,
+            temperature=0.1,
+            model="claude-sonnet-4-6"
         )
-
-        response_text = response["output"]["message"]["content"][0]["text"]
 
         # Optimized JSON extraction
         if "```json" in response_text:
@@ -276,7 +267,7 @@ RULES:
         data.update({
             "crop": crop_name,
             "last_updated": ist_now.strftime("%Y-%m-%d %H:%M IST"),
-            "source": "bedrock_ai"
+            "source": "claude_ai"
         })
 
         # Cache the result
@@ -284,20 +275,20 @@ RULES:
             cache_key = f"ai_fallback:{crop_name.lower()}:{state.lower()}"
             CacheService.set(cache_key, data, ttl_seconds=600)  # 10 minutes cache for AI
 
-        print(f"[BEDROCK FALLBACK] ✅ Got prices: Avg ₹{data['average_price']}, Trend: {data['trend']}")
+        print(f"[CLAUDE FALLBACK] ✅ Got prices: Avg ₹{data['average_price']}, Trend: {data['trend']}")
         return data
 
     except Exception as e:
-        print(f"[BEDROCK FALLBACK] Error: {e}")
+        print(f"[CLAUDE FALLBACK] Error: {e}")
         import traceback
-        print(f"[BEDROCK FALLBACK] Traceback: {traceback.format_exc()}")
+        print(f"[CLAUDE FALLBACK] Traceback: {traceback.format_exc()}")
         return None
 
 
 def get_fast_market_prices(crop_name, state="Maharashtra"):
     """
     Get real-time market prices
-    Priority: AgMarkNet API > Bedrock AI Fallback
+    Priority: AgMarkNet API > Claude AI Fallback
     NO STATIC DATA
     """
     print(f"[MARKET DATA] Fetching prices for: {crop_name}, state: {state}")
@@ -308,12 +299,12 @@ def get_fast_market_prices(crop_name, state="Maharashtra"):
         print(f"[MARKET DATA] ✅ Using AgMarkNet API data")
         return agmarknet_data
     
-    # Method 2: Bedrock AI Fallback (SECONDARY - AI-powered data)
-    print(f"[MARKET DATA] AgMarkNet API failed, trying Bedrock AI fallback...")
-    bedrock_data = get_bedrock_ai_fallback(crop_name, state)
-    if bedrock_data:
-        print(f"[MARKET DATA] ✅ Using Bedrock AI fallback data")
-        return bedrock_data
+    # Method 2: Claude AI Fallback (SECONDARY - AI-powered data)
+    print(f"[MARKET DATA] AgMarkNet API failed, trying Claude AI fallback...")
+    claude_data = get_claude_ai_fallback(crop_name, state)
+    if claude_data:
+        print(f"[MARKET DATA] ✅ Using Claude AI fallback data")
+        return claude_data
     
     # No data available
     print(f"[MARKET DATA] ❌ No data available for {crop_name}")
