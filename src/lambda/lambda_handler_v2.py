@@ -113,8 +113,8 @@ def lambda_handler(event, context):
         change = entry["changes"][0]
         value = change.get("value", {})
 
-        # Ignore status updates and other non-message events
-        if "statuses" in value or "contacts" in value:
+        # Ignore status-only updates (but allow contacts with messages)
+        if "statuses" in value and "messages" not in value:
             return {'statusCode': 200, 'body': 'ok'}
 
         if "messages" not in value or not isinstance(value["messages"], list) or not value["messages"]:
@@ -333,7 +333,9 @@ def handle_image_message(msg, from_number):
             # Report to hyperlocal system and send alerts
             if HYPERLOCAL_AVAILABLE and ONBOARDING_AVAILABLE and diagnosis.get('primary_disease') != 'Healthy':
                 try:
+                    print(f"[HYPERLOCAL] Starting alert process for disease: {diagnosis.get('primary_disease')}")
                     profile = onboarding_manager.get_user_profile(from_number)
+                    print(f"[HYPERLOCAL] User profile retrieved: {profile is not None}")
                     if profile:
                         village = profile.get('village')
                         district = profile.get('district')
