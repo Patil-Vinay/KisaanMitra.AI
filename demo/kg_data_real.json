@@ -1,0 +1,131 @@
+{
+  "nodes": [
+    {
+      "id": "d_Sangli",
+      "name": "Sangli",
+      "type": "district",
+      "count": 4,
+      "land": 0,
+      "group": 1
+    },
+    {
+      "id": "d_Mumbai",
+      "name": "Mumbai",
+      "type": "district",
+      "count": 1,
+      "land": 0,
+      "group": 1
+    },
+    {
+      "id": "v_Nandani|Sangli",
+      "name": "Nandani",
+      "type": "village",
+      "count": 4,
+      "land": 0,
+      "soil_types": ["Unknown"],
+      "crops": ["sugarcane", "Tomato"],
+      "group": 2
+    },
+    {
+      "id": "v_Alibaug|Mumbai",
+      "name": "Alibaug",
+      "type": "village",
+      "count": 1,
+      "land": 0,
+      "soil_types": ["Unknown"],
+      "crops": ["Mango"],
+      "group": 2
+    },
+    {
+      "id": "c_sugarcane",
+      "name": "Sugarcane",
+      "type": "crop",
+      "count": 4,
+      "land": 0,
+      "group": 3
+    },
+    {
+      "id": "c_Tomato",
+      "name": "Tomato",
+      "type": "crop",
+      "count": 1,
+      "land": 0,
+      "group": 3
+    },
+    {
+      "id": "c_Mango",
+      "name": "Mango",
+      "type": "crop",
+      "count": 1,
+      "land": 0,
+      "group": 3
+    }
+  ],
+  "links": [
+    {
+      "source": "d_Sangli",
+      "target": "v_Nandani|Sangli",
+      "value": 4
+    },
+    {
+      "source": "d_Mumbai",
+      "target": "v_Alibaug|Mumbai",
+      "value": 1
+    },
+    {
+      "source": "v_Nandani|Sangli",
+      "target": "c_sugarcane",
+      "value": 4
+    },
+    {
+      "source": "v_Nandani|Sangli",
+      "target": "c_Tomato",
+      "value": 1
+    },
+    {
+      "source": "v_Alibaug|Mumbai",
+      "target": "c_Mango",
+      "value": 1
+    }
+  ],
+  "metadata": {
+    "total_farmers": 5,
+    "total_districts": 2,
+    "total_villages": 2,
+    "total_crops": 3,
+    "total_land": 0,
+    "last_updated": "2026-03-08T14:40:00.000Z",
+    "farmers": [
+      {
+        "name": "Vinay Patil",
+        "village": "Nandani",
+        "district": "Sangli",
+        "crops": "sugarcane"
+      },
+      {
+        "name": "Ram Jetmalani",
+        "village": "Nandani",
+        "district": "Sangli",
+        "crops": "sugarcane"
+      },
+      {
+        "name": "Aditya",
+        "village": "Alibaug",
+        "district": "Mumbai",
+        "crops": "Mango"
+      },
+      {
+        "name": "Parth Nikam",
+        "village": "Nandani",
+        "district": "Sangli",
+        "crops": "sugarcane"
+      },
+      {
+        "name": "Aditya Patil",
+        "village": "Nandani",
+        "district": "Sangli",
+        "crops": "Tomato, sugarcane"
+      }
+    ]
+  }
+}
