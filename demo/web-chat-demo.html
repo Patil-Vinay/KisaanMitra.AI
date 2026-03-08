@@ -539,6 +539,27 @@
             transform: scale(1.1);
         }
 
+        .sample-image-btn {
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 20px;
+            transition: all 0.2s;
+            font-size: 13px;
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .sample-image-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
         #imageInput {
             display: none;
         }
@@ -779,6 +800,9 @@
                     📎
                 </label>
                 <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)">
+                <button class="sample-image-btn" onclick="useSampleImage()" title="Try with sample disease image">
+                    🌿 Try Sample
+                </button>
                 <input 
                     type="text" 
                     id="messageInput" 
@@ -992,6 +1016,62 @@
             
             // Reset file input
             event.target.value = '';
+        }
+
+        async function useSampleImage() {
+            // Show user message
+            addMessage('user', '🌿 Using sample disease image for detection');
+            
+            // Show typing indicator
+            showTyping(true);
+            
+            try {
+                // Fetch the sample image from S3
+                const imageUrl = 'http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/sample-disease-image.jpg';
+                const imageResponse = await fetch(imageUrl);
+                const imageBlob = await imageResponse.blob();
+                
+                // Convert to base64
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const base64Image = e.target.result;
+                    
+                    try {
+                        const response = await fetch(API_ENDPOINT, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                user_id: userId,
+                                type: 'image',
+                                image: base64Image,
+                                language: currentLanguage
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        showTyping(false);
+                        
+                        if (data.response) {
+                            addMessage('bot', data.response);
+                        } else if (data.error) {
+                            addMessage('bot', '❌ Error: ' + data.error);
+                        }
+                    } catch (error) {
+                        showTyping(false);
+                        addMessage('bot', '❌ Error processing image. Please try again.');
+                        console.error('Error:', error);
+                    }
+                };
+                
+                reader.readAsDataURL(imageBlob);
+            } catch (error) {
+                showTyping(false);
+                addMessage('bot', '❌ Error loading sample image. Please try uploading your own image.');
+                console.error('Error:', error);
+            }
         }
 
         function addMessage(sender, text) {
