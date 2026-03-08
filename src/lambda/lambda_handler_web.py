@@ -145,13 +145,39 @@ def handle_text_message_web(user_message, user_id, language):
     
     print(f"[WEB TEXT] Message: {user_message}")
     
-    # For web demo, skip onboarding and handle queries directly
-    # This allows evaluators to test functionality immediately
-    print(f"[WEB DEMO] Skipping onboarding for web users - direct query handling")
+    # Check user onboarding status
+    is_new_user = False
+    onboarding_state = "completed"
     
-    # Handle greetings
+    if ONBOARDING_AVAILABLE:
+        try:
+            is_new_user = onboarding_manager.is_new_user(user_id)
+            onboarding_state, _ = onboarding_manager.get_onboarding_state(user_id)
+            if onboarding_state != "completed":
+                is_new_user = True
+            print(f"[WEB ONBOARDING] User: {user_id}, New: {is_new_user}, State: {onboarding_state}")
+        except Exception as e:
+            print(f"[WEB ONBOARDING ERROR] {e}")
+            pass
+    
+    # Handle onboarding for new users
+    if is_new_user or (onboarding_state and onboarding_state != "completed"):
+        if ONBOARDING_AVAILABLE:
+            try:
+                response, is_completed = onboarding_manager.process_onboarding_message(user_id, user_message)
+                print(f"[WEB ONBOARDING] Response sent, Completed: {is_completed}")
+                return response
+            except Exception as e:
+                print(f"[ERROR] Onboarding error: {e}")
+                import traceback
+                traceback.print_exc()
+                return "Welcome to KisaanMitra! Let's get you registered. What's your name?"
+        else:
+            return "Welcome to KisaanMitra! This is a demo version. Try asking about crops, market prices, or weather!"
+    
+    # Handle greetings for registered users
     if user_message.strip().lower() in ['hi', 'hello', 'hey', 'start', 'namaste']:
-        return """🌾 *Welcome to KisaanMitra!*
+        return """🌾 *Welcome back to KisaanMitra!*
 
 I'm your AI farming assistant. I can help you with:
 
