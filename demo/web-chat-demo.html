@@ -986,7 +986,7 @@
         let currentLanguage = 'english';
         let userId = null;  // Will be set after phone number entry
 
-        function submitPhoneNumber() {
+        async function submitPhoneNumber() {
             const phoneInput = document.getElementById('phoneInput');
             const phone = phoneInput.value.trim();
             
@@ -1002,34 +1002,89 @@
             // Hide modal
             document.getElementById('phoneModal').classList.remove('active');
             
-            // Add welcome message
-            addMessage('bot', `🌾 Welcome! Your number ${phone} has been registered.\n\nI'm your AI farming assistant. How can I help you today?`);
-            
             // Store in localStorage for future visits
             localStorage.setItem('kisaanmitra_user_id', userId);
+            
+            // Trigger onboarding by sending "Hi" to backend
+            showTyping(true);
+            
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        type: 'text',
+                        message: 'Hi',
+                        language: currentLanguage
+                    })
+                });
+                
+                const data = await response.json();
+                showTyping(false);
+                
+                if (data.response) {
+                    addMessage('bot', data.response);
+                } else {
+                    addMessage('bot', `🌾 Welcome! Your number ${phone} has been registered.\n\nI'm your AI farming assistant. How can I help you today?`);
+                }
+            } catch (error) {
+                showTyping(false);
+                console.error('Onboarding error:', error);
+                addMessage('bot', `🌾 Welcome! Your number ${phone} has been registered.\n\nI'm your AI farming assistant. How can I help you today?`);
+            }
         }
 
-        function skipPhoneNumber() {
+        async function skipPhoneNumber() {
             // Generate random demo user ID
             userId = 'demo_' + Math.random().toString(36).substr(2, 9);
             
             // Hide modal
             document.getElementById('phoneModal').classList.remove('active');
             
-            // Add demo mode message
+            // Add demo mode message (no onboarding for demo users)
             addMessage('bot', '🌾 Welcome to Demo Mode!\n\nYou\'re using KisaanMitra without registration. Your data won\'t be saved.\n\nHow can I help you today?');
         }
 
         // Check if user already has ID stored
-        window.addEventListener('load', function() {
+        window.addEventListener('load', async function() {
             const storedUserId = localStorage.getItem('kisaanmitra_user_id');
             if (storedUserId) {
                 userId = storedUserId;
                 document.getElementById('phoneModal').classList.remove('active');
                 
-                // Extract phone number for display
-                const phone = storedUserId.startsWith('91') ? storedUserId.substring(2) : 'your number';
-                addMessage('bot', `🌾 Welcome back!\n\nI'm your AI farming assistant. How can I help you today?`);
+                // Send "Hi" to check onboarding status
+                showTyping(true);
+                
+                try {
+                    const response = await fetch(API_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            type: 'text',
+                            message: 'Hi',
+                            language: currentLanguage
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    showTyping(false);
+                    
+                    if (data.response) {
+                        addMessage('bot', data.response);
+                    } else {
+                        addMessage('bot', `🌾 Welcome back!\n\nI'm your AI farming assistant. How can I help you today?`);
+                    }
+                } catch (error) {
+                    showTyping(false);
+                    console.error('Welcome back error:', error);
+                    addMessage('bot', `🌾 Welcome back!\n\nI'm your AI farming assistant. How can I help you today?`);
+                }
             }
             
             console.log('KisaanMitra Web Chat initialized');
