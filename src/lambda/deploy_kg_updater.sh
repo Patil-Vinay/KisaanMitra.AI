@@ -7,7 +7,7 @@ set -e
 
 FUNCTION_NAME="kisaanmitra-kg-updater"
 REGION="ap-south-1"
-ROLE_ARN="arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/lambda-execution-role"
+ROLE_ARN="arn:aws:iam::482548785371:role/service-role/whatsapp-llama-bot-role-9t42wmrl"
 
 echo "🚀 Deploying KG Updater Lambda..."
 
@@ -28,7 +28,6 @@ if aws lambda get-function --function-name $FUNCTION_NAME --region $REGION 2>/de
         --function-name $FUNCTION_NAME \
         --timeout 60 \
         --memory-size 512 \
-        --environment Variables="{AWS_REGION=$REGION}" \
         --region $REGION
 else
     echo "🆕 Creating new function..."
@@ -40,7 +39,6 @@ else
         --zip-file fileb://kg_updater.zip \
         --timeout 60 \
         --memory-size 512 \
-        --environment Variables="{AWS_REGION=$REGION}" \
         --region $REGION
 fi
 
