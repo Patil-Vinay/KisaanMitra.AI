@@ -186,6 +186,19 @@ Time-series analysis and demand forecasting predict optimal harvest timing and s
 *Building India's first village-level agricultural data infrastructure*
 
 
+## 🌐 Live Demos
+
+### Interactive Demos
+- **[Web Chat Demo](http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/)**: Try the AI assistant in your browser
+- **[Knowledge Graph Dashboard](http://kisaanmitra-knowledge-graph.s3-website.ap-south-1.amazonaws.com/)**: Live visualization of 10,007 farmers across 191 villages
+- **[Knowledge Graph (Alternative)](http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/knowledge-graph.html)**: Interactive network visualization
+
+### Video Demo
+- **[YouTube Demo](https://youtu.be/HGGA7kz9L8U)**: Complete system walkthrough
+
+### Source Code
+- **[GitHub Repository](https://github.com/parth-nikam/KisaanMitra.AI)**: Full source code and documentation
+
 ## 📚 Documentation
 
 ### Submission Documents

@@ -21,10 +21,21 @@ https://d28gkw3jboipw5.cloudfront.net/
 https://kisaanmitra-web-demo-1772974554.s3.ap-south-1.amazonaws.com/index.html
 ```
 
-### Knowledge Graph
+### Knowledge Graph (LIVE DATA - 10,006 Farmers)
 ```
 https://d28gkw3jboipw5.cloudfront.net/knowledge-graph.html
 ```
+**OR**
+```
+http://kisaanmitra-knowledge-graph.s3-website.ap-south-1.amazonaws.com/
+```
+
+**Data Stats:**
+- 10,000 dummy farmers + 6 real farmers = 10,006 total
+- 9 districts, 191 villages, 31 crops
+- 184,527 acres total land
+- Auto-updates hourly via Lambda
+- Last updated: 2026-03-08T16:25:06
 
 ## What's Included
 
@@ -52,6 +63,13 @@ https://d28gkw3jboipw5.cloudfront.net/knowledge-graph.html
 - 🌤️ Weather updates
 - 🔬 Disease detection
 - 📈 Price forecasting
+
+### 4. Knowledge Graph Dashboard ✅
+- Live data from DynamoDB + dummy dataset
+- Shows all 10,006 farmers
+- Top districts and crops
+- Real-time statistics
+- Auto-refreshes hourly
 
 ## CloudFront Details
 - **Distribution ID:** E17NCPEJL27P1L
@@ -91,9 +109,24 @@ https://d28gkw3jboipw5.cloudfront.net/knowledge-graph.html
 3. ✅ Use features immediately
 4. ✅ Data not saved
 
+### Knowledge Graph:
+1. ✅ Open KG URL
+2. ✅ See 10,006 total farmers
+3. ✅ View top districts and crops
+4. ✅ Click refresh to update
+5. ✅ Hard refresh (Ctrl+Shift+R) if cached
+
 ## Recent Updates
 
-### Latest Deployment (March 8, 2026 - 21:27 IST)
+### Latest Deployment (March 8, 2026 - 21:56 IST)
+1. ✅ Fixed Knowledge Graph data merge
+2. ✅ Now shows 10,000 dummy + 6 real farmers
+3. ✅ Created live KG dashboard with real-time data
+4. ✅ Lambda auto-updates KG hourly
+5. ✅ CloudFront cache invalidated
+6. ✅ All URLs updated
+
+### Previous Updates (March 8, 2026 - 21:27 IST)
 1. ✅ Fixed onboarding flow in web demo
 2. ✅ Added image preview before upload
 3. ✅ CloudFront CDN deployed
@@ -120,6 +153,13 @@ https://d28gkw3jboipw5.cloudfront.net/knowledge-graph.html
 3. Try sample image button
 4. Check browser console for errors
 
+### If Knowledge Graph shows old data:
+1. Hard refresh browser (Ctrl+Shift+R or Cmd+Shift+R)
+2. Open in incognito/private mode
+3. Clear browser cache for the site
+4. Wait for CloudFront cache to clear (1-2 min)
+5. Click "Refresh Data" button on KG page
+
 ## API Endpoint
 ```
 https://8zu6u7bc48.execute-api.ap-south-1.amazonaws.com/prod/chat
@@ -127,6 +167,6 @@ https://8zu6u7bc48.execute-api.ap-south-1.amazonaws.com/prod/chat
 
 ## Status: LIVE AND WORKING ✅
 
-All features are deployed and working on both CloudFront and S3 URLs. CloudFront is the recommended URL for best performance and mobile compatibility.
+All features are deployed and working on both CloudFront and S3 URLs. CloudFront is the recommended URL for best performance and mobile compatibility. Knowledge Graph now shows live data with 10,006 farmers (10k dummy + 6 real).
 
-**Last Updated:** March 8, 2026 - 21:27 IST
+**Last Updated:** March 8, 2026 - 21:56 IST

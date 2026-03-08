@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test KG CORS</title>
+</head>
+<body>
+    <h1>Testing Knowledge Graph Data Load</h1>
+    <div id="result">Loading...</div>
+    
+    <script>
+        const DATA_URL = 'https://kisaanmitra-knowledge-graph.s3.ap-south-1.amazonaws.com/knowledge_graph_dummy_data.json';
+        
+        fetch(DATA_URL + '?t=' + Date.now())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                return response.json();
+            })
+            .then(data => {
+                const result = document.getElementById('result');
+                result.innerHTML = `
+                    <h2>✅ SUCCESS!</h2>
+                    <p>Total Farmers: ${data.metadata.total_farmers}</p>
+                    <p>Districts: ${data.metadata.total_districts}</p>
+                    <p>Villages: ${data.metadata.total_villages}</p>
+                    <p>Crops: ${data.metadata.total_crops}</p>
+                    <p>Last Updated: ${data.metadata.last_updated}</p>
+                `;
+            })
+            .catch(error => {
+                const result = document.getElementById('result');
+                result.innerHTML = `
+                    <h2>❌ ERROR</h2>
+                    <p>${error.message}</p>
+                `;
+                console.error('Error:', error);
+            });
+    </script>
+</body>
+</html>
