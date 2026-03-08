@@ -100,12 +100,13 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
             animation: pulse 3s infinite;
             overflow: hidden;
+            padding: 4px;
         }
 
         .header-icon img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
         }
 
         @keyframes pulse {
@@ -579,7 +580,7 @@
     <div class="container">
         <div class="header">
             <div class="header-icon">
-                <img src="kisaanmitra-logo.png" alt="KisaanMitra" onerror="this.parentElement.innerHTML='<div style=\'font-size:28px\'>🌾</div>'">
+                <img src="https://raw.githubusercontent.com/parth-nikam/KisaanMitra.AI/main/demo/kisaanmitra-logo.png" alt="KisaanMitra" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🌾%3C/text%3E%3C/svg%3E'">
             </div>
             <div class="header-info">
                 <h1>KisaanMitra.AI</h1>
