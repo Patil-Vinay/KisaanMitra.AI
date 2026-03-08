@@ -89,6 +89,63 @@
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
         }
 
+        /* Evaluator Notice Banner */
+        .evaluator-notice {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #78350f;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #f59e0b;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+        }
+
+        .evaluator-notice-icon {
+            font-size: 24px;
+            animation: pulse 2s infinite;
+        }
+
+        .evaluator-notice-content {
+            flex: 1;
+        }
+
+        .evaluator-notice-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .evaluator-notice-text {
+            font-size: 13px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .evaluator-notice-close {
+            background: rgba(120, 53, 15, 0.1);
+            border: none;
+            color: #78350f;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .evaluator-notice-close:hover {
+            background: rgba(120, 53, 15, 0.2);
+            transform: scale(1.1);
+        }
+
+        .evaluator-notice.hidden {
+            display: none;
+        }
+
         .header-icon {
             width: 56px;
             height: 56px;
@@ -619,6 +676,18 @@
             </div>
         </div>
 
+        <!-- Evaluator Notice Banner -->
+        <div class="evaluator-notice" id="evaluatorNotice">
+            <div class="evaluator-notice-icon">⚠️</div>
+            <div class="evaluator-notice-content">
+                <div class="evaluator-notice-title">AWS AI Challenge Evaluators - Demo Notice</div>
+                <div class="evaluator-notice-text">
+                    This is a prototype demo for evaluation purposes. You may encounter bugs or limitations. For full production experience, please use our WhatsApp interface. Thank you for your understanding!
+                </div>
+            </div>
+            <button class="evaluator-notice-close" onclick="closeNotice()" title="Close notice">×</button>
+        </div>
+
         <div class="quick-actions">
             <button class="quick-btn" onclick="sendQuickMessage('Hi')">👋 Start</button>
             <button class="quick-btn" onclick="sendQuickMessage('What is the current price of tomato?')">📊 Market Prices</button>
@@ -717,9 +786,20 @@
                 addMessage('bot', `🌾 Welcome back!\n\nI'm your AI farming assistant. How can I help you today?`);
             }
             
+            // Check if notice was dismissed
+            const noticeDismissed = localStorage.getItem('kisaanmitra_notice_dismissed');
+            if (noticeDismissed === 'true') {
+                document.getElementById('evaluatorNotice').classList.add('hidden');
+            }
+            
             console.log('KisaanMitra Web Chat initialized');
             console.log('API Endpoint:', API_ENDPOINT);
         });
+
+        function closeNotice() {
+            document.getElementById('evaluatorNotice').classList.add('hidden');
+            localStorage.setItem('kisaanmitra_notice_dismissed', 'true');
+        }
 
         // Allow Enter key in phone input
         document.addEventListener('DOMContentLoaded', function() {
