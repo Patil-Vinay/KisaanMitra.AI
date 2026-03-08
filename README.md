@@ -1,9 +1,16 @@
 # KisaanMitra.AI 🌾
 
+[![AWS](https://img.shields.io/badge/AWS-Serverless-orange?logo=amazon-aws)](https://aws.amazon.com/)
+[![Python](https://img.shields.io/badge/Python-3.14-blue?logo=python)](https://www.python.org/)
+[![WhatsApp](https://img.shields.io/badge/WhatsApp-Business_API-25D366?logo=whatsapp)](https://business.whatsapp.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 **Team**: KisaanMitra.AI  
 **Problem Statement**: AI for Rural Innovation & Sustainable Systems
 
 > WhatsApp-based Multi-Agent AI System - From "Hi" to Profit in the Bank
+
+---
 
 ## 🎯 The Problem
 
@@ -85,29 +92,35 @@ AWS Bedrock LLM (RAG + Multilingual)
 
 ## 📊 Expected Impact
 
-| Metric | Target |
-|--------|--------|
-| Farmer Income | +20-30% |
-| Crop Loss Reduction | -40% |
-| Input Cost Savings | -15-20% |
-| Better Market Prices | +25% |
+| Metric | Target | Description |
+|--------|--------|-------------|
+| 💰 Farmer Income | **+20-30%** | Better market timing and crop selection |
+| 🌾 Crop Loss Reduction | **-40%** | Early disease detection and prevention |
+| 💵 Input Cost Savings | **-15-20%** | Optimized fertilizer and pesticide usage |
+| 📈 Better Market Prices | **+25%** | Demand forecasting and optimal harvest timing |
 
-## � Cost & Revenue
+---
 
-**1 Village Pilot Cost**: ₹47,000-74,000 Lakhs (setup + 1 month cost)
-- Tech Infrastructure: ₹6-17K/month
-- Village Data Agent: ₹10-12K/month
-- Data Collection: One-time setup (₹28-40K)
+## 💰 Cost & Revenue
 
-**Revenue Model**:
-- Data-as-a-Service (DaaS): Agri-input companies, insurers
-- Sponsored Recommendations: Pay-per-lead
-- B2B SaaS Licensing: FPOs, KVKs, agri-dealers
-- Advisory & Referral Network: Farmer's Market(Mandis), banks
+### Pilot Cost (1 Village)
+**₹47,000-74,000** (setup + 1 month operation)
+
+| Component | Cost |
+|-----------|------|
+| Tech Infrastructure | ₹6-17K/month |
+| Village Data Agent | ₹10-12K/month |
+| Data Collection | ₹28-40K (one-time) |
+
+### Revenue Model
+1. **Data-as-a-Service (DaaS)** - Agri-input companies, insurers
+2. **Sponsored Recommendations** - Pay-per-lead model
+3. **B2B SaaS Licensing** - FPOs, KVKs, agri-dealers
+4. **Advisory & Referral Network** - Mandis, banks
 
 **Why It Works**: Village-level agricultural data doesn't exist in India. Every interaction creates a data moat that competitors can't replicate.
 
-**Complete cycle**: From "Hi" on WhatsApp to profit in bank, powered by 3 AI agents
+---
 
 ## 🤖 Why AI is Essential
 
@@ -158,19 +171,49 @@ Time-series analysis and demand forecasting predict optimal harvest timing and s
 
 ## 👥 Team
 
-- **Aditya Rane**: Project Manager, Agile Delivery Strategy
-- **Vinay Patil**: Lead Engineer, Backend AI Systems, Cloud
-- **Parth Nikam**: Advanced Analytics, Data Science, Agentic AI
+- **Aditya Rane** - Project Manager, Agile Delivery Strategy
+- **Vinay Patil** - Lead Engineer, Backend AI Systems, Cloud Architecture
+- **Parth Nikam** - Advanced Analytics, Data Science, Agentic AI
 
-## � Documenntation
+---
 
-- **[Requirements](requirements.md)**: Functional requirements and success metrics
-- **[Design](design.md)**: System architecture and AWS infrastructure
-- **[Technical Specs](TECHNICAL_SPECS.md)**: Detailed specifications
-- **[Pitch Deck](HACKATHON_PITCH.md)**: Hackathon presentation
 
-## 📐 Architecture Diagrams
+## 🌐 Live Demos
 
+### 🎮 Interactive Demos
+- **[Web Chat Demo](http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/)** - Try the AI assistant in your browser
+- **[Knowledge Graph Dashboard](http://kisaanmitra-knowledge-graph.s3-website.ap-south-1.amazonaws.com/)** - Live visualization of 10,007 farmers across 191 villages
+- **[Knowledge Graph (Alternative)](http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/knowledge-graph.html)** - Interactive network visualization
+
+### 🎥 Video Demo
+- **[YouTube Demo](https://youtu.be/HGGA7kz9L8U)** - Complete system walkthrough
+
+### 💻 Source Code
+- **[GitHub Repository](https://github.com/parth-nikam/KisaanMitra.AI)** - Full source code and documentation
+
+---
+
+## 📚 Documentation
+
+### 📋 Submission Documents
+- **[AWS AI Submission Guide](AWS_AI_SUBMISSION_GUIDE.md)** - Complete explanation of AI requirements and AWS services
+- **[AWS Architecture Visual](AWS_ARCHITECTURE_VISUAL.md)** - Detailed architecture diagrams and data flows
+- **[Submission Package](SUBMISSION_PACKAGE.md)** - Hackathon submission checklist
+- **[Submission Ready](SUBMISSION_READY.md)** - Final submission status
+
+### 🔧 Technical Documentation
+- **[Architecture](ARCHITECTURE.md)** - System architecture and AWS infrastructure
+- **[Requirements](requirements.md)** - Functional requirements and success metrics
+- **[Design](design.md)** - System design and AWS services
+- **[Quick Reference](QUICK_REFERENCE.md)** - Quick start guide
+- **[Features List](FEATURES_LIST.md)** - Complete feature documentation
+- **[Sample Commands](SAMPLE_COMMANDS.md)** - Usage examples
+
+### 🚀 Implementation Guides
+- **[Disease Alert System](DISEASE_ALERT_SYSTEM.md)** - Hyperlocal disease tracking
+- **[Hyperlocal Alert Demo](HYPERLOCAL_ALERT_DEMO.md)** - Alert system demonstration
+
+### 📐 Architecture Diagrams
 6 professional AWS diagrams in `generated-diagrams/`:
 1. Production Architecture
 2. ML/AI Pipeline
@@ -181,54 +224,43 @@ Time-series analysis and demand forecasting predict optimal harvest timing and s
 
 ---
 
+## 📐 Repository Structure
+
+```
+KisaanMitra.AI/
+├── src/
+│   ├── lambda/              # AWS Lambda functions
+│   │   ├── agents/          # Specialized AI agents
+│   │   └── services/        # Core services
+│   ├── crop_agent/          # Crop health API client
+│   ├── hyperlocal/          # Disease tracking system
+│   └── onboarding/          # Farmer onboarding
+├── docs/                    # Documentation
+├── tests/                   # Test suites
+├── infrastructure/          # AWS setup scripts
+├── demo/                    # Demo applications
+├── dashboard/               # Analytics dashboard
+├── generated-diagrams/      # Architecture diagrams
+└── archive/                 # Historical logs and scripts
+
+```
+
+See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for complete details.
+
+---
+
+## 🏆 Tagline
+
 **"The AI is the interface. The data is the moat."**
 
 *Building India's first village-level agricultural data infrastructure*
 
+---
 
-## 🌐 Live Demos
+## 📄 License
 
-### Interactive Demos
-- **[Web Chat Demo](http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/)**: Try the AI assistant in your browser
-- **[Knowledge Graph Dashboard](http://kisaanmitra-knowledge-graph.s3-website.ap-south-1.amazonaws.com/)**: Live visualization of 10,007 farmers across 191 villages
-- **[Knowledge Graph (Alternative)](http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/knowledge-graph.html)**: Interactive network visualization
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Video Demo
-- **[YouTube Demo](https://youtu.be/HGGA7kz9L8U)**: Complete system walkthrough
+---
 
-### Source Code
-- **[GitHub Repository](https://github.com/parth-nikam/KisaanMitra.AI)**: Full source code and documentation
-
-## 📚 Documentation
-
-### Submission Documents
-- **[AWS AI Submission Guide](AWS_AI_SUBMISSION_GUIDE.md)**: Complete explanation of AI requirements and AWS services
-- **[AWS Architecture Visual](AWS_ARCHITECTURE_VISUAL.md)**: Detailed architecture diagrams and data flows
-- **[Submission Package](SUBMISSION_PACKAGE.md)**: Hackathon submission checklist
-
-### Technical Documentation
-- **[Architecture](ARCHITECTURE.md)**: System architecture and AWS infrastructure
-- **[Requirements](requirements.md)**: Functional requirements and success metrics
-- **[Design](design.md)**: System design and AWS services
-- **[Lambda Setup](docs/LAMBDA_SETUP.md)**: AWS Lambda deployment guide
-- **[Quick Start](docs/QUICK_START_LAMBDA.md)**: 5-minute Lambda deployment
-
-### Implementation Guides
-- **[Profile Integration](PROFILE_INTEGRATION_COMPLETE.md)**: How agents use onboarding data
-- **[Microservice Refactoring](MICROSERVICE_REFACTORING.md)**: Architecture evolution
-- **[Disease Alert System](DISEASE_ALERT_SYSTEM.md)**: Hyperlocal disease tracking
-
-## 📐 Repository Structure
-
-```
-src/
-├── crop_agent/          # Crop Health API client
-└── lambda/              # AWS Lambda functions
-
-docs/                    # Documentation
-assets/
-├── diagrams/            # 6 AWS architecture diagrams
-└── test_images/         # Sample test images
-```
-
-See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for complete details.
+Made with ❤️ by Team KisaanMitra.AI
