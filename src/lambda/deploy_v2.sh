@@ -9,6 +9,8 @@ rm -f whatsapp_deployment.zip
 echo "📦 Creating deployment package..."
 zip -r whatsapp_deployment.zip \
     lambda_handler_v2.py \
+    lambda_handler_web.py \
+    lambda_handler_unified.py \
     services/ \
     agents/ \
     anthropic_client.py \
@@ -62,8 +64,8 @@ aws lambda wait function-updated \
 echo "🔧 Updating handler configuration..."
 aws lambda update-function-configuration \
     --function-name whatsapp-llama-bot \
-    --handler lambda_handler_v2.lambda_handler \
-    --description "Microservice Architecture v2.0 - $(date '+%Y-%m-%d %H:%M')" \
+    --handler lambda_handler_unified.lambda_handler \
+    --description "Unified Handler (WhatsApp + Web) - $(date '+%Y-%m-%d %H:%M')" \
     --region ap-south-1
 
 # Wait for configuration update
