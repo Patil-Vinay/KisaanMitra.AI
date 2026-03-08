@@ -208,10 +208,37 @@
             padding: 14px 18px;
             border-radius: 16px;
             word-wrap: break-word;
-            white-space: pre-wrap;
             font-size: 15px;
-            line-height: 1.5;
+            line-height: 1.6;
             position: relative;
+        }
+
+        .message-content {
+            margin-bottom: 4px;
+        }
+
+        .message-content strong {
+            font-weight: 600;
+            color: inherit;
+        }
+
+        .bullet-point {
+            margin: 4px 0;
+            padding-left: 8px;
+        }
+
+        .numbered-point {
+            margin: 6px 0;
+            padding-left: 4px;
+        }
+
+        .numbered-point strong {
+            color: #11998e;
+            margin-right: 6px;
+        }
+
+        .message.user .numbered-point strong {
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .message.bot .message-bubble {
@@ -828,9 +855,23 @@
             const now = new Date();
             const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
+            // Format the message text with markdown-like styling
+            let formattedText = text
+                // Bold text: *text* or **text**
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
+                // Bullet points: • or -
+                .replace(/^• (.+)$/gm, '<div class="bullet-point">• $1</div>')
+                .replace(/^- (.+)$/gm, '<div class="bullet-point">• $1</div>')
+                // Line breaks
+                .replace(/\n/g, '<br>')
+                // Emojis stay as is
+                // Numbers with periods (1. 2. 3.)
+                .replace(/^(\d+)\. (.+)$/gm, '<div class="numbered-point"><strong>$1.</strong> $2</div>');
+            
             messageDiv.innerHTML = `
                 <div class="message-bubble">
-                    ${text}
+                    <div class="message-content">${formattedText}</div>
                     <div class="message-time">${time}</div>
                 </div>
             `;
