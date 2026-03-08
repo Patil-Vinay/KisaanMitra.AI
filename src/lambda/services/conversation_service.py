@@ -46,8 +46,11 @@ class ConversationService:
             response = table.query(
                 KeyConditionExpression="user_id = :uid",
                 ExpressionAttributeValues={":uid": user_id},
-                ProjectionExpression="user_id, #ts, message, response, agent",
-                ExpressionAttributeNames={"#ts": "timestamp"},
+                ProjectionExpression="user_id, #ts, message, #resp, agent",
+                ExpressionAttributeNames={
+                    "#ts": "timestamp",
+                    "#resp": "response"
+                },
                 ScanIndexForward=False,
                 Limit=limit
             )
