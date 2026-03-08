@@ -91,18 +91,18 @@
 
         /* Evaluator Notice Banner */
         .evaluator-notice {
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-            color: #78350f;
-            padding: 16px 24px;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+            padding: 24px 32px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            border-bottom: 2px solid #f59e0b;
-            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+            gap: 20px;
+            border-bottom: 4px solid #7f1d1d;
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.5);
         }
 
         .evaluator-notice-icon {
-            font-size: 24px;
+            font-size: 40px;
             animation: pulse 2s infinite;
         }
 
@@ -111,39 +111,19 @@
         }
 
         .evaluator-notice-title {
-            font-weight: 700;
-            font-size: 15px;
-            margin-bottom: 4px;
+            font-weight: 800;
+            font-size: 20px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .evaluator-notice-text {
-            font-size: 13px;
-            opacity: 0.9;
-            line-height: 1.4;
-        }
-
-        .evaluator-notice-close {
-            background: rgba(120, 53, 15, 0.1);
-            border: none;
-            color: #78350f;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .evaluator-notice-close:hover {
-            background: rgba(120, 53, 15, 0.2);
-            transform: scale(1.1);
-        }
-
-        .evaluator-notice.hidden {
-            display: none;
+            font-size: 15px;
+            opacity: 0.98;
+            line-height: 1.6;
+            font-weight: 500;
         }
 
         /* Footer */
@@ -754,7 +734,7 @@
         </div>
 
         <!-- Evaluator Notice Banner -->
-        <div class="evaluator-notice" id="evaluatorNotice">
+        <div class="evaluator-notice">
             <div class="evaluator-notice-icon">⚠️</div>
             <div class="evaluator-notice-content">
                 <div class="evaluator-notice-title">AI for Bharat Hackathon - Demo Notice</div>
@@ -762,7 +742,6 @@
                     This is a prototype demo for evaluation purposes. You may encounter bugs or limitations. For full production experience, please use our WhatsApp interface. Thank you for your understanding!
                 </div>
             </div>
-            <button class="evaluator-notice-close" onclick="closeNotice()" title="Close notice">×</button>
         </div>
 
         <div class="quick-actions">
@@ -879,20 +858,9 @@
                 addMessage('bot', `🌾 Welcome back!\n\nI'm your AI farming assistant. How can I help you today?`);
             }
             
-            // Check if notice was dismissed
-            const noticeDismissed = localStorage.getItem('kisaanmitra_notice_dismissed');
-            if (noticeDismissed === 'true') {
-                document.getElementById('evaluatorNotice').classList.add('hidden');
-            }
-            
             console.log('KisaanMitra Web Chat initialized');
             console.log('API Endpoint:', API_ENDPOINT);
         });
-
-        function closeNotice() {
-            document.getElementById('evaluatorNotice').classList.add('hidden');
-            localStorage.setItem('kisaanmitra_notice_dismissed', 'true');
-        }
 
         // Allow Enter key in phone input
         document.addEventListener('DOMContentLoaded', function() {
