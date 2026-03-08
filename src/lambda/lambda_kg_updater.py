@@ -10,7 +10,8 @@ from datetime import datetime
 import os
 
 AWS_REGION = os.environ.get('AWS_REGION', 'ap-south-1')
-S3_BUCKET = 'kisaanmitra-web-demo-1772974554'
+S3_BUCKET = 'kisaanmitra-knowledge-graph'
+S3_KEY = 'knowledge_graph_dummy_data.json'
 
 dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
 s3 = boto3.client('s3', region_name=AWS_REGION)
@@ -141,13 +142,13 @@ def lambda_handler(event, context):
         # Upload to S3
         s3.put_object(
             Bucket=S3_BUCKET,
-            Key='kg_data_live.json',
+            Key=S3_KEY,
             Body=json.dumps(kg_data),
             ContentType='application/json',
             CacheControl='max-age=60'
         )
         
-        print(f"Successfully uploaded to S3: s3://{S3_BUCKET}/kg_data_live.json")
+        print(f"Successfully uploaded to S3: s3://{S3_BUCKET}/{S3_KEY}")
         
         return {
             'statusCode': 200,
