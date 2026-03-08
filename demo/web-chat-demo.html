@@ -839,9 +839,10 @@
     <!-- Phone Number Modal -->
     <div class="modal-overlay active" id="phoneModal">
         <div class="modal-content">
-            <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #78350f; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; line-height: 1.5;">
+            <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #78350f; padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
                 <strong>🇮🇳 AI for Bharat Hackathon Demo</strong><br>
-                This is a prototype for evaluation. You may encounter bugs or limitations.
+                This is a prototype for evaluation. You may encounter bugs or limitations.<br><br>
+                <strong>📱 WhatsApp Access:</strong> Due to Meta's business verification requirements, WhatsApp access is limited to pre-approved numbers. To test WhatsApp features, please share your number with us for manual approval. The web demo has full functionality without restrictions.
             </div>
             <h2>👋 Welcome to KisaanMitra!</h2>
             <p>Enter your phone number to get started with personalized farming assistance.</p>
@@ -1194,8 +1195,9 @@
             // Hide preview
             document.getElementById('imagePreview').classList.remove('active');
             
-            // Show user message
-            addMessage('user', '📸 Uploaded image for disease detection');
+            // Show user message with image
+            const imageMessage = `<div style="margin-bottom: 8px;">📸 Uploaded crop image for analysis</div><img src="${selectedImageData}" style="max-width: 200px; max-height: 200px; border-radius: 8px; display: block; margin-top: 8px;" alt="Uploaded crop image">`;
+            addMessage('user', imageMessage);
             
             // Show typing indicator
             showTyping(true);
@@ -1285,15 +1287,12 @@
         }
 
         async function useSampleImage() {
-            // Show user message
-            addMessage('user', '🌿 Using sample disease image for detection');
-            
             // Show typing indicator
             showTyping(true);
             
             try {
                 // Fetch the sample image from S3
-                const imageUrl = 'http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/sample-disease-image.jpg';
+                const imageUrl = 'https://kisaanmitra-web-demo-1772974554.s3.ap-south-1.amazonaws.com/sample-disease-image.jpg';
                 const imageResponse = await fetch(imageUrl);
                 const imageBlob = await imageResponse.blob();
                 
@@ -1301,6 +1300,10 @@
                 const reader = new FileReader();
                 reader.onload = async function(e) {
                     const base64Image = e.target.result;
+                    
+                    // Show user message with sample image
+                    const imageMessage = `<div style="margin-bottom: 8px;">🌿 Using sample crop image for analysis</div><img src="${base64Image}" style="max-width: 200px; max-height: 200px; border-radius: 8px; display: block; margin-top: 8px;" alt="Sample crop image">`;
+                    addMessage('user', imageMessage);
                     
                     try {
                         const response = await fetch(API_ENDPOINT, {
