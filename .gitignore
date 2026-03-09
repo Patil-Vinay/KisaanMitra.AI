@@ -1,66 +1,33 @@
-# Environment Variables
+# secrets
 .env
 .env.local
-.env.*.local
 
-# Python
+# python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
 venv/
-env/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+.venv/
 *.egg-info/
-.installed.cfg
-*.egg
 
-# Lambda deployment
+# lambda build output
 package/
-lambda_deployment.zip
+*.zip
+response*.json
 trust-policy.json
-response.json
-response_*.json
-test_*.json
-test_crop_engine.py
+output.json
 
-# IDE
+# generated data (run demo/generate_10k_farmers.py)
+demo/knowledge_graph_dummy_data.json
+demo/kg_data_real.json
+exports/
+
+# editor and os
 .vscode/
 .idea/
 *.swp
-*.swo
-*~
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Logs
 *.log
-
-# Temporary files
 *.tmp
 *.bak
-
-# Prophet/Lambda Layer artifacts (not needed for SageMaker solution)
-python_layer/
-prophet_layer.zip
-*.zip
-output.json
-
-# SageMaker temporary files
-sagemaker-forecasting/
-ml-data/
