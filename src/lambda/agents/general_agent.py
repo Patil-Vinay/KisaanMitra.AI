@@ -181,9 +181,7 @@ Reply with ONLY the crop name:"""
         
         # Import price forecast handler
         try:
-            import sys
-            sys.path.append('/var/task')
-            from lambda_whatsapp_kisaanmitra import handle_price_forecast_query
+            from forecast_reply import handle_price_forecast_query
             
             result = handle_price_forecast_query(crop, user_message, language)
             return (result, True)

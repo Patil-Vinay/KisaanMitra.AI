@@ -144,8 +144,5 @@ else
     echo "  1. Check Lambda logs: aws logs tail /aws/lambda/whatsapp-llama-bot --follow --region ap-south-1"
     echo "  2. Verify all dependencies are included in deployment package"
     echo "  3. Check IAM permissions"
-    echo ""
-    echo "To rollback:"
-    echo "  aws lambda update-function-configuration --function-name whatsapp-llama-bot --handler lambda_whatsapp_kisaanmitra.lambda_handler --region ap-south-1"
     exit 1
 fi

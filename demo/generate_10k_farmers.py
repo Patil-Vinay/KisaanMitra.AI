@@ -163,8 +163,7 @@ def main():
     print("=" * 60)
     print("\nNext steps:")
     print("1. Update KG dashboard: python create_ultimate_kg_dashboard.py")
-    print("2. Deploy to S3: ./deploy_to_s3.sh")
-    print("3. Deploy to Lambda: cd ../src/lambda && ./deploy_whatsapp.sh")
+    print("2. Upload to S3 so lambda_kg_updater can pick it up")
 
 if __name__ == "__main__":
     main()
