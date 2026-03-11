@@ -1,7 +1,6 @@
 #!/bin/bash
 
-echo "🧪 Testing Microservice Architecture v2.0"
-echo "=========================================="
+echo "Testing Microservice Architecture v2.0"
 echo ""
 
 # Colors
@@ -31,11 +30,11 @@ test_lambda() {
     
     # Check if invocation was successful
     if echo "$response" | grep -q "StatusCode.*200"; then
-        echo -e "${GREEN}✓ PASSED${NC}"
+        echo -e "${GREEN}PASSED${NC}"
         ((PASSED++))
         return 0
     else
-        echo -e "${RED}✗ FAILED${NC}"
+        echo -e "${RED}FAILED${NC}"
         echo "Response: $response"
         ((FAILED++))
         return 1
@@ -43,7 +42,7 @@ test_lambda() {
 }
 
 # Test 1: Webhook Verification
-echo "1️⃣  Testing Webhook Verification"
+echo "1 Testing Webhook Verification"
 test_lambda "Webhook Verification" '{
     "queryStringParameters": {
         "hub.verify_token": "mySecret_123",
@@ -53,14 +52,14 @@ test_lambda "Webhook Verification" '{
 echo ""
 
 # Test 2: Text Message (Greeting)
-echo "2️⃣  Testing Text Message - Greeting"
+echo "2 Testing Text Message - Greeting"
 test_lambda "Greeting Message" '{
     "body": "{\"entry\":[{\"changes\":[{\"value\":{\"messages\":[{\"from\":\"919000000002\",\"type\":\"text\",\"text\":{\"body\":\"hi\"}}]}}]}}]}"
 }'
 echo ""
 
 # Test 3: Check Lambda Logs
-echo "3️⃣  Checking Lambda Logs for Errors"
+echo "3 Checking Lambda Logs for Errors"
 echo -n "Fetching recent logs... "
 
 logs=$(aws logs tail /aws/lambda/whatsapp-llama-bot \
@@ -69,17 +68,17 @@ logs=$(aws logs tail /aws/lambda/whatsapp-llama-bot \
     --format short 2>&1)
 
 if echo "$logs" | grep -qi "error\|exception\|failed"; then
-    echo -e "${RED}✗ ERRORS FOUND${NC}"
+    echo -e "${RED}ERRORS FOUND${NC}"
     echo "$logs" | grep -i "error\|exception\|failed" | head -10
     ((FAILED++))
 else
-    echo -e "${GREEN}✓ NO ERRORS${NC}"
+    echo -e "${GREEN}NO ERRORS${NC}"
     ((PASSED++))
 fi
 echo ""
 
 # Test 4: Check Handler Configuration
-echo "4️⃣  Verifying Handler Configuration"
+echo "4 Verifying Handler Configuration"
 echo -n "Checking handler... "
 
 handler=$(aws lambda get-function-configuration \
@@ -89,16 +88,16 @@ handler=$(aws lambda get-function-configuration \
     --output text)
 
 if [ "$handler" = "lambda_handler_v2.lambda_handler" ]; then
-    echo -e "${GREEN}✓ CORRECT (v2)${NC}"
+    echo -e "${GREEN}CORRECT (v2)${NC}"
     ((PASSED++))
 else
-    echo -e "${RED}✗ WRONG ($handler)${NC}"
+    echo -e "${RED}WRONG ($handler)${NC}"
     ((FAILED++))
 fi
 echo ""
 
 # Test 5: Check Code Size
-echo "5️⃣  Checking Code Size"
+echo "5 Checking Code Size"
 echo -n "Verifying package size... "
 
 code_size=$(aws lambda get-function-configuration \
@@ -111,26 +110,24 @@ code_size=$(aws lambda get-function-configuration \
 code_size_kb=$((code_size / 1024))
 
 if [ $code_size_kb -lt 600 ]; then
-    echo -e "${GREEN}✓ OPTIMAL (${code_size_kb} KB)${NC}"
+    echo -e "${GREEN}OPTIMAL (${code_size_kb} KB)${NC}"
     ((PASSED++))
 else
-    echo -e "${YELLOW}⚠ LARGE (${code_size_kb} KB)${NC}"
+    echo -e "${YELLOW}LARGE (${code_size_kb} KB)${NC}"
     ((PASSED++))
 fi
 echo ""
 
 # Summary
-echo "=========================================="
-echo "📊 Test Summary"
-echo "=========================================="
+echo "Test Summary"
 echo -e "Passed: ${GREEN}$PASSED${NC}"
 echo -e "Failed: ${RED}$FAILED${NC}"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}✅ All tests passed!${NC}"
+    echo -e "${GREEN}All tests passed!${NC}"
     echo ""
-    echo "🎉 Microservice architecture is working correctly!"
+    echo "Microservice architecture is working correctly!"
     echo ""
     echo "Next steps:"
     echo "  1. Test with real WhatsApp messages"
@@ -138,7 +135,7 @@ if [ $FAILED -eq 0 ]; then
     echo "  3. Check performance metrics in CloudWatch"
     exit 0
 else
-    echo -e "${RED}❌ Some tests failed!${NC}"
+    echo -e "${RED}Some tests failed!${NC}"
     echo ""
     echo "Troubleshooting:"
     echo "  1. Check Lambda logs: aws logs tail /aws/lambda/whatsapp-llama-bot --follow --region ap-south-1"

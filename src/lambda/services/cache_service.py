@@ -1,7 +1,4 @@
-"""
-Cache Service - In-memory caching for frequently accessed data
-Reduces API calls and improves response times
-"""
+"""In-memory cache and rate limiter. Lives as long as the Lambda container."""
 import time
 import json
 from datetime import datetime, timedelta

@@ -60,7 +60,7 @@ ENDPOINT=$(aws neptune describe-db-clusters \
     --region $REGION)
 
 echo ""
-echo "✅ Neptune cluster created successfully!"
+echo "Neptune cluster created successfully!"
 echo ""
 echo "Cluster Details:"
 echo "  Cluster ID: $CLUSTER_ID"
@@ -76,5 +76,5 @@ echo "  1. Update src/knowledge_graph/village_graph.py with endpoint: $ENDPOINT"
 echo "  2. Update Lambda environment variable: NEPTUNE_ENDPOINT=$ENDPOINT"
 echo "  3. Ensure Lambda has VPC access to Neptune"
 echo ""
-echo "⚠️  IMPORTANT: Neptune is in a VPC. Lambda must be in same VPC to access it."
-echo "⚠️  Cost: ~$0.10/hour (~$73/month) for db.t3.medium instance"
+echo "IMPORTANT: Neptune is in a VPC. Lambda must be in same VPC to access it."
+echo "Cost: ~$0.10/hour (~$73/month) for db.t3.medium instance"

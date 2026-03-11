@@ -4,21 +4,14 @@
 
 clear
 
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                                                            ║"
-echo "║           🌾 KisaanMitra.AI - Live Demo 🌾                ║"
-echo "║                                                            ║"
-echo "║        WhatsApp-based Multi-Agent AI for Farmers          ║"
-echo "║                                                            ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo "KisaanMitra.AI - Live Demo"
+echo "WhatsApp-based Multi-Agent AI for Farmers"
 echo ""
 sleep 2
 
 # CROP AGENT DEMO
 echo ""
-echo "┌────────────────────────────────────────────────────────────┐"
-echo "│  1️⃣  CROP AGENT - Disease Detection                        │"
-echo "└────────────────────────────────────────────────────────────┘"
+echo "1. CROP AGENT - Disease Detection"
 echo ""
 sleep 1
 
@@ -28,9 +21,7 @@ sleep 2
 
 # MARKET AGENT DEMO
 echo ""
-echo "┌────────────────────────────────────────────────────────────┐"
-echo "│  2️⃣  MARKET AGENT - Price Intelligence                     │"
-echo "└────────────────────────────────────────────────────────────┘"
+echo "2. MARKET AGENT - Price Intelligence"
 echo ""
 sleep 1
 
@@ -40,9 +31,7 @@ sleep 2
 
 # FINANCE AGENT DEMO
 echo ""
-echo "┌────────────────────────────────────────────────────────────┐"
-echo "│  3️⃣  FINANCE AGENT - Budget Planning                       │"
-echo "└────────────────────────────────────────────────────────────┘"
+echo "3. FINANCE AGENT - Budget Planning"
 echo ""
 sleep 1
 
@@ -50,29 +39,24 @@ sleep 1
 
 # Final Summary
 echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                                                            ║"
-echo "║                    🎉 DEMO COMPLETE! 🎉                    ║"
-echo "║                                                            ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo "Demo complete"
 echo ""
-echo "✅ All 3 Agents Demonstrated:"
+echo "All 3 Agents Demonstrated:"
 echo ""
-echo "   🌾 Crop Agent"
-echo "      • Disease detection: 99% accuracy"
+echo "   Crop Agent"
+echo "      • Disease detection from a leaf photo"
 echo "      • Treatment recommendations"
 echo "      • Hindi language support"
 echo ""
-echo "   📊 Market Agent"
+echo "   Market Agent"
 echo "      • Real-time mandi prices"
 echo "      • Price trend analysis"
 echo "      • Crop recommendations"
 echo ""
-echo "   💰 Finance Agent"
+echo "   Finance Agent"
 echo "      • Complete budget planning"
 echo "      • Loan eligibility calculator"
 echo "      • Government scheme matching"
-echo "      • Cost optimization (20-30% savings)"
+echo "      • Cost and profit estimate per acre"
 echo ""
-echo "🚀 Ready for Production Deployment!"
 echo ""

@@ -28,7 +28,7 @@ class GeneralAgent:
         """Handle general queries"""
         print(f"[GENERAL AGENT] Processing query: {user_message}, Language: {language}")
         
-        # ALWAYS fetch user profile first
+        # profile gives village and district
         profile = None
         profile_context = ""
         
@@ -51,7 +51,7 @@ class GeneralAgent:
             except Exception as e:
                 print(f"[GENERAL AGENT] Could not get profile: {e}")
         
-        # Check if this is a community/village query (who else in village)
+        # 'who else grows X in my village' type questions
         if ONBOARDING_AVAILABLE and profile:
             community_check_prompt = f"""Is this asking about OTHER farmers in the village/community? Reply with ONLY "yes" or "no".
 
@@ -146,17 +146,17 @@ CRITICAL: Respond ONLY in English."""
         """Handle price forecast queries"""
         print(f"[GENERAL AGENT] Handling price forecast query")
         
-        # Extract crop name using AI
+        # ask the model which crop the message is about
         crop_prompt = f"""Extract the crop/commodity name from this message. Reply with ONLY the crop name in lowercase.
 
 Message: "{user_message}"
 
 Examples:
-"price forecast for wheat" → wheat
-"week forecast for onion" → onion
-"7 day prices for tomato" → tomato
-"rice future price" → rice
-"sugarcane prediction" → sugarcane
+"price forecast for wheat": wheat
+"week forecast for onion": onion
+"7 day prices for tomato": tomato
+"rice future price": rice
+"sugarcane prediction": sugarcane
 
 Reply with ONLY the crop name:"""
 
@@ -175,11 +175,10 @@ Reply with ONLY the crop name:"""
         if crop not in supported_crops:
             print(f"[GENERAL AGENT] Unsupported crop: {crop}")
             if language == 'english':
-                return (f"❌ I can only provide price forecasts for: Onion, Rice, Sugarcane, Tomato, and Wheat.\n\nYou asked about: {crop.title()}", True)
+                return (f"❌ I can only provide price forecasts for: Onion, Rice, Sugarcane, Tomato and Wheat.\n\nYou asked about: {crop.title()}", True)
             else:
                 return (f"❌ मैं केवल इन फसलों के लिए मूल्य पूर्वानुमान दे सकता हूं: प्याज, चावल, गन्ना, टमाटर, और गेहूं।\n\nआपने पूछा: {crop.title()}", True)
         
-        # Import price forecast handler
         try:
             from forecast_reply import handle_price_forecast_query
             
@@ -199,7 +198,7 @@ Reply with ONLY the crop name:"""
         """Handle weather-specific queries"""
         location = None
         
-        # PRIORITY 1: Extract location from message first
+        # 1. place named in the message
         location_prompt = f"""Extract the city/location name from this message. If not mentioned, return "none".
 
 Message: "{user_message}"
@@ -214,13 +213,13 @@ Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur") or "none". No e
         except Exception as e:
             print(f"[GENERAL AGENT] Could not extract location from message: {e}")
         
-        # PRIORITY 2: Use profile district if no location in message
+        # 2. district from the profile
         if not location and profile:
             location = profile.get('district')
             if location:
                 print(f"[GENERAL AGENT] Using profile district: {location}")
         
-        # PRIORITY 3: Try to get profile if not passed and no location found
+        # 3. load the profile if it was not passed in
         if not location and ONBOARDING_AVAILABLE and user_id != "unknown":
             try:
                 if not profile:
@@ -232,13 +231,17 @@ Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur") or "none". No e
             except Exception as e:
                 print(f"[GENERAL AGENT] Could not get profile location: {e}")
         
-        # PRIORITY 4: Default to Pune if nothing found
+        # 4. fall back to Pune
         if not location:
             location = "Pune"
             print(f"[GENERAL AGENT] Using default location: Pune")
         
         try:
             weather = get_weather_forecast(location)
+            if not weather:
+                if language == 'english':
+                    return (f"Weather for {location} is not available right now. Please try again later.", True)
+                return (f"{location} का मौसम अभी उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।", True)
             weather_analysis = analyze_weather_for_farming(weather)
             result = format_weather_response(location, weather_analysis)
             return (result, True)
@@ -261,15 +264,15 @@ Reply with ONLY the location name (e.g., "Mumbai" or "Kolhapur") or "none". No e
             else:
                 return ("अन्य किसानों को खोजने के लिए मुझे आपके गांव और जिले की जानकारी चाहिए। कृपया अपनी प्रोफाइल अपडेट करें।", True)
         
-        # Extract crop from query using AI
+        # which crop they asked about (or all)
         crop_prompt = f"""Extract the crop name from this query. If no specific crop mentioned, return "all".
 
 Query: "{user_message}"
 
 Examples:
-"who else grows sugarcane" → sugarcane
-"farmers in my village" → all
-"other rice farmers" → rice
+"who else grows sugarcane": sugarcane
+"farmers in my village": all
+"other rice farmers": rice
 
 Reply with ONLY the crop name or "all":"""
 
@@ -279,12 +282,10 @@ Reply with ONLY the crop name or "all":"""
         except:
             crop = "all"
         
-        # Query database for farmers
         try:
             all_farmers = onboarding_manager.get_farmers_by_location(village, district)
             print(f"[GENERAL AGENT] Found {len(all_farmers)} total farmers in {village}, {district}")
             
-            # Filter by crop if specified
             filtered_farmers = []
             for farmer in all_farmers:
                 # Skip the current user
@@ -301,7 +302,6 @@ Reply with ONLY the crop name or "all":"""
             
             print(f"[GENERAL AGENT] After filtering: {len(filtered_farmers)} farmers")
             
-            # Format response
             if len(filtered_farmers) == 0:
                 if language == 'english':
                     if crop != "all":
@@ -314,7 +314,6 @@ Reply with ONLY the crop name or "all":"""
                     else:
                         return (f"आप वर्तमान में KisaanMitra पर {village} गांव के एकमात्र पंजीकृत किसान हैं। जैसे-जैसे अधिक किसान जुड़ेंगे, आप उनसे जुड़ पाएंगे! 🌾", True)
             
-            # Build farmer list
             if language == 'english':
                 if crop != "all":
                     response = f"🌾 *Found {len(filtered_farmers)} Farmer(s) Growing {crop.title()}*\n"

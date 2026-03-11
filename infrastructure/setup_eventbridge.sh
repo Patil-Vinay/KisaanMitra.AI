@@ -7,12 +7,11 @@ set -e
 REGION="ap-south-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-echo "📅 Setting up EventBridge Rules"
-echo "==============================="
+echo "Setting up EventBridge Rules"
 echo ""
 
 # 1. Daily Market Price Update (6 AM IST)
-echo "1️⃣ Creating daily market price update rule..."
+echo "1Creating daily market price update rule..."
 aws events put-rule \
   --name kisaanmitra-daily-price-update \
   --description "Fetch fresh mandi prices daily at 6 AM IST" \
@@ -36,11 +35,11 @@ aws lambda add-permission \
   --region $REGION \
   2>/dev/null || echo "Permission already exists"
 
-echo "✓ Daily price update rule created (6 AM IST)"
+echo "Daily price update rule created (6 AM IST)"
 
 # 2. Weekly Scheme Notifications (Monday 9 AM IST)
 echo ""
-echo "2️⃣ Creating weekly scheme notification rule..."
+echo "2Creating weekly scheme notification rule..."
 aws events put-rule \
   --name kisaanmitra-weekly-schemes \
   --description "Send government scheme updates every Monday at 9 AM IST" \
@@ -62,11 +61,11 @@ aws lambda add-permission \
   --region $REGION \
   2>/dev/null || echo "Permission already exists"
 
-echo "✓ Weekly scheme notification rule created (Monday 9 AM IST)"
+echo "Weekly scheme notification rule created (Monday 9 AM IST)"
 
 # 3. Monthly Financial Planning Reminder (1st of month, 10 AM IST)
 echo ""
-echo "3️⃣ Creating monthly financial reminder rule..."
+echo "3Creating monthly financial reminder rule..."
 aws events put-rule \
   --name kisaanmitra-monthly-finance-reminder \
   --description "Send financial planning reminders on 1st of every month" \
@@ -88,11 +87,11 @@ aws lambda add-permission \
   --region $REGION \
   2>/dev/null || echo "Permission already exists"
 
-echo "✓ Monthly finance reminder rule created (1st of month, 10 AM IST)"
+echo "Monthly finance reminder rule created (1st of month, 10 AM IST)"
 
 # 4. Seasonal Crop Planting Alerts
 echo ""
-echo "4️⃣ Creating seasonal crop planting alerts..."
+echo "4Creating seasonal crop planting alerts..."
 
 # Kharif season (June 1st)
 aws events put-rule \
@@ -138,11 +137,11 @@ aws lambda add-permission \
   --region $REGION \
   2>/dev/null || echo "Permission already exists"
 
-echo "✓ Seasonal alerts created (Kharif: June 1, Rabi: October 1)"
+echo "Seasonal alerts created (Kharif: June 1, Rabi: October 1)"
 
 # 5. Cache Cleanup (Daily midnight)
 echo ""
-echo "5️⃣ Creating cache cleanup rule..."
+echo "5Creating cache cleanup rule..."
 aws events put-rule \
   --name kisaanmitra-cache-cleanup \
   --description "Clean up expired cache entries daily" \
@@ -164,12 +163,12 @@ aws lambda add-permission \
   --region $REGION \
   2>/dev/null || echo "Permission already exists"
 
-echo "✓ Cache cleanup rule created (daily midnight IST)"
+echo "Cache cleanup rule created (daily midnight IST)"
 
 echo ""
-echo "✅ EventBridge Setup Complete!"
+echo "EventBridge Setup Complete!"
 echo ""
-echo "📅 Scheduled Rules Created:"
+echo "Scheduled Rules Created:"
 echo "   1. Daily Price Update: 6:00 AM IST"
 echo "   2. Weekly Schemes: Monday 9:00 AM IST"
 echo "   3. Monthly Finance: 1st of month, 10:00 AM IST"
@@ -177,10 +176,10 @@ echo "   4. Kharif Season Alert: June 1st"
 echo "   5. Rabi Season Alert: October 1st"
 echo "   6. Cache Cleanup: Daily midnight IST"
 echo ""
-echo "🔍 View rules:"
+echo "View rules:"
 echo "   aws events list-rules --region $REGION"
 echo ""
-echo "📊 Monitor invocations:"
+echo "Monitor invocations:"
 echo "   aws cloudwatch get-metric-statistics \\"
 echo "     --namespace AWS/Events \\"
 echo "     --metric-name Invocations \\"

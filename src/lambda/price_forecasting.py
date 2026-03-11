@@ -1,7 +1,4 @@
-"""
-AI-Powered Price Forecasting & Supply-Demand Analysis
-Uses AWS Bedrock Claude + Agmarknet historical data
-"""
+"""Price outlook for the market agent: stored forecast first, model forecast as fallback."""
 
 import json
 import os
@@ -10,21 +7,13 @@ from statistics import mean, stdev
 
 
 class PriceForecastingEngine:
-    """
-    Advanced price forecasting using:
-    1. Historical price data from Agmarknet
-    2. Supply/demand signal analysis
-    3. AWS Bedrock AI for pattern recognition
-    """
+    """Price forecast from stored data, AgMarkNet history and the model"""
     
     def __init__(self):
         self.agmarknet_api_key = os.environ.get("AGMARKNET_API_KEY")
         
     def fetch_historical_prices(self, crop_name, state="Maharashtra", days=30):
-        """
-        Fetch historical price data from Agmarknet
-        Returns: List of daily price records
-        """
+        """Daily price records from AgMarkNet"""
         import urllib3
         
         if not self.agmarknet_api_key or self.agmarknet_api_key == "not_available":
@@ -79,7 +68,7 @@ class PriceForecastingEngine:
                 except:
                     continue
             
-            print(f"[FORECAST] ✅ Collected {len(price_series)} historical data points")
+            print(f"[FORECAST] Collected {len(price_series)} historical data points")
             return price_series
             
         except Exception as e:
@@ -145,7 +134,7 @@ class PriceForecastingEngine:
                 trend_emoji = "📉"
             else:
                 trend = "stable"
-                trend_emoji = "➡️"
+                trend_emoji = "📊"
             
             signals = {
                 "current_avg_price": int(avg_price),
@@ -167,15 +156,13 @@ class PriceForecastingEngine:
             return None
     
     def generate_ai_forecast(self, crop_name, price_series, signals, language='hindi'):
-        """
-        Use AWS Bedrock Claude to generate intelligent price forecast
-        """
+        """Ask Claude on Bedrock for a forecast from the price summary"""
         try:
             import boto3
             
             bedrock = boto3.client('bedrock-runtime', region_name='ap-south-1')
             
-            # Prepare data summary for AI
+            # summary sent to the model
             recent_prices = [p["price"] for p in price_series[:10]]
             
             if language == 'english':
@@ -229,7 +216,6 @@ JSON के रूप में प्रारूपित करें:
   "reasoning": "<संक्षिप्त स्पष्टीकरण>"
 }}"""
             
-            # Call Bedrock Claude
             request_body = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "max_tokens": 1000,
@@ -268,12 +254,7 @@ JSON के रूप में प्रारूपित करें:
             return None
     
     def get_complete_forecast(self, crop_name, state="Maharashtra", language='hindi'):
-        """
-        Complete forecasting pipeline with caching optimization:
-        1. Check cache first
-        2. Try DynamoDB forecasts (pre-computed)
-        3. If not available, use AI-only forecast as fallback
-        """
+        """Cache, then the stored forecast, then a model-only forecast"""
         print(f"[FORECAST] Starting complete forecast for {crop_name} in {state}")
 
         # Import caching if available
@@ -288,7 +269,7 @@ JSON के रूप में प्रारूपित करें:
             cache_key = CacheService.get_forecast_key(crop_name, state)
             cached_forecast = CacheService.get(cache_key)
             if cached_forecast:
-                print(f"[FORECAST] ✅ Using cached forecast")
+                print(f"[FORECAST] Using cached forecast")
                 return cached_forecast
 
             # Rate limiting for forecast requests
@@ -297,10 +278,10 @@ JSON के रूप में प्रारूपित करें:
                 print(f"[FORECAST] Rate limited")
                 return None
 
-        # Step 1: Try to get pre-computed forecast from DynamoDB
+        # 1. forecast stored by the weekly job
         dynamodb_forecast = self.get_dynamodb_forecast(crop_name, language)
         if dynamodb_forecast:
-            print(f"[FORECAST] ✅ Using DynamoDB forecast")
+            print(f"[FORECAST] Using DynamoDB forecast")
 
             # Cache the result
             if CACHE_AVAILABLE:
@@ -309,22 +290,19 @@ JSON के रूप में प्रारूपित करें:
 
             return dynamodb_forecast
 
-        # Step 2: Fallback to AI-only forecast
+        # 2. model-only forecast
         print(f"[FORECAST] No DynamoDB forecast available, using AI-only forecast")
         ai_forecast = self.get_ai_only_forecast(crop_name, state, language)
 
-        # Cache AI forecast with shorter TTL
+        # shorter cache for model forecasts
         if CACHE_AVAILABLE and ai_forecast:
             cache_key = CacheService.get_forecast_key(crop_name, state)
-            CacheService.set(cache_key, ai_forecast, ttl_seconds=900)  # 15 minutes for AI
+            CacheService.set(cache_key, ai_forecast, ttl_seconds=900)  # 15 minutes
 
         return ai_forecast
     
     def get_dynamodb_forecast(self, crop_name, language='hindi'):
-        """
-        Get pre-computed forecast from DynamoDB
-        (Generated by SageMaker or Statistical method)
-        """
+        """Forecast written by lambda_sagemaker_forecaster.py"""
         try:
             import boto3
             
@@ -367,7 +345,6 @@ JSON के रूप में प्रारूपित करें:
             # Calculate trend
             price_change_pct = ((forecast_7d - current_price) / current_price) * 100
             
-            # More sensitive thresholds for better recommendations
             if price_change_pct > 2:
                 trend = "increasing"
                 trend_emoji = "📈"
@@ -376,7 +353,7 @@ JSON के रूप में प्रारूपित करें:
                 trend_emoji = "📉"
             else:
                 trend = "stable"
-                trend_emoji = "➡️"
+                trend_emoji = "📊"
             
             # Determine supply/demand and recommendation based on trend
             if trend == "increasing":
@@ -453,7 +430,7 @@ JSON के रूप में प्रारूपित करें:
                 "from_dynamodb": True
             }
             
-            print(f"[FORECAST] ✅ DynamoDB forecast: ₹{current_price} → ₹{forecast_7d} ({model_name})")
+            print(f"[FORECAST] DynamoDB forecast: ₹{current_price} to ₹{forecast_7d} ({model_name})")
             return complete_forecast
             
         except Exception as e:
@@ -463,26 +440,22 @@ JSON के रूप में प्रारूपित करें:
             return None
     
     def get_ai_only_forecast(self, crop_name, state="Maharashtra", language='hindi'):
-        """
-        Generate optimized forecast using AI without historical data
-        """
+        """Model-only forecast when there is no stored data"""
         try:
             import boto3
 
             print(f"[FORECAST] Generating AI-only forecast for {crop_name} in {state}")
 
-            # Optimized bedrock client
             bedrock = boto3.client(
                 'bedrock-runtime', 
                 region_name='ap-south-1',
                 config=boto3.session.Config(
                     retries={'max_attempts': 2, 'mode': 'adaptive'},
-                    read_timeout=15,  # Reduced timeout
+                    read_timeout=15,  # short timeout
                     connect_timeout=5
                 )
             )
 
-            # Optimized prompt for faster response
             if language == 'english':
                 prompt = f"""Agricultural market analyst: Provide 7-day price forecast for {crop_name} in {state}, India.
 
@@ -531,11 +504,10 @@ JSON के रूप में प्रारूपित करें:
 
     {crop_name} पूर्वानुमान:"""
 
-            # Optimized API call
             request_body = {
                 "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 800,  # Reduced tokens
-                "temperature": 0.3,  # Lower for consistency
+                "max_tokens": 800,  # small reply
+                "temperature": 0.3,  # low temperature
                 "messages": [{"role": "user", "content": prompt}]
             }
 
@@ -547,7 +519,7 @@ JSON के रूप में प्रारूपित करें:
             response_body = json.loads(response['body'].read())
             ai_response = response_body['content'][0]['text']
 
-            # Optimized JSON extraction
+            # pull the JSON out of the reply
             import re
             json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
             if json_match:
@@ -559,7 +531,7 @@ JSON के रूप में प्रारूपित करें:
                 price_change = ((forecast_price - current_price) / current_price) * 100
 
                 trend = forecast_data.get('trend', 'stable')
-                trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "➡️"
+                trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "📊"
 
                 complete_forecast = {
                     "crop": crop_name,
@@ -580,7 +552,7 @@ JSON के रूप में प्रारूपित करें:
                     "ai_only": True
                 }
 
-                print(f"[FORECAST] ✅ AI-only forecast generated: ₹{current_price} → ₹{forecast_price}")
+                print(f"[FORECAST] AI-only forecast generated: ₹{current_price} to ₹{forecast_price}")
                 return complete_forecast
             else:
                 print(f"[FORECAST] Could not parse AI response")
@@ -620,7 +592,7 @@ def format_forecast_response(forecast, language='hindi'):
         if forecast_price:
             change = forecast_price - current
             change_pct = (change / current) * 100
-            direction = "↗️" if change > 0 else "↘️" if change < 0 else "➡️"
+            direction = "📈" if change > 0 else "📉" if change < 0 else "📊"
             msg += f"🔮 *7-Day Forecast*: ₹{int(forecast_price):,}/ton\n"
             msg += f"   {direction} Change: {'+' if change > 0 else ''}₹{int(change):,} ({'+' if change_pct > 0 else ''}{change_pct:.1f}%)\n\n"
         
@@ -645,7 +617,7 @@ def format_forecast_response(forecast, language='hindi'):
         if forecast_price:
             change = forecast_price - current
             change_pct = (change / current) * 100
-            direction = "↗️" if change > 0 else "↘️" if change < 0 else "➡️"
+            direction = "📈" if change > 0 else "📉" if change < 0 else "📊"
             msg += f"🔮 *7 दिन का पूर्वानुमान*: ₹{int(forecast_price):,}/टन\n"
             msg += f"   {direction} परिवर्तन: {'+' if change > 0 else ''}₹{int(change):,} ({'+' if change_pct > 0 else ''}{change_pct:.1f}%)\n\n"
         

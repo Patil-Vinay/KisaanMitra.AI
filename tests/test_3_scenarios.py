@@ -41,7 +41,7 @@ def test_scenario(num, message, expected_crop):
     }
     
     # Invoke Lambda
-    print("⏳ Invoking Lambda...")
+    print("Invoking Lambda...")
     result = subprocess.run([
         'aws', 'lambda', 'invoke',
         '--function-name', 'whatsapp-llama-bot',
@@ -51,17 +51,17 @@ def test_scenario(num, message, expected_crop):
     ], capture_output=True, text=True)
     
     if result.returncode != 0:
-        print(f"❌ Failed: {result.stderr}")
+        print(f"Failed: {result.stderr}")
         return False
     
-    print("✅ Lambda invoked")
+    print("Lambda invoked")
     
     # Wait for processing
-    print("⏳ Waiting 20s for processing...")
+    print("Waiting 20s for processing...")
     time.sleep(20)
     
     # Get logs
-    print("📋 Fetching logs...")
+    print("Fetching logs...")
     log_result = subprocess.run([
         'aws', 'logs', 'tail',
         '/aws/lambda/whatsapp-llama-bot',
@@ -72,19 +72,19 @@ def test_scenario(num, message, expected_crop):
     logs = log_result.stdout
     
     # Analyze logs
-    print("\n🔍 Analysis:")
+    print("\nAnalysis:")
     
     # Check for Anthropic API call
     if 'claude-sonnet-4-6' in logs:
-        print("  ✅ Using Claude Sonnet 4.6")
+        print("  Using Claude Sonnet 4.6")
     else:
-        print("  ❌ Not using Claude Sonnet 4.6")
+        print("  Not using Claude Sonnet 4.6")
     
     # Check for successful response
     if '✅ Response received' in logs:
-        print("  ✅ Anthropic API responded")
+        print("  Anthropic API responded")
     else:
-        print("  ❌ No Anthropic response")
+        print("  No Anthropic response")
         return False
     
     # Check validation pipeline
@@ -99,9 +99,9 @@ def test_scenario(num, message, expected_crop):
     print("\n  Validation Pipeline:")
     for name, marker in validation_steps.items():
         if marker in logs:
-            print(f"    ✅ {name}")
+            print(f"    {name}")
         else:
-            print(f"    ❌ {name}")
+            print(f"    {name}")
     
     # Extract final numbers
     cost_match = re.search(r'\[FINAL\] Total Cost: ₹([\d,]+)', logs)
@@ -115,7 +115,7 @@ def test_scenario(num, message, expected_crop):
         profit = int(profit_match.group(1).replace(',', ''))
         roi = float(roi_match.group(1))
         
-        print(f"\n  💰 Final Numbers:")
+        print(f"\n  Final Numbers:")
         print(f"    Cost:    ₹{cost:,}")
         print(f"    Revenue: ₹{revenue:,}")
         print(f"    Profit:  ₹{profit:,}")
@@ -128,9 +128,9 @@ def test_scenario(num, message, expected_crop):
         math_ok = abs(calc_profit - profit) < 100
         roi_ok = abs(calc_roi - roi) < 1
         
-        print(f"\n  ✓ Mathematical Accuracy:")
-        print(f"    Profit: {'✅' if math_ok else '❌'} (calculated: ₹{calc_profit:,})")
-        print(f"    ROI: {'✅' if roi_ok else '❌'} (calculated: {calc_roi:.1f}%)")
+        print(f"\n  Mathematical Accuracy:")
+        print(f"    Profit: {'OK' if math_ok else 'FAIL'} (calculated: ₹{calc_profit:,})")
+        print(f"    ROI: {'OK' if roi_ok else 'FAIL'} (calculated: {calc_roi:.1f}%)")
         
         # Check for issues
         issues = []
@@ -144,15 +144,15 @@ def test_scenario(num, message, expected_crop):
             issues.append("Profit mismatch (corrected)")
         
         if issues:
-            print(f"\n  ⚠️  Issues (auto-corrected):")
+            print(f"\n   Issues (auto-corrected):")
             for issue in issues:
                 print(f"    - {issue}")
         else:
-            print(f"\n  ✅ No issues detected")
+            print(f"\n  No issues detected")
         
         return math_ok and roi_ok
     else:
-        print("\n  ❌ Could not extract final numbers")
+        print("\n  Could not extract final numbers")
         return False
 
 def main():
@@ -173,7 +173,7 @@ def main():
         results.append((num, crop, success))
         
         if num < len(scenarios):
-            print(f"\n⏸️  Waiting 30s before next test...")
+            print(f"\n Waiting 30s before next test...")
             time.sleep(30)
     
     # Summary

@@ -13,7 +13,7 @@ USER_ID=$1
 REGION="ap-south-1"
 TABLE="kisaanmitra-conversations"
 
-echo "🔍 Searching for user: $USER_ID"
+echo "Searching for user: $USER_ID"
 
 # Query all items for this user
 ITEMS=$(aws dynamodb query \
@@ -29,21 +29,21 @@ ITEMS=$(aws dynamodb query \
 COUNT=$(echo $ITEMS | jq '.Items | length')
 
 if [ "$COUNT" -eq 0 ]; then
-    echo "❌ No data found for user: $USER_ID"
+    echo "No data found for user: $USER_ID"
     exit 0
 fi
 
-echo "📊 Found $COUNT items for user: $USER_ID"
+echo "Found $COUNT items for user: $USER_ID"
 echo ""
 read -p "⚠️  Are you sure you want to delete all data for this user? (yes/no): " CONFIRM
 
 if [ "$CONFIRM" != "yes" ]; then
-    echo "❌ Cancelled"
+    echo "Cancelled"
     exit 0
 fi
 
 echo ""
-echo "🗑️  Deleting items..."
+echo "Deleting items..."
 
 # Delete each item
 echo $ITEMS | jq -r '.Items[] | @json' | while read item; do
@@ -56,10 +56,10 @@ echo $ITEMS | jq -r '.Items[] | @json' | while read item; do
         --key "{\"user_id\":{\"S\":\"$USER_ID_VAL\"},\"timestamp\":{\"S\":\"$TIMESTAMP_VAL\"}}" \
         > /dev/null 2>&1
     
-    echo "  ✓ Deleted item with timestamp: $TIMESTAMP_VAL"
+    echo "  Deleted item with timestamp: $TIMESTAMP_VAL"
 done
 
 echo ""
-echo "✅ All data deleted for user: $USER_ID"
+echo "All data deleted for user: $USER_ID"
 echo ""
-echo "📝 Note: User can start fresh by sending a new message"
+echo "Note: User can start fresh by sending a new message"

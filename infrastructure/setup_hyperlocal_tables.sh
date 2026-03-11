@@ -2,7 +2,7 @@
 
 # Setup DynamoDB tables for hyperlocal disease tracking and best practices
 
-echo "🏥 Setting up Hyperlocal Disease & Best Practices Tables..."
+echo "Setting up Hyperlocal Disease & Best Practices Tables..."
 
 # Table 1: Disease Reports (what farmers are experiencing)
 aws dynamodb create-table \
@@ -32,7 +32,7 @@ aws dynamodb create-table \
         ReadCapacityUnits=5,WriteCapacityUnits=5 \
     --region ap-south-1
 
-echo "✅ Disease Reports table created"
+echo "Disease Reports table created"
 
 # Table 2: Treatment Success Stories (what worked for farmers)
 aws dynamodb create-table \
@@ -62,7 +62,7 @@ aws dynamodb create-table \
         ReadCapacityUnits=5,WriteCapacityUnits=5 \
     --region ap-south-1
 
-echo "✅ Treatment Success table created"
+echo "Treatment Success table created"
 
 # Table 3: Best Practices (community knowledge)
 aws dynamodb create-table \
@@ -92,10 +92,10 @@ aws dynamodb create-table \
         ReadCapacityUnits=5,WriteCapacityUnits=5 \
     --region ap-south-1
 
-echo "✅ Best Practices table created"
+echo "Best Practices table created"
 
 echo ""
-echo "🎉 All hyperlocal tables created successfully!"
+echo "All hyperlocal tables created successfully!"
 echo ""
 echo "Tables created:"
 echo "  1. kisaanmitra-disease-reports (disease tracking by village)"

@@ -1,7 +1,4 @@
-"""
-KisaanMitra WhatsApp Lambda Handler - Microservice Architecture
-Simplified, modular, and maintainable
-"""
+"""WhatsApp webhook handler: onboarding, menus, photos and routing to the agents."""
 import json
 import os
 import sys
@@ -64,8 +61,8 @@ print(f"[INIT] Disease Detection: {ENHANCED_DISEASE_AVAILABLE}, Hyperlocal: {HYP
 
 
 def lambda_handler(event, context):
-    """Main Lambda handler - optimized with monitoring and memory management"""
-    import gc  # Garbage collection for memory optimization
+    """WhatsApp webhook entry point"""
+    import gc
 
     print(f"[LAMBDA] ========================================")
     print(f"[LAMBDA] INVOCATION STARTED")
@@ -89,7 +86,7 @@ def lambda_handler(event, context):
             return {'statusCode': 200, 'body': params.get("hub.challenge", "")}
 
     try:
-        # Enhanced input validation
+        # input validation
         if not event.get("body"):
             print(f"[ERROR] No body in event")
             return {'statusCode': 400, 'body': 'No body provided'}
@@ -100,7 +97,7 @@ def lambda_handler(event, context):
             print(f"[ERROR] Invalid JSON in body: {e}")
             return {'statusCode': 400, 'body': 'Invalid JSON'}
 
-        # Validate WhatsApp webhook structure with better error handling
+        # check the webhook payload shape
         if not body.get("entry") or not isinstance(body["entry"], list) or not body["entry"]:
             print(f"[ERROR] Invalid webhook structure - no entry")
             return {'statusCode': 200, 'body': 'ok'}  # Return 200 to avoid webhook retries
@@ -124,7 +121,7 @@ def lambda_handler(event, context):
         from_number = msg.get("from")
         msg_type = msg.get("type")
 
-        # Enhanced field validation
+        # field validation
         if not from_number or not msg_type:
             print(f"[ERROR] Missing required fields: from={from_number}, type={msg_type}")
             return {'statusCode': 200, 'body': 'ok'}
@@ -145,7 +142,7 @@ def lambda_handler(event, context):
 
         print(f"[LAMBDA] Message from: {from_number}, Type: {msg_type}")
 
-        # Memory check before processing
+        # give up early if the Lambda is about to time out
         remaining_time = context.get_remaining_time_in_millis()
         if remaining_time < 5000:  # Less than 5 seconds remaining
             print(f"[WARNING] Low remaining time: {remaining_time}ms")
@@ -155,7 +152,7 @@ def lambda_handler(event, context):
         # Handle interactive button/list responses
         if msg_type == "interactive":
             result = handle_interactive_response(msg, from_number)
-            gc.collect()  # Memory cleanup
+            gc.collect()
             return result
 
         # Check user onboarding status
@@ -164,7 +161,7 @@ def lambda_handler(event, context):
         # Handle new users or users in onboarding
         if is_new_user or (onboarding_state and onboarding_state != "completed"):
             result = handle_onboarding(msg, from_number, msg_type)
-            gc.collect()  # Memory cleanup
+            gc.collect()
             return result
 
         # Handle existing users
@@ -175,7 +172,6 @@ def lambda_handler(event, context):
         else:
             result = handle_unsupported_message(from_number, msg_type)
 
-        # Final memory cleanup
         gc.collect()
 
         # Log final stats
@@ -193,7 +189,7 @@ def lambda_handler(event, context):
         import traceback
         traceback.print_exc()
 
-        # Enhanced error reporting
+        # error reporting
         try:
             if 'from_number' in locals() and from_number:
                 WhatsAppService.send_message(
@@ -203,7 +199,6 @@ def lambda_handler(event, context):
         except:
             pass  # Don't let error handling cause more errors
 
-        # Memory cleanup on error
         gc.collect()
 
         return {'statusCode': 500, 'body': 'error'}
@@ -318,7 +313,7 @@ def handle_image_message(msg, from_number):
         # Download image
         image_bytes = WhatsAppService.download_image(media_id)
         
-        # Analyze with enhanced detection
+        # diagnose the photo
         if ENHANCED_DISEASE_AVAILABLE:
             bedrock_for_images = AIService.get_image_client()
             diagnosis = detect_disease_with_confidence(image_bytes, bedrock_for_images)
@@ -385,7 +380,7 @@ def handle_image_message(msg, from_number):
                                     # Send the alert
                                     WhatsAppService.send_message(farmer_id, alert_message)
                                     alerts_sent += 1
-                                    print(f"[ALERT] ✅ Sent alert to {farmer.get('name', farmer_id)}")
+                                    print(f"[ALERT] Sent alert to {farmer.get('name', farmer_id)}")
                                     
                                     # Small delay to avoid rate limiting
                                     import time
@@ -397,7 +392,7 @@ def handle_image_message(msg, from_number):
                             # Update the report with alerts sent count
                             hyperlocal_tracker.update_alerts_sent_count(report_id, alerts_sent)
                             
-                            print(f"[ALERT] ✅ Sent {alerts_sent}/{len(farmers_to_alert)} disease alerts successfully")
+                            print(f"[ALERT] Sent {alerts_sent}/{len(farmers_to_alert)} disease alerts successfully")
                             
                             # Add confirmation to reply
                             if user_lang == 'hindi':
@@ -479,10 +474,9 @@ def handle_interactive_response(msg, from_number):
             prompt = "🌿 *Crop Health Check*\n\nPlease send a photo of your crop or describe the problem in detail." if user_lang == 'english' else "🌿 *फसल स्वास्थ्य जांच*\n\nकृपया अपनी फसल की तस्वीर भेजें या समस्या का विस्तार से वर्णन करें।"
             WhatsAppService.send_message(from_number, prompt)
         elif list_id == "market_price":
-            # Call MarketAgent to provide actual market intelligence with live rates and forecasting
+            # menu button: market prices for the farmer's crop
             from agents.market_agent import MarketAgent
             
-            # Get user profile to determine default crop or provide general market intelligence
             profile = None
             if ONBOARDING_AVAILABLE:
                 try:
@@ -491,13 +485,12 @@ def handle_interactive_response(msg, from_number):
                 except:
                     pass
             
-            # Provide market intelligence for common crops or user's profile crop
             if profile and profile.get('crops'):
                 # Use first crop from profile
                 crop_name = profile['crops'][0] if isinstance(profile['crops'], list) else profile['crops']
                 market_query = f"What is the current price of {crop_name}?"
             else:
-                # Provide market intelligence for tomato (most common crop)
+                # no crop in the profile, show tomato
                 market_query = "What is the current price of tomato?"
             
             reply, should_add_nav = MarketAgent.handle(market_query, from_number, user_lang)
@@ -508,7 +501,7 @@ def handle_interactive_response(msg, from_number):
             prompt = "💰 *Budget Planning*\n\nPlease tell me:\n• Which crop?\n• How much land (acres)?\n• Location?" if user_lang == 'english' else "💰 *बजट योजना*\n\nकृपया बताएं:\n• कौन सी फसल?\n• कितनी जमीन (एकड़)?\n• स्थान?"
             WhatsAppService.send_message(from_number, prompt)
         elif list_id == "weather":
-            # Call GeneralAgent to handle weather with KG profile
+            # weather for the farmer's district
             reply, should_add_nav = GeneralAgent.handle("weather", from_number, user_lang)
             WhatsAppService.send_message(from_number, reply)
             if should_add_nav and INTERACTIVE_AVAILABLE:

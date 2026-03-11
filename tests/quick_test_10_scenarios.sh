@@ -7,9 +7,7 @@ set -e
 PHONE="919000000002"
 FUNCTION_NAME="whatsapp-llama-bot"
 
-echo "=========================================="
 echo "  KisaanMitra 10-Scenario Test Suite"
-echo "=========================================="
 echo ""
 
 # Color codes
@@ -30,9 +28,7 @@ send_test() {
     local crop=$3
     
     echo ""
-    echo "----------------------------------------"
     echo "Test #$test_num: $crop"
-    echo "----------------------------------------"
     echo "Message: $message"
     echo ""
     
@@ -67,7 +63,7 @@ EOF
 )
     
     # Invoke Lambda
-    echo "⏳ Invoking Lambda..."
+    echo "Invoking Lambda..."
     aws lambda invoke \
         --function-name $FUNCTION_NAME \
         --payload "$PAYLOAD" \
@@ -75,42 +71,42 @@ EOF
         /tmp/test_response_${test_num}.json > /dev/null 2>&1
     
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Lambda invoked successfully${NC}"
+        echo -e "${GREEN}Lambda invoked successfully${NC}"
     else
-        echo -e "${RED}❌ Lambda invocation failed${NC}"
+        echo -e "${RED}Lambda invocation failed${NC}"
         ((FAILED++))
         return 1
     fi
     
     # Wait for processing
-    echo "⏳ Processing (15s)..."
+    echo "Processing (15s)..."
     sleep 15
     
     # Check logs
-    echo "📋 Checking logs..."
+    echo "Checking logs..."
     LOGS=$(aws logs tail /aws/lambda/$FUNCTION_NAME --since 2m --format short 2>/dev/null | tail -100)
     
     # Validate response
     if echo "$LOGS" | grep -q "ANTHROPIC.*✅ Response received"; then
-        echo -e "${GREEN}✅ Anthropic API responded${NC}"
+        echo -e "${GREEN}Anthropic API responded${NC}"
     else
-        echo -e "${YELLOW}⚠️  No Anthropic response found${NC}"
+        echo -e "${YELLOW}No Anthropic response found${NC}"
     fi
     
     if echo "$LOGS" | grep -q "VALIDATION"; then
-        echo -e "${GREEN}✅ Validation pipeline executed${NC}"
+        echo -e "${GREEN}Validation pipeline executed${NC}"
     else
-        echo -e "${YELLOW}⚠️  Validation not found${NC}"
+        echo -e "${YELLOW}Validation not found${NC}"
     fi
     
     if echo "$LOGS" | grep -q "MATH_ENFORCEMENT"; then
-        echo -e "${GREEN}✅ Math enforcement applied${NC}"
+        echo -e "${GREEN}Math enforcement applied${NC}"
     else
-        echo -e "${YELLOW}⚠️  Math enforcement not found${NC}"
+        echo -e "${YELLOW}Math enforcement not found${NC}"
     fi
     
     if echo "$LOGS" | grep -q "\[FINAL\].*Total Cost"; then
-        echo -e "${GREEN}✅ Final budget generated${NC}"
+        echo -e "${GREEN}Final budget generated${NC}"
         
         # Extract and display final numbers
         COST=$(echo "$LOGS" | grep "\[FINAL\] Total Cost:" | tail -1 | sed 's/.*₹/₹/')
@@ -119,7 +115,7 @@ EOF
         ROI=$(echo "$LOGS" | grep "\[FINAL\] ROI:" | tail -1 | sed 's/.*ROI: //')
         
         echo ""
-        echo "💰 Final Numbers:"
+        echo "Final Numbers:"
         echo "   Cost:    $COST"
         echo "   Revenue: $REVENUE"
         echo "   Profit:  $PROFIT"
@@ -127,14 +123,14 @@ EOF
         
         ((PASSED++))
     else
-        echo -e "${RED}❌ No final budget found${NC}"
+        echo -e "${RED}No final budget found${NC}"
         ((FAILED++))
     fi
     
     # Wait before next test
     if [ $test_num -lt $TOTAL ]; then
         echo ""
-        echo "⏸️  Waiting 25s before next test..."
+        echo "Waiting 25s before next test..."
         sleep 25
     fi
 }
@@ -153,9 +149,7 @@ send_test 10 "chilli pepper cultivation 4 acres Hyderabad" "Chilli"
 
 # Summary
 echo ""
-echo "=========================================="
 echo "  TEST SUMMARY"
-echo "=========================================="
 echo ""
 echo "Total Tests:  $TOTAL"
 echo -e "${GREEN}Passed:       $PASSED${NC}"
@@ -163,9 +157,9 @@ echo -e "${RED}Failed:       $FAILED${NC}"
 echo ""
 
 if [ $PASSED -eq $TOTAL ]; then
-    echo -e "${GREEN}🎉 All tests passed!${NC}"
+    echo -e "${GREEN}All tests passed!${NC}"
     exit 0
 else
-    echo -e "${YELLOW}⚠️  Some tests failed or incomplete${NC}"
+    echo -e "${YELLOW}Some tests failed or incomplete${NC}"
     exit 1
 fi

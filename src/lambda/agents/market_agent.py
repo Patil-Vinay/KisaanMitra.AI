@@ -6,7 +6,7 @@ sys.path.append('/opt/python')
 
 from services.ai_service import AIService
 
-# Import optional modules
+# optional modules, the agent still answers without them
 try:
     from farmer_onboarding import onboarding_manager
     ONBOARDING_AVAILABLE = True
@@ -73,7 +73,7 @@ class MarketAgent:
         """Handle market-related queries"""
         print(f"[MARKET AGENT] Processing query: {user_message}, User: {user_id}, Language: {language}")
         
-        # ALWAYS fetch user profile first
+        # profile gives district and crops
         profile = None
         state_name = None
         district = None
@@ -108,7 +108,7 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
 संक्षिप्त (2-3 वाक्य) और व्यावहारिक रखें।
 अत्यंत महत्वपूर्ण: केवल हिंदी में जवाब दें। कोई अंग्रेजी शब्द या वाक्यांश का उपयोग न करें।"""
         
-        # Extract crop name using AI
+        # ask the model which crop the message is about
         detected_crop = AIService.extract_crop(user_message)
         
         # Handle price forecasting queries
@@ -116,7 +116,7 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
             if not state_name:
                 state_name = AIService.extract_state(user_message) or "Maharashtra"
             
-            print(f"[MARKET AGENT] 🔮 Generating price forecast for {detected_crop} in {state_name}")
+            print(f"[MARKET AGENT] Generating price forecast for {detected_crop} in {state_name}")
             
             try:
                 forecast = forecasting_engine.get_complete_forecast(detected_crop, state_name, language)
@@ -142,7 +142,7 @@ CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
                 result = format_market_response_fast(detected_crop, market_data, language)
                 return (result, True)
         
-        # Fallback to AI with profile context
+        # anything else goes to the model with the profile
         profile_context = ""
         if profile:
             if language == 'english':

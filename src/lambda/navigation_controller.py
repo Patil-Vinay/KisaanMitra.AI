@@ -1,7 +1,4 @@
-"""
-Navigation Controller - Manages conversation flow and state
-Provides Back/Home/Cancel navigation for WhatsApp bot
-"""
+"""Back, home and cancel navigation for the WhatsApp menus."""
 import boto3
 from datetime import datetime
 
@@ -110,6 +107,6 @@ class NavigationController:
     def get_navigation_prompt(self, language='hindi'):
         """Get navigation prompt text"""
         if language == 'english':
-            return "\n\nType 'back' to go back, 'home' for main menu, or 'cancel' to restart."
+            return "\n\nType 'back' to go back, 'home' for main menu or 'cancel' to restart."
         else:
             return "\n\n'back' टाइप करें पीछे जाने के लिए, 'home' मुख्य मेनू के लिए, या 'cancel' पुनः आरंभ करने के लिए।"

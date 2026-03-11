@@ -8,7 +8,7 @@ sys.path.append('../src/hyperlocal')
 from disease_tracker import hyperlocal_tracker
 import random
 
-print("🌾 Seeding Hyperlocal Disease & Best Practices Data...")
+print("Seeding Hyperlocal Disease & Best Practices Data...")
 print("=" * 60)
 
 # Sample villages and districts
@@ -90,7 +90,7 @@ best_practices = {
         ("fertilizer", "Green Manure Before Rice", "Grow dhaincha for 45 days, then plow into soil. Reduces fertilizer need by 25%.", "kharif"),
     ],
     "wheat": [
-        ("irrigation", "Critical Stage Watering", "Must irrigate at crown root, tillering, flowering, and grain filling stages. Don't miss these!", "rabi"),
+        ("irrigation", "Critical Stage Watering", "Must irrigate at crown root, tillering, flowering and grain filling stages. Don't miss these!", "rabi"),
         ("pest_control", "Trap Crops for Aphids", "Plant mustard on borders. Aphids attack mustard first, saving wheat.", "rabi"),
     ],
     "sugarcane": [
@@ -107,7 +107,7 @@ best_practices = {
     ],
 }
 
-print("\n📊 Creating Disease Reports...")
+print("\nCreating Disease Reports...")
 report_ids = []
 for village, district in villages[:5]:  # Use first 5 villages
     for crop in ["rice", "wheat", "sugarcane", "cotton", "tomato"]:
@@ -125,11 +125,11 @@ for village, district in villages[:5]:  # Use first 5 villages
                     symptoms=symptoms
                 )
                 report_ids.append((report_id, disease_name))
-                print(f"  ✓ {disease_name} in {crop} at {village}")
+                print(f"  {disease_name} in {crop} at {village}")
 
-print(f"\n✅ Created {len(report_ids)} disease reports")
+print(f"\nCreated {len(report_ids)} disease reports")
 
-print("\n💊 Recording Treatment Successes...")
+print("\nRecording Treatment Successes...")
 success_count = 0
 for report_id, disease_name in report_ids[:20]:  # Add treatments for first 20 reports
     if disease_name in treatments:
@@ -146,11 +146,11 @@ for report_id, disease_name in report_ids[:20]:  # Add treatments for first 20 r
                 notes=notes
             )
             success_count += 1
-            print(f"  ✓ {treatment_method} for {disease_name} (Score: {score}/10)")
+            print(f"  {treatment_method} for {disease_name} (Score: {score}/10)")
 
-print(f"\n✅ Recorded {success_count} successful treatments")
+print(f"\nRecorded {success_count} successful treatments")
 
-print("\n🌟 Adding Best Practices...")
+print("\nAdding Best Practices...")
 practice_count = 0
 for crop, practices in best_practices.items():
     for category, title, description, season in practices:
@@ -170,17 +170,17 @@ for crop, practices in best_practices.items():
         for _ in range(upvotes):
             hyperlocal_tracker.upvote_practice(practice_id)
         practice_count += 1
-        print(f"  ✓ {title} for {crop} ({upvotes} upvotes)")
+        print(f"  {title} for {crop} ({upvotes} upvotes)")
 
-print(f"\n✅ Added {practice_count} best practices")
+print(f"\nAdded {practice_count} best practices")
 
 print("\n" + "=" * 60)
-print("🎉 Hyperlocal data seeding complete!")
+print("Hyperlocal data seeding complete!")
 print("\nData Summary:")
 print(f"  • {len(report_ids)} disease reports across 5 villages")
 print(f"  • {success_count} treatment success stories")
 print(f"  • {practice_count} community best practices")
-print("\n💡 Farmers can now see:")
+print("\nFarmers can now see:")
 print("  1. What diseases are affecting nearby farmers")
 print("  2. What treatments worked for others")
 print("  3. Best practices from their community")

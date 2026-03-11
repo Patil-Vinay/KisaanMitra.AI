@@ -4,8 +4,7 @@
 
 set -e
 
-echo "🧪 Testing Market Agent"
-echo "======================="
+echo "Testing Market Agent"
 echo ""
 
 GREEN='\033[0;32m'
@@ -18,10 +17,10 @@ FAILED=0
 
 test_result() {
     if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}✅ PASS${NC}: $2"
+        echo -e "${GREEN}PASS${NC}: $2"
         ((PASSED++))
     else
-        echo -e "${RED}❌ FAIL${NC}: $2"
+        echo -e "${RED}FAIL${NC}: $2"
         ((FAILED++))
     fi
     echo ""
@@ -31,11 +30,11 @@ test_result() {
 echo "Test 1: Market Agent File Structure"
 if [ -f "src/market_agent/market_agent.py" ]; then
     if grep -q "def lambda_handler" src/market_agent/market_agent.py; then
-        echo "✓ Lambda handler found"
+        echo "Lambda handler found"
         if grep -q "SYSTEM_PROMPT" src/market_agent/market_agent.py; then
-            echo "✓ System prompt configured"
+            echo "System prompt configured"
             if grep -q "get_mandi_prices" src/market_agent/market_agent.py; then
-                echo "✓ Mandi price function found"
+                echo "Mandi price function found"
                 test_result 0 "Market agent structure valid"
             else
                 test_result 1 "Mandi price function missing"
@@ -54,7 +53,7 @@ fi
 echo "Test 2: System Prompt Configuration"
 if grep -q "Market Intelligence Agent" src/market_agent/market_agent.py; then
     if grep -q "Hindi" src/market_agent/market_agent.py; then
-        echo "✓ Hindi language support"
+        echo "Hindi language support"
         test_result 0 "System prompt properly configured"
     else
         test_result 1 "Language support missing"
@@ -70,9 +69,9 @@ ALL_PRESENT=true
 
 for source in "${SOURCES[@]}"; do
     if grep -q "$source" src/market_agent/market_agent.py; then
-        echo "✓ $source function found"
+        echo "$source function found"
     else
-        echo "✗ $source function missing"
+        echo "$source function missing"
         ALL_PRESENT=false
     fi
 done
@@ -87,8 +86,8 @@ fi
 echo "Test 4: DynamoDB Integration"
 if grep -q "dynamodb" src/market_agent/market_agent.py; then
     if grep -q "MARKET_DATA_TABLE" src/market_agent/market_agent.py; then
-        echo "✓ DynamoDB client configured"
-        echo "✓ Table name configured"
+        echo "DynamoDB client configured"
+        echo "Table name configured"
         test_result 0 "DynamoDB integration present"
     else
         test_result 1 "Table configuration missing"
@@ -101,7 +100,7 @@ fi
 echo "Test 5: Price Trend Analysis"
 if grep -q "analyze_price_trend" src/market_agent/market_agent.py; then
     if grep -q "trend" src/market_agent/market_agent.py; then
-        echo "✓ Trend analysis function found"
+        echo "Trend analysis function found"
         test_result 0 "Price trend analysis implemented"
     else
         test_result 1 "Trend logic incomplete"
@@ -114,7 +113,7 @@ fi
 echo "Test 6: Crop Recommendation System"
 if grep -q "get_crop_recommendation" src/market_agent/market_agent.py; then
     if grep -q "kharif" src/market_agent/market_agent.py; then
-        echo "✓ Seasonal recommendations found"
+        echo "Seasonal recommendations found"
         test_result 0 "Crop recommendation system present"
     else
         test_result 1 "Seasonal logic missing"
@@ -127,7 +126,7 @@ fi
 echo "Test 7: Response Formatting"
 if grep -q "format_market_response" src/market_agent/market_agent.py; then
     if grep -q "WhatsApp" src/market_agent/market_agent.py; then
-        echo "✓ Response formatter found"
+        echo "Response formatter found"
         test_result 0 "Response formatting implemented"
     else
         test_result 1 "WhatsApp formatting missing"
@@ -140,11 +139,11 @@ fi
 echo "Test 8: Enhanced Crop Agent"
 if [ -f "src/crop_agent/crop_agent_enhanced.py" ]; then
     if grep -q "CROP_SYSTEM_PROMPT" src/crop_agent/crop_agent_enhanced.py; then
-        echo "✓ System prompt added"
+        echo "System prompt added"
         if grep -q "get_conversation_history" src/crop_agent/crop_agent_enhanced.py; then
-            echo "✓ Conversation memory added"
+            echo "Conversation memory added"
             if grep -q "detect_language" src/crop_agent/crop_agent_enhanced.py; then
-                echo "✓ Language detection added"
+                echo "Language detection added"
                 test_result 0 "Enhanced crop agent complete"
             else
                 test_result 1 "Language detection missing"
@@ -162,9 +161,9 @@ fi
 # Test 9: Check infrastructure scripts
 echo "Test 9: Infrastructure Setup Scripts"
 if [ -f "infrastructure/setup_dynamodb.sh" ]; then
-    echo "✓ DynamoDB setup script found"
+    echo "DynamoDB setup script found"
     if [ -f "infrastructure/update_iam_permissions.sh" ]; then
-        echo "✓ IAM update script found"
+        echo "IAM update script found"
         test_result 0 "Infrastructure scripts present"
     else
         test_result 1 "IAM script missing"
@@ -176,7 +175,7 @@ fi
 # Test 10: Check deployment scripts
 echo "Test 10: Deployment Scripts"
 if [ -f "src/lambda/deploy_market_agent.sh" ]; then
-    echo "✓ Market agent deployment script found"
+    echo "Market agent deployment script found"
     test_result 0 "Deployment scripts ready"
 else
     test_result 1 "Market agent deployment script missing"
@@ -184,18 +183,16 @@ fi
 
 # Summary
 echo ""
-echo "=========================================="
-echo "📊 Market Agent Test Summary"
-echo "=========================================="
+echo "Market Agent Test Summary"
 echo -e "${GREEN}Passed: $PASSED${NC}"
 echo -e "${RED}Failed: $FAILED${NC}"
 echo "Total: $((PASSED + FAILED))"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}🎉 All market agent tests passed!${NC}"
+    echo -e "${GREEN}All market agent tests passed!${NC}"
     echo ""
-    echo "✅ Features Verified:"
+    echo "Features Verified:"
     echo "   • System prompt with agricultural context"
     echo "   • Mandi price integration"
     echo "   • DynamoDB caching"
@@ -206,9 +203,9 @@ if [ $FAILED -eq 0 ]; then
     echo "   • Language detection"
     echo "   • Infrastructure scripts"
     echo ""
-    echo "🚀 Ready for deployment!"
+    echo "Ready for deployment!"
     exit 0
 else
-    echo -e "${YELLOW}⚠️  Some tests failed. Review the output above.${NC}"
+    echo -e "${YELLOW}Some tests failed. Review the output above.${NC}"
     exit 1
 fi

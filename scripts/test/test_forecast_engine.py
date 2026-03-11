@@ -15,7 +15,7 @@ def test_forecasting():
     """Test the forecasting engine"""
     
     print("=" * 60)
-    print("🔮 PRICE FORECASTING ENGINE TEST")
+    print("PRICE FORECASTING ENGINE TEST")
     print("=" * 60)
     
     # Test crops
@@ -35,7 +35,7 @@ def test_forecasting():
             forecast = forecasting_engine.get_complete_forecast(crop, state, language)
             
             if forecast:
-                print("✅ Forecast generated successfully!")
+                print("Forecast generated successfully!")
                 print(f"\nRaw forecast data:")
                 print(f"  Current Price: ₹{forecast['current_price']}")
                 print(f"  7-Day Forecast: ₹{forecast.get('forecast_7d', 'N/A')}")
@@ -54,10 +54,10 @@ def test_forecasting():
                 print(message)
                 
             else:
-                print("❌ Forecast generation failed")
+                print("Forecast generation failed")
                 
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"Error: {e}")
             import traceback
             traceback.print_exc()
         

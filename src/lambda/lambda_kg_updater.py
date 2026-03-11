@@ -1,7 +1,4 @@
-"""
-Lambda function to update Knowledge Graph data periodically
-Triggered by EventBridge (CloudWatch Events) every 5 minutes
-"""
+"""Merges real farmer profiles into the knowledge graph JSON in S3. Runs on a schedule."""
 
 import boto3
 import json

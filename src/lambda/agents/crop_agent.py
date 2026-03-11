@@ -6,7 +6,7 @@ sys.path.append('/opt/python')
 
 from services.ai_service import AIService
 
-# Import optional modules
+# optional modules, the agent still answers without them
 try:
     from farmer_onboarding import onboarding_manager
     ONBOARDING_AVAILABLE = True
@@ -36,7 +36,7 @@ class CropAgent:
         """Handle crop-related text queries"""
         print(f"[CROP AGENT] Processing query: {user_message}, Language: {language}")
         
-        # ALWAYS fetch user profile first
+        # profile gives village, district and crops
         profile = None
         profile_context = ""
         village = None
@@ -66,20 +66,20 @@ class CropAgent:
         if not location and district:
             location = district
         
-        # Get weather context
         weather_context = ""
         if WEATHER_AVAILABLE and location:
             try:
                 print(f"[CROP AGENT] Fetching weather for {location}")
                 forecast = get_weather_forecast(location)
-                analysis = analyze_weather_for_farming(forecast)
-                
-                if language == 'english':
+                analysis = analyze_weather_for_farming(forecast) if forecast else None
+
+                # skip weather context if the API gave nothing
+                if analysis and language == 'english':
                     weather_context = f"\n\nCurrent Weather Context for {location}:\n"
                     weather_context += f"Temperature: {analysis['min_temp']}°C - {analysis['max_temp']}°C\n"
                     weather_context += f"Rain expected: {'Yes, in ' + str(analysis['days_until_rain']) + ' days' if analysis['rain_expected'] else 'No rain in next 3 days'}\n"
                     weather_context += "Weather advice: " + ", ".join(analysis['recommendations'])
-                else:
+                elif analysis:
                     weather_context = f"\n\n{location} का मौसम:\n"
                     weather_context += f"तापमान: {analysis['min_temp']}°C - {analysis['max_temp']}°C\n"
                     weather_context += f"बारिश: {'हां, ' + str(analysis['days_until_rain']) + ' दिन में' if analysis['rain_expected'] else 'अगले 3 दिन में नहीं'}\n"
@@ -87,7 +87,7 @@ class CropAgent:
             except Exception as e:
                 print(f"[CROP AGENT] Weather error: {e}")
         
-        # PRIORITY 1: Check hyperlocal data FIRST
+        # disease reports from the same village come first
         if HYPERLOCAL_AVAILABLE and village and crops:
             try:
                 print(f"[CROP AGENT] Checking hyperlocal data for {village}, {crops}")
@@ -108,7 +108,6 @@ class CropAgent:
                         if "✅" in treatment_msg:
                             treatments_found = True
                     
-                    # Add footer
                     if language == 'hindi':
                         if treatments_found:
                             hyperlocal_response += "\n💡 *सलाह*: ये उपचार आपके क्षेत्र के किसानों द्वारा सफल पाए गए हैं। अपने स्थानीय कृषि विशेषज्ञ से भी परामर्श करें।"
@@ -126,12 +125,12 @@ class CropAgent:
             except Exception as e:
                 print(f"[CROP AGENT] Hyperlocal error: {e}")
         
-        # FALLBACK: Use AI with full context
+        # otherwise ask the model, with the farmer's profile and weather
         print(f"[CROP AGENT] Using AI fallback with profile context")
         
         if language == 'english':
             system_prompt = """You are a helpful farming assistant. 
-Help farmers with crop diseases, pests, and treatments.
+Help farmers with crop diseases, pests and treatments.
 Reply in simple English. Keep it short (2-3 sentences) and practical.
 CRITICAL: Respond ONLY in English. Do not use any Hindi words or phrases."""
         else:

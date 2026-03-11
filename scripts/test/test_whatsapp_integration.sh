@@ -5,8 +5,7 @@
 
 set -e
 
-echo "🧪 Testing WhatsApp + Crop Engine Integration"
-echo "=============================================="
+echo "Testing WhatsApp + Crop Engine Integration"
 echo ""
 
 GREEN='\033[0;32m'
@@ -19,10 +18,10 @@ FAILED=0
 
 test_result() {
     if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}✅ PASS${NC}: $2"
+        echo -e "${GREEN}PASS${NC}: $2"
         ((PASSED++))
     else
-        echo -e "${RED}❌ FAIL${NC}: $2"
+        echo -e "${RED}FAIL${NC}: $2"
         ((FAILED++))
     fi
     echo ""
@@ -32,13 +31,13 @@ test_result() {
 echo "Test 1: Updated Crop Health API File"
 if [ -f "src/crop_agent/crop_health_api.py" ]; then
     if grep -q "def lambda_handler" src/crop_agent/crop_health_api.py; then
-        echo "✓ Lambda handler found"
+        echo "Lambda handler found"
         if grep -q "def send_whatsapp_message" src/crop_agent/crop_health_api.py; then
-            echo "✓ WhatsApp integration found"
+            echo "WhatsApp integration found"
             if grep -q "def ask_bedrock" src/crop_agent/crop_health_api.py; then
-                echo "✓ Bedrock AI integration found"
+                echo "Bedrock AI integration found"
                 if grep -q "def analyze_crop_image" src/crop_agent/crop_health_api.py; then
-                    echo "✓ Crop image analysis found"
+                    echo "Crop image analysis found"
                     test_result 0 "All new functions present"
                 else
                     test_result 1 "Crop image analysis function missing"
@@ -63,7 +62,7 @@ MISSING_VARS=()
 
 for var in "${REQUIRED_VARS[@]}"; do
     if grep -q "$var" src/crop_agent/crop_health_api.py; then
-        echo "✓ $var referenced in code"
+        echo "$var referenced in code"
     else
         MISSING_VARS+=("$var")
     fi
@@ -79,7 +78,7 @@ fi
 echo "Test 3: WhatsApp Webhook Verification Logic"
 if grep -q "hub.verify_token" src/crop_agent/crop_health_api.py; then
     if grep -q "hub.challenge" src/crop_agent/crop_health_api.py; then
-        echo "✓ Webhook verification logic present"
+        echo "Webhook verification logic present"
         test_result 0 "WhatsApp webhook verification implemented"
     else
         test_result 1 "Challenge response missing"
@@ -95,9 +94,9 @@ ALL_PRESENT=true
 
 for type in "${TYPES[@]}"; do
     if grep -q "msg_type == \"$type\"" src/crop_agent/crop_health_api.py; then
-        echo "✓ $type message handling found"
+        echo "$type message handling found"
     else
-        echo "✗ $type message handling missing"
+        echo "$type message handling missing"
         ALL_PRESENT=false
     fi
 done
@@ -112,7 +111,7 @@ fi
 echo "Test 5: AWS Bedrock Integration"
 if grep -q "bedrock.converse" src/crop_agent/crop_health_api.py; then
     if grep -q "amazon.nova-micro-v1:0" src/crop_agent/crop_health_api.py; then
-        echo "✓ Bedrock model: amazon.nova-micro-v1:0"
+        echo "Bedrock model: amazon.nova-micro-v1:0"
         test_result 0 "Bedrock AI integration configured"
     else
         test_result 1 "Bedrock model not specified"
@@ -125,8 +124,8 @@ fi
 echo "Test 6: Crop Health API Integration"
 if grep -q "crop.kindwise.com" src/crop_agent/crop_health_api.py; then
     if grep -q "analyze_crop_image" src/crop_agent/crop_health_api.py; then
-        echo "✓ Crop Health API endpoint configured"
-        echo "✓ Image analysis function present"
+        echo "Crop Health API endpoint configured"
+        echo "Image analysis function present"
         test_result 0 "Crop Health API integrated"
     else
         test_result 1 "Image analysis function missing"
@@ -139,8 +138,8 @@ fi
 echo "Test 7: Response Formatting"
 if grep -q "format_crop_result" src/crop_agent/crop_health_api.py; then
     if grep -q "Crop Disease Analysis Results" src/crop_agent/crop_health_api.py; then
-        echo "✓ Result formatting function present"
-        echo "✓ User-friendly message format"
+        echo "Result formatting function present"
+        echo "User-friendly message format"
         test_result 0 "Response formatting implemented"
     else
         test_result 1 "Message format not user-friendly"
@@ -153,7 +152,7 @@ fi
 echo "Test 8: Error Handling"
 if grep -q "try:" src/crop_agent/crop_health_api.py; then
     if grep -q "except Exception" src/crop_agent/crop_health_api.py; then
-        echo "✓ Try-except blocks present"
+        echo "Try-except blocks present"
         test_result 0 "Error handling implemented"
     else
         test_result 1 "Exception handling incomplete"
@@ -166,8 +165,8 @@ fi
 echo "Test 9: WhatsApp Image Download"
 if grep -q "download_whatsapp_image" src/crop_agent/crop_health_api.py; then
     if grep -q "graph.facebook.com" src/crop_agent/crop_health_api.py; then
-        echo "✓ Image download function present"
-        echo "✓ Facebook Graph API integration"
+        echo "Image download function present"
+        echo "Facebook Graph API integration"
         test_result 0 "Image download functionality implemented"
     else
         test_result 1 "Facebook Graph API not configured"
@@ -179,7 +178,7 @@ fi
 # Test 10: Check base64 encoding
 echo "Test 10: Image Encoding"
 if grep -q "base64.b64encode" src/crop_agent/crop_health_api.py; then
-    echo "✓ Base64 encoding present"
+    echo "Base64 encoding present"
     test_result 0 "Image encoding implemented"
 else
     test_result 1 "Image encoding missing"
@@ -187,18 +186,16 @@ fi
 
 # Summary
 echo ""
-echo "=============================================="
-echo "📊 WhatsApp Integration Test Summary"
-echo "=============================================="
+echo "WhatsApp Integration Test Summary"
 echo -e "${GREEN}Passed: $PASSED${NC}"
 echo -e "${RED}Failed: $FAILED${NC}"
 echo "Total: $((PASSED + FAILED))"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}🎉 All WhatsApp integration tests passed!${NC}"
+    echo -e "${GREEN}All WhatsApp integration tests passed!${NC}"
     echo ""
-    echo "✅ Features Verified:"
+    echo "Features Verified:"
     echo "   • WhatsApp webhook integration"
     echo "   • Text message handling with Bedrock AI"
     echo "   • Image message handling"
@@ -206,9 +203,9 @@ if [ $FAILED -eq 0 ]; then
     echo "   • Response formatting"
     echo "   • Error handling"
     echo ""
-    echo "🚀 Ready for WhatsApp deployment!"
+    echo "Ready for WhatsApp deployment!"
     exit 0
 else
-    echo -e "${YELLOW}⚠️  Some tests failed. Review the output above.${NC}"
+    echo -e "${YELLOW}Some tests failed. Review the output above.${NC}"
     exit 1
 fi

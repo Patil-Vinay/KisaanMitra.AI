@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting KisaanMitra.AI Dashboard..."
+echo "Starting KisaanMitra.AI Dashboard..."
 echo ""
 echo "Dashboard will open at: http://localhost:8501"
 echo ""

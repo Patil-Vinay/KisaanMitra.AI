@@ -1,7 +1,4 @@
-"""
-Data Preparer for SageMaker Canvas Time Series Forecasting
-Converts AgMarkNet data to SageMaker-compatible format
-"""
+"""Turns the price history into the CSV format SageMaker AutoML expects."""
 
 import pandas as pd
 from datetime import datetime, timedelta
@@ -10,7 +7,7 @@ from io import StringIO
 
 
 class SageMakerDataPreparer:
-    """Prepare data for SageMaker Canvas time series forecasting"""
+    """Prepare data for SageMaker AutoML forecasting"""
     
     def __init__(self, s3_bucket, s3_prefix='sagemaker-forecasting'):
         self.s3_client = boto3.client('s3')
@@ -18,15 +15,7 @@ class SageMakerDataPreparer:
         self.s3_prefix = s3_prefix
     
     def prepare_training_data(self, historical_data_dict):
-        """
-        Convert historical price data to SageMaker format
-        
-        Args:
-            historical_data_dict: Dict of {crop_name: DataFrame with 'date' and 'price' columns}
-        
-        Returns:
-            DataFrame in SageMaker format with columns: item_id, timestamp, price
-        """
+        """Convert historical price data to SageMaker format"""
         all_data = []
         
         for crop_name, df in historical_data_dict.items():
@@ -54,16 +43,7 @@ class SageMakerDataPreparer:
         return combined_df
     
     def upload_to_s3(self, df, filename='train.csv'):
-        """
-        Upload DataFrame to S3 as CSV
-        
-        Args:
-            df: DataFrame to upload
-            filename: Name of file in S3
-        
-        Returns:
-            S3 URI of uploaded file
-        """
+        """Upload DataFrame to S3 as CSV"""
         # Format timestamp for SageMaker (yyyy-MM-dd HH:mm:ss)
         df_copy = df.copy()
         df_copy['timestamp'] = df_copy['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -82,20 +62,12 @@ class SageMakerDataPreparer:
         )
         
         s3_uri = f"s3://{self.s3_bucket}/{s3_key}"
-        print(f"✅ Uploaded to {s3_uri}")
+        print(f"Uploaded to {s3_uri}")
         
         return s3_uri
     
     def validate_data(self, df):
-        """
-        Validate data meets SageMaker requirements
-        
-        Args:
-            df: DataFrame to validate
-        
-        Returns:
-            bool: True if valid, raises exception otherwise
-        """
+        """Validate data meets SageMaker requirements"""
         # Check required columns
         required_cols = ['item_id', 'timestamp', 'price']
         missing_cols = [col for col in required_cols if col not in df.columns]
@@ -122,11 +94,11 @@ class SageMakerDataPreparer:
         
         insufficient_items = item_counts[item_counts < min_points]
         if len(insufficient_items) > 0:
-            print(f"⚠️  Warning: Some items have < {min_points} data points:")
+            print(f"Warning: Some items have < {min_points} data points:")
             for item, count in insufficient_items.items():
                 print(f"   - {item}: {count} points")
         
-        print(f"✅ Data validation passed")
+        print(f"Data validation passed")
         print(f"   - Total rows: {len(df)}")
         print(f"   - Unique items: {df['item_id'].nunique()}")
         print(f"   - Date range: {df['timestamp'].min()} to {df['timestamp'].max()}")

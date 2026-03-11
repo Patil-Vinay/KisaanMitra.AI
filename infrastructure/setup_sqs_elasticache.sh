@@ -7,12 +7,11 @@ set -e
 REGION="ap-south-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-echo "🚀 Setting up AWS Enhancements"
-echo "=============================="
+echo "Setting up AWS Enhancements"
 echo ""
 
 # 1. Create SQS Queue
-echo "1️⃣ Creating SQS Queue..."
+echo "1Creating SQS Queue..."
 aws sqs create-queue \
   --queue-name kisaanmitra-messages \
   --attributes \
@@ -25,11 +24,11 @@ aws sqs create-queue \
 
 # Get queue URL
 QUEUE_URL=$(aws sqs get-queue-url --queue-name kisaanmitra-messages --region $REGION --query QueueUrl --output text)
-echo "✓ Queue URL: $QUEUE_URL"
+echo "Queue URL: $QUEUE_URL"
 
 # 2. Create Dead Letter Queue
 echo ""
-echo "2️⃣ Creating Dead Letter Queue..."
+echo "2Creating Dead Letter Queue..."
 aws sqs create-queue \
   --queue-name kisaanmitra-messages-dlq \
   --attributes MessageRetentionPeriod=1209600 \
@@ -46,11 +45,11 @@ aws sqs set-queue-attributes \
   --attributes "{\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"$DLQ_ARN\\\",\\\"maxReceiveCount\\\":\\\"3\\\"}\"}" \
   --region $REGION
 
-echo "✓ DLQ configured with 3 max retries"
+echo "DLQ configured with 3 max retries"
 
 # 3. Create ElastiCache Subnet Group
 echo ""
-echo "3️⃣ Creating ElastiCache Subnet Group..."
+echo "3Creating ElastiCache Subnet Group..."
 
 # Get default VPC
 VPC_ID=$(aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --region $REGION --query 'Vpcs[0].VpcId' --output text)
@@ -67,11 +66,11 @@ aws elasticache create-cache-subnet-group \
   --region $REGION \
   2>/dev/null || echo "Subnet group already exists"
 
-echo "✓ Subnet group created"
+echo "Subnet group created"
 
 # 4. Create Security Group for ElastiCache
 echo ""
-echo "4️⃣ Creating Security Group..."
+echo "4Creating Security Group..."
 
 SG_ID=$(aws ec2 create-security-group \
   --group-name kisaanmitra-cache-sg \
@@ -97,12 +96,12 @@ aws ec2 authorize-security-group-ingress \
   --region $REGION \
   2>/dev/null || echo "Ingress rule already exists"
 
-echo "✓ Security group configured"
+echo "Security group configured"
 
 # 5. Create ElastiCache Redis Cluster
 echo ""
-echo "5️⃣ Creating ElastiCache Redis Cluster..."
-echo "⏳ This may take 5-10 minutes..."
+echo "5Creating ElastiCache Redis Cluster..."
+echo "This may take 5-10 minutes..."
 
 aws elasticache create-cache-cluster \
   --cache-cluster-id kisaanmitra-cache \
@@ -116,11 +115,11 @@ aws elasticache create-cache-cluster \
   --region $REGION \
   2>/dev/null || echo "Cache cluster already exists"
 
-echo "✓ ElastiCache cluster creation initiated"
+echo "ElastiCache cluster creation initiated"
 
 # 6. Wait for cluster to be available
 echo ""
-echo "⏳ Waiting for cluster to be available..."
+echo "Waiting for cluster to be available..."
 aws elasticache wait cache-cluster-available \
   --cache-cluster-id kisaanmitra-cache \
   --region $REGION || true
@@ -134,19 +133,19 @@ REDIS_ENDPOINT=$(aws elasticache describe-cache-clusters \
   --output text 2>/dev/null || echo "pending")
 
 echo ""
-echo "✅ Setup Complete!"
+echo "Setup Complete!"
 echo ""
-echo "📊 Resources Created:"
+echo "Resources Created:"
 echo "   • SQS Queue: kisaanmitra-messages"
 echo "   • Dead Letter Queue: kisaanmitra-messages-dlq"
 echo "   • ElastiCache Cluster: kisaanmitra-cache"
 echo "   • Security Group: $SG_ID"
 echo ""
-echo "🔗 Endpoints:"
+echo "Endpoints:"
 echo "   • Queue URL: $QUEUE_URL"
 echo "   • Redis Endpoint: $REDIS_ENDPOINT:6379"
 echo ""
-echo "📝 Next Steps:"
+echo "Next Steps:"
 echo "   1. Update Lambda environment variables:"
 echo "      QUEUE_URL=$QUEUE_URL"
 echo "      REDIS_ENDPOINT=$REDIS_ENDPOINT"

@@ -9,28 +9,28 @@ FUNCTION_NAME="kisaanmitra-kg-updater"
 REGION="ap-south-1"
 ROLE_ARN="arn:aws:iam::482548785371:role/service-role/whatsapp-llama-bot-role-9t42wmrl"
 
-echo "🚀 Deploying KG Updater Lambda..."
+echo "Deploying KG Updater Lambda..."
 
 # Create deployment package
-echo "📦 Creating deployment package..."
+echo "Creating deployment package..."
 zip -j kg_updater.zip lambda_kg_updater.py
 
 # Check if function exists
 if aws lambda get-function --function-name $FUNCTION_NAME --region $REGION 2>/dev/null; then
-    echo "♻️  Updating existing function..."
+    echo "Updating existing function..."
     aws lambda update-function-code \
         --function-name $FUNCTION_NAME \
         --zip-file fileb://kg_updater.zip \
         --region $REGION
     
-    echo "⚙️  Updating function configuration..."
+    echo "Updating function configuration..."
     aws lambda update-function-configuration \
         --function-name $FUNCTION_NAME \
         --timeout 60 \
         --memory-size 512 \
         --region $REGION
 else
-    echo "🆕 Creating new function..."
+    echo "Creating new function..."
     aws lambda create-function \
         --function-name $FUNCTION_NAME \
         --runtime python3.11 \
@@ -43,7 +43,7 @@ else
 fi
 
 # Create EventBridge rule to trigger every 5 minutes
-echo "⏰ Setting up EventBridge rule..."
+echo "Setting up EventBridge rule..."
 
 RULE_NAME="kg-updater-schedule"
 
@@ -73,15 +73,15 @@ aws events put-targets \
 rm kg_updater.zip
 
 echo ""
-echo "✅ Deployment complete!"
+echo "Deployment complete!"
 echo ""
-echo "📊 Knowledge Graph Updater Lambda deployed successfully"
-echo "🔄 Updates every 5 minutes automatically"
-echo "📍 Function: $FUNCTION_NAME"
-echo "⏰ Schedule: Every 5 minutes"
+echo "Knowledge Graph Updater Lambda deployed successfully"
+echo "Updates every 5 minutes automatically"
+echo "Function: $FUNCTION_NAME"
+echo "Schedule: Every 5 minutes"
 echo ""
-echo "🧪 Test the function:"
+echo "Test the function:"
 echo "aws lambda invoke --function-name $FUNCTION_NAME --region $REGION response.json"
 echo ""
-echo "📈 View logs:"
+echo "View logs:"
 echo "aws logs tail /aws/lambda/$FUNCTION_NAME --follow --region $REGION"

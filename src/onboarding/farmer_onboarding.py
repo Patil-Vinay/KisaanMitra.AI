@@ -1,7 +1,4 @@
-"""
-Farmer Onboarding Module
-Handles new user registration and data collection via WhatsApp
-"""
+"""Onboarding chat for new farmers. Answers are parsed by Nova Pro and saved as a profile."""
 
 import json
 import boto3
@@ -15,12 +12,12 @@ bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 
 # Tables
 ONBOARDING_TABLE = "kisaanmitra-onboarding"
-USER_PROFILE_TABLE = "kisaanmitra-farmer-profiles"  # Fixed: was kisaanmitra-user-profiles
+USER_PROFILE_TABLE = "kisaanmitra-farmer-profiles"
 CONVERSATION_TABLE = "kisaanmitra-conversations"
 
 
 class OnboardingState(Enum):
-    """Onboarding flow states - Comprehensive onboarding"""
+    """Onboarding flow states"""
     NEW = "new"
     ASKED_NAME = "asked_name"
     ASKED_VILLAGE = "asked_village"
@@ -114,17 +111,17 @@ class FarmerOnboarding:
             print(f"Error updating onboarding state: {e}")
     
     def extract_info_with_ai(self, user_message: str, field: str) -> Optional[str]:
-        """Use AI to extract information from user message"""
+        """Ask the model to pull one field out of the reply"""
         prompts = {
             "name": f"""Extract ONLY the farmer's name from: "{user_message}"
 
 Reply with ONLY the name, no explanation.
 
 Examples:
-"मेरा नाम राजेश पाटील है" → Rajesh Patil
-"I am Suresh Kumar" → Suresh Kumar
-"राम" → Ram
-"Mera Naam Aditya Rane hai" → Aditya Rane
+"मेरा नाम राजेश पाटील है": Rajesh Patil
+"I am Suresh Kumar": Suresh Kumar
+"राम": Ram
+"Mera Naam Aditya Rane hai": Aditya Rane
 
 Reply with ONLY the name:""",
             
@@ -133,11 +130,11 @@ Reply with ONLY the name:""",
 Reply with ONLY the location name, no explanation.
 
 Examples:
-"मैं पुणे के पास रहता हूं" → Pune
-"I am from Nashik district" → Nashik
-"गांव: शिरूर" → Shirur
-"Kolhapur se hu" → Kolhapur
-"Uruli Kanchan" → Uruli Kanchan
+"मैं पुणे के पास रहता हूं": Pune
+"I am from Nashik district": Nashik
+"गांव: शिरूर": Shirur
+"Kolhapur se hu": Kolhapur
+"Uruli Kanchan": Uruli Kanchan
 
 Reply with ONLY location name:""",
             
@@ -146,10 +143,10 @@ Reply with ONLY location name:""",
 Reply with ONLY the district name, no explanation.
 
 Examples:
-"पुणे जिला" → Pune
-"Nashik district" → Nashik
-"Kolhapur" → Kolhapur
-"मैं सतारा से हूं" → Satara
+"पुणे जिला": Pune
+"Nashik district": Nashik
+"Kolhapur": Kolhapur
+"मैं सतारा से हूं": Satara
 
 Reply with ONLY district name:""",
             
@@ -158,10 +155,10 @@ Reply with ONLY district name:""",
 Reply with ONLY the number, no explanation.
 
 Examples:
-"मेरे पास 5 एकड़ जमीन है" → 5
-"I have 2 hectares" → 4.94
-"10 acre" → 10
-"mere paas 3 acre hai" → 3
+"मेरे पास 5 एकड़ जमीन है": 5
+"I have 2 hectares": 4.94
+"10 acre": 10
+"mere paas 3 acre hai": 3
 
 Reply with ONLY the number:""",
             
@@ -170,10 +167,10 @@ Reply with ONLY the number:""",
 Reply with ONLY the soil type, no explanation.
 
 Examples:
-"काली मिट्टी" → Black Cotton Soil
-"Red soil" → Red Soil
-"Laterite" → Laterite Soil
-"मेरी जमीन में लाल मिट्टी है" → Red Soil
+"काली मिट्टी": Black Cotton Soil
+"Red soil": Red Soil
+"Laterite": Laterite Soil
+"मेरी जमीन में लाल मिट्टी है": Red Soil
 
 Common types: Black Cotton Soil, Red Soil, Laterite Soil, Alluvial Soil, Sandy Soil
 
@@ -184,10 +181,10 @@ Reply with ONLY soil type:""",
 Reply with ONLY the water source, no explanation.
 
 Examples:
-"बोरवेल से पानी मिलता है" → Borewell
-"I have drip irrigation" → Drip Irrigation
-"नहर" → Canal
-"बारिश पर निर्भर" → Rainfed
+"बोरवेल से पानी मिलता है": Borewell
+"I have drip irrigation": Drip Irrigation
+"नहर": Canal
+"बारिश पर निर्भर": Rainfed
 
 Common sources: Borewell, Canal, Well, Drip Irrigation, Rainfed
 
@@ -198,10 +195,10 @@ Reply with ONLY water source:""",
 Reply with ONLY comma-separated crop names, no explanation.
 
 Examples:
-"मैं गेहूं और धान उगाता हूं" → wheat, rice
-"I grow tomato and onion" → tomato, onion
-"सोयाबीन" → soybean
-"Sugarcane aur Soya Bean" → sugarcane, soybean
+"मैं गेहूं और धान उगाता हूं": wheat, rice
+"I grow tomato and onion": tomato, onion
+"सोयाबीन": soybean
+"Sugarcane aur Soya Bean": sugarcane, soybean
 
 Reply with ONLY crop names:""",
             
@@ -210,9 +207,9 @@ Reply with ONLY crop names:""",
 Reply with ONLY the number, no explanation.
 
 Examples:
-"मैं 10 साल से खेती कर रहा हूं" → 10
-"I have 5 years experience" → 5
-"15 saal" → 15
+"मैं 10 साल से खेती कर रहा हूं": 10
+"I have 5 years experience": 5
+"15 saal": 15
 
 Reply with ONLY the number:""",
             
@@ -221,9 +218,9 @@ Reply with ONLY the number:""",
 Reply with a brief summary.
 
 Examples:
-"पानी की कमी और कीट समस्या" → Water scarcity, pest issues
-"Market prices are low" → Low market prices
-"बारिश नहीं होती" → Lack of rainfall
+"पानी की कमी और कीट समस्या": Water scarcity, pest issues
+"Market prices are low": Low market prices
+"बारिश नहीं होती": Lack of rainfall
 
 Reply with brief summary:""",
             
@@ -232,9 +229,9 @@ Reply with brief summary:""",
 Reply with a brief summary.
 
 Examples:
-"मैं अपनी आय बढ़ाना चाहता हूं" → Increase income
-"I want to grow organic crops" → Grow organic crops
-"नई फसलें उगाना चाहता हूं" → Try new crops
+"मैं अपनी आय बढ़ाना चाहता हूं": Increase income
+"I want to grow organic crops": Grow organic crops
+"नई फसलें उगाना चाहता हूं": Try new crops
 
 Reply with brief summary:"""
         }
@@ -281,7 +278,7 @@ Reply with brief summary:"""
         
         print(f"[ONBOARDING] User: {user_id}, State: {state}, Language: {lang}, Message: {user_message}")
         
-        # Comprehensive bilingual messages
+        # bilingual messages
         messages = {
             "welcome": {
                 "hindi": """🙏 नमस्ते! KisaanMitra में आपका स्वागत है!
@@ -583,7 +580,7 @@ Now I can help you with:
             }
         }
         
-        # Comprehensive state machine for onboarding flow
+        # state machine for the onboarding flow
         if state == OnboardingState.NEW.value:
             response = messages["welcome"][lang]
             self.update_onboarding_state(user_id, OnboardingState.ASKED_NAME.value, data)
@@ -711,7 +708,7 @@ Now I can help you with:
         return error_msg, False
     
     def save_user_profile(self, user_id: str, data: Dict):
-        """Save complete user profile to DynamoDB with all comprehensive fields"""
+        """Save complete user profile to DynamoDB """
         try:
             self.profile_table.put_item(
                 Item={
@@ -732,7 +729,7 @@ Now I can help you with:
                     "profile_complete": True
                 }
             )
-            print(f"✅ Comprehensive profile saved for user {user_id}")
+            print(f"Profile saved for user {user_id}")
             print(f"   - Name: {data.get('name')}")
             print(f"   - Village: {data.get('village')}, District: {data.get('district')}")
             print(f"   - Land: {data.get('land_acres')} acres, Soil: {data.get('soil_type')}")
@@ -752,19 +749,10 @@ Now I can help you with:
             return None
     
     def get_farmers_by_location(self, village: str, district: str) -> list:
-        """
-        Get all farmers in a specific village/district
-        
-        Args:
-            village: Village name
-            district: District name
-        
-        Returns:
-            List of farmer profiles
-        """
+        """Get all farmers in a specific village/district"""
         try:
             # Scan the profile table for farmers in this location
-            # Note: In production, use a GSI (Global Secondary Index) for better performance
+            # a scan is fine for the demo, a GSI on village would be better
             response = self.profile_table.scan(
                 FilterExpression='village = :v AND district = :d',
                 ExpressionAttributeValues={

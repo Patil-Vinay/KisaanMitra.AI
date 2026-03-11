@@ -4,8 +4,7 @@
 
 set -e
 
-echo "💰 Testing Finance Agent"
-echo "========================"
+echo "Testing Finance Agent"
 echo ""
 
 GREEN='\033[0;32m'
@@ -18,10 +17,10 @@ FAILED=0
 
 test_result() {
     if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}✅ PASS${NC}: $2"
+        echo -e "${GREEN}PASS${NC}: $2"
         ((PASSED++))
     else
-        echo -e "${RED}❌ FAIL${NC}: $2"
+        echo -e "${RED}FAIL${NC}: $2"
         ((FAILED++))
     fi
     echo ""
@@ -31,9 +30,9 @@ test_result() {
 echo "Test 1: Finance Agent File Structure"
 if [ -f "src/finance_agent/finance_agent.py" ]; then
     if grep -q "def lambda_handler" src/finance_agent/finance_agent.py; then
-        echo "✓ Lambda handler found"
+        echo "Lambda handler found"
         if grep -q "SYSTEM_PROMPT" src/finance_agent/finance_agent.py; then
-            echo "✓ System prompt configured"
+            echo "System prompt configured"
             test_result 0 "File structure valid"
         else
             test_result 1 "System prompt missing"
@@ -52,9 +51,9 @@ ALL_PRESENT=true
 
 for crop in "${CROPS[@]}"; do
     if grep -q "\"$crop\":" src/finance_agent/finance_agent.py; then
-        echo "✓ $crop budget template found"
+        echo "$crop budget template found"
     else
-        echo "✗ $crop budget template missing"
+        echo "$crop budget template missing"
         ALL_PRESENT=false
     fi
 done
@@ -70,9 +69,9 @@ echo "Test 3: Loan Eligibility Calculation"
 if grep -q "calculate_loan_eligibility" src/finance_agent/finance_agent.py; then
     if grep -q "interest_rate" src/finance_agent/finance_agent.py; then
         if grep -q "emi" src/finance_agent/finance_agent.py; then
-            echo "✓ Loan calculation function found"
-            echo "✓ Interest rate logic present"
-            echo "✓ EMI calculation present"
+            echo "Loan calculation function found"
+            echo "Interest rate logic present"
+            echo "EMI calculation present"
             test_result 0 "Loan calculation implemented"
         else
             test_result 1 "EMI calculation missing"
@@ -91,9 +90,9 @@ ALL_PRESENT=true
 
 for scheme in "${SCHEMES[@]}"; do
     if grep -q "$scheme" src/finance_agent/finance_agent.py; then
-        echo "✓ $scheme found"
+        echo "$scheme found"
     else
-        echo "✗ $scheme missing"
+        echo "$scheme missing"
         ALL_PRESENT=false
     fi
 done
@@ -108,8 +107,8 @@ fi
 echo "Test 5: Input Cost Optimization"
 if grep -q "optimize_input_costs" src/finance_agent/finance_agent.py; then
     if grep -q "potential_savings" src/finance_agent/finance_agent.py; then
-        echo "✓ Optimization function found"
-        echo "✓ Savings calculation present"
+        echo "Optimization function found"
+        echo "Savings calculation present"
         test_result 0 "Cost optimization implemented"
     else
         test_result 1 "Savings calculation missing"
@@ -123,9 +122,9 @@ echo "Test 6: Financial Risk Assessment"
 if grep -q "assess_financial_risk" src/finance_agent/finance_agent.py; then
     if grep -q "risk_score" src/finance_agent/finance_agent.py; then
         if grep -q "market_risk" src/finance_agent/finance_agent.py; then
-            echo "✓ Risk assessment function found"
-            echo "✓ Risk scoring present"
-            echo "✓ Market risk analysis present"
+            echo "Risk assessment function found"
+            echo "Risk scoring present"
+            echo "Market risk analysis present"
             test_result 0 "Risk assessment implemented"
         else
             test_result 1 "Market risk analysis missing"
@@ -142,9 +141,9 @@ echo "Test 7: Comprehensive Financial Plan"
 if grep -q "generate_financial_plan" src/finance_agent/finance_agent.py; then
     if grep -q "budget" src/finance_agent/finance_agent.py; then
         if grep -q "schemes" src/finance_agent/finance_agent.py; then
-            echo "✓ Plan generation function found"
-            echo "✓ Budget integration present"
-            echo "✓ Scheme integration present"
+            echo "Plan generation function found"
+            echo "Budget integration present"
+            echo "Scheme integration present"
             test_result 0 "Financial plan generation complete"
         else
             test_result 1 "Scheme integration missing"
@@ -160,8 +159,8 @@ fi
 echo "Test 8: DynamoDB Storage"
 if grep -q "save_financial_plan" src/finance_agent/finance_agent.py; then
     if grep -q "FINANCE_TABLE" src/finance_agent/finance_agent.py; then
-        echo "✓ Save function found"
-        echo "✓ Table configuration present"
+        echo "Save function found"
+        echo "Table configuration present"
         test_result 0 "DynamoDB integration present"
     else
         test_result 1 "Table configuration missing"
@@ -174,8 +173,8 @@ fi
 echo "Test 9: S3 Budget Storage"
 if grep -q "BUDGET_BUCKET" src/finance_agent/finance_agent.py; then
     if grep -q "s3.put_object" src/finance_agent/finance_agent.py; then
-        echo "✓ S3 bucket configured"
-        echo "✓ Upload function present"
+        echo "S3 bucket configured"
+        echo "Upload function present"
         test_result 0 "S3 integration present"
     else
         test_result 1 "Upload function missing"
@@ -188,8 +187,8 @@ fi
 echo "Test 10: WhatsApp Response Formatting"
 if grep -q "format_financial_plan" src/finance_agent/finance_agent.py; then
     if grep -q "Budget Breakdown" src/finance_agent/finance_agent.py; then
-        echo "✓ Formatter function found"
-        echo "✓ User-friendly format present"
+        echo "Formatter function found"
+        echo "User-friendly format present"
         test_result 0 "Response formatting implemented"
     else
         test_result 1 "Format structure incomplete"
@@ -201,7 +200,7 @@ fi
 # Test 11: Infrastructure scripts
 echo "Test 11: Infrastructure Setup"
 if [ -f "infrastructure/setup_finance_tables.sh" ]; then
-    echo "✓ Finance tables setup script found"
+    echo "Finance tables setup script found"
     test_result 0 "Infrastructure scripts present"
 else
     test_result 1 "Setup script missing"
@@ -210,7 +209,7 @@ fi
 # Test 12: Deployment script
 echo "Test 12: Deployment Script"
 if [ -f "src/lambda/deploy_finance_agent.sh" ]; then
-    echo "✓ Deployment script found"
+    echo "Deployment script found"
     test_result 0 "Deployment ready"
 else
     test_result 1 "Deployment script missing"
@@ -218,18 +217,16 @@ fi
 
 # Summary
 echo ""
-echo "=========================================="
-echo "📊 Finance Agent Test Summary"
-echo "=========================================="
+echo "Finance Agent Test Summary"
 echo -e "${GREEN}Passed: $PASSED${NC}"
 echo -e "${RED}Failed: $FAILED${NC}"
 echo "Total: $((PASSED + FAILED))"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}🎉 All finance agent tests passed!${NC}"
+    echo -e "${GREEN}All finance agent tests passed!${NC}"
     echo ""
-    echo "✅ Features Verified:"
+    echo "Features Verified:"
     echo "   • 6 crop budget templates"
     echo "   • Loan eligibility calculation"
     echo "   • Government scheme matching"
@@ -241,7 +238,7 @@ if [ $FAILED -eq 0 ]; then
     echo "   • WhatsApp formatting"
     echo "   • Infrastructure scripts"
     echo ""
-    echo "💰 Crazy Features:"
+    echo "Crazy Features:"
     echo "   • ROI calculation with optimization"
     echo "   • EMI calculator with credit scoring"
     echo "   • Multi-risk assessment (market, weather, debt)"
@@ -249,9 +246,9 @@ if [ $FAILED -eq 0 ]; then
     echo "   • Cost savings recommendations"
     echo "   • 180-day plan retention"
     echo ""
-    echo "🚀 Ready for deployment!"
+    echo "Ready for deployment!"
     exit 0
 else
-    echo -e "${YELLOW}⚠️  Some tests failed.${NC}"
+    echo -e "${YELLOW}Some tests failed.${NC}"
     exit 1
 fi

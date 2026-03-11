@@ -1,5 +1,5 @@
 """
-WhatsApp Interactive Messages - Buttons, Lists, and Menus
+WhatsApp Interactive Messages - Buttons, Lists and Menus
 """
 
 def create_language_selection():
@@ -352,7 +352,7 @@ def send_interactive_message(to, phone_number_id, token, interactive_payload):
 def add_navigation_text(message, language='hindi'):
     """Add navigation instructions to text message"""
     if language == 'english':
-        nav_text = "\n\n💡 Type 'back' to go back, 'home' for main menu, or 'cancel' to restart."
+        nav_text = "\n\n💡 Type 'back' to go back, 'home' for main menu or 'cancel' to restart."
     else:
         nav_text = "\n\n💡 'back' टाइप करें पीछे जाने के लिए, 'home' मुख्य मेनू के लिए, या 'cancel' पुनः आरंभ करने के लिए।"
     

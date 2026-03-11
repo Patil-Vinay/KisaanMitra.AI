@@ -6,7 +6,7 @@
 REGION="ap-south-1"
 TABLE="kisaanmitra-conversations"
 
-echo "🔍 Fetching all users from DynamoDB..."
+echo "Fetching all users from DynamoDB..."
 echo ""
 
 # Get unique user IDs
@@ -18,11 +18,11 @@ USERS=$(aws dynamodb scan \
     --output json | jq -r '.Items[].user_id.S' | sort -u)
 
 if [ -z "$USERS" ]; then
-    echo "❌ No users found"
+    echo "No users found"
     exit 0
 fi
 
-echo "📋 Users in database:"
+echo "Users in database:"
 echo ""
 
 # Array to store users
@@ -63,28 +63,28 @@ echo ""
 read -p "Enter user number to clear (or 0 to exit): " CHOICE
 
 if [ "$CHOICE" -eq 0 ]; then
-    echo "❌ Cancelled"
+    echo "Cancelled"
     exit 0
 fi
 
 if [ "$CHOICE" -lt 1 ] || [ "$CHOICE" -ge "$INDEX" ]; then
-    echo "❌ Invalid choice"
+    echo "Invalid choice"
     exit 1
 fi
 
 SELECTED_USER=${USER_ARRAY[$CHOICE]}
 
 echo ""
-echo "⚠️  You selected: +$SELECTED_USER"
+echo "You selected: +$SELECTED_USER"
 read -p "Are you sure you want to delete ALL data for this user? (yes/no): " CONFIRM
 
 if [ "$CONFIRM" != "yes" ]; then
-    echo "❌ Cancelled"
+    echo "Cancelled"
     exit 0
 fi
 
 echo ""
-echo "🗑️  Deleting all data for user: $SELECTED_USER"
+echo "Deleting all data for user: $SELECTED_USER"
 
 # Get all items for this user
 ITEMS=$(aws dynamodb query \
@@ -109,10 +109,10 @@ echo $ITEMS | jq -r '.Items[] | @json' | while read item; do
         > /dev/null 2>&1
     
     DELETED=$((DELETED + 1))
-    echo "  ✓ Deleted item $DELETED"
+    echo "  Deleted item $DELETED"
 done
 
 echo ""
-echo "✅ All data deleted for user: +$SELECTED_USER"
+echo "All data deleted for user: +$SELECTED_USER"
 echo ""
-echo "📝 User can start fresh by sending a new message to the WhatsApp bot"
+echo "User can start fresh by sending a new message to the WhatsApp bot"

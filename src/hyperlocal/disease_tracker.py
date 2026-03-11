@@ -1,7 +1,4 @@
-"""
-Hyperlocal Disease Tracking & Best Practices System
-Tracks diseases in villages and shares successful treatments
-"""
+"""Village-level disease reports, treatments that worked and best practices."""
 
 import boto3
 from datetime import datetime, timedelta
@@ -21,23 +18,7 @@ class HyperlocalDiseaseTracker:
     
     def report_disease(self, user_id, village, district, crop, disease_name, 
                       severity, symptoms, image_url=None, send_alerts=True):
-        """
-        Farmer reports a disease they're experiencing
-        
-        Args:
-            user_id: Farmer's phone number
-            village: Village name
-            district: District name
-            crop: Affected crop
-            disease_name: Disease identified (from AI or farmer)
-            severity: low/medium/high
-            symptoms: Description of symptoms
-            image_url: S3 URL of disease image (optional)
-            send_alerts: Whether to send alerts to nearby farmers (default True)
-        
-        Returns:
-            tuple: (report_id, farmers_to_alert)
-        """
+        """Farmer reports a disease they're experiencing"""
         report_id = str(uuid.uuid4())
         timestamp = datetime.utcnow().isoformat()
         
@@ -70,18 +51,7 @@ class HyperlocalDiseaseTracker:
         return report_id, farmers_to_alert
     
     def get_nearby_diseases(self, village, district, days=30, crop=None):
-        """
-        Get recent disease reports from the same village/district
-        
-        Args:
-            village: Village name
-            district: District name
-            days: Look back period (default 30 days)
-            crop: Filter by specific crop (optional)
-        
-        Returns:
-            List of disease reports with treatment info
-        """
+        """Get recent disease reports from the same village/district"""
         cutoff_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
         
         try:
@@ -115,19 +85,7 @@ class HyperlocalDiseaseTracker:
     def record_treatment_success(self, report_id, user_id, disease_name, 
                                 treatment_method, effectiveness_score, 
                                 cost, duration_days, notes):
-        """
-        Record a successful treatment (what worked for a farmer)
-        
-        Args:
-            report_id: Original disease report ID
-            user_id: Farmer who applied treatment
-            disease_name: Disease that was treated
-            treatment_method: What they did (pesticide, organic, etc)
-            effectiveness_score: 1-10 rating
-            cost: Treatment cost in rupees
-            duration_days: How long until resolved
-            notes: Additional details
-        """
+        """Record a successful treatment (what worked for a farmer)"""
         success_id = str(uuid.uuid4())
         timestamp = datetime.utcnow().isoformat()
         
@@ -167,16 +125,7 @@ class HyperlocalDiseaseTracker:
         return success_id
     
     def get_successful_treatments(self, disease_name, min_score=7):
-        """
-        Get treatments that worked well for a specific disease
-        
-        Args:
-            disease_name: Disease to find treatments for
-            min_score: Minimum effectiveness score (default 7/10)
-        
-        Returns:
-            List of successful treatments, sorted by effectiveness
-        """
+        """Get treatments that worked well for a specific disease"""
         try:
             response = treatment_success_table.query(
                 IndexName='disease-effectiveness-index',
@@ -198,18 +147,7 @@ class HyperlocalDiseaseTracker:
     
     def add_best_practice(self, user_id, village, crop_type, category, 
                          title, description, season=None):
-        """
-        Add a farming best practice from community knowledge
-        
-        Args:
-            user_id: Farmer sharing the practice
-            village: Their village
-            crop_type: Crop this applies to
-            category: pest_control, irrigation, fertilizer, harvesting, etc
-            title: Short title
-            description: Detailed description
-            season: Applicable season (optional)
-        """
+        """Add a farming best practice from community knowledge"""
         practice_id = str(uuid.uuid4())
         timestamp = datetime.utcnow().isoformat()
         
@@ -233,17 +171,7 @@ class HyperlocalDiseaseTracker:
         return practice_id
     
     def get_best_practices(self, crop_type, category=None, min_upvotes=0):
-        """
-        Get best practices for a crop
-        
-        Args:
-            crop_type: Crop to get practices for
-            category: Filter by category (optional)
-            min_upvotes: Minimum upvotes (default 0)
-        
-        Returns:
-            List of best practices, sorted by upvotes
-        """
+        """Get best practices for a crop"""
         try:
             response = best_practices_table.query(
                 IndexName='crop-upvotes-index',
@@ -281,21 +209,8 @@ class HyperlocalDiseaseTracker:
             print(f"[HYPERLOCAL ERROR] Failed to upvote: {e}")
     
     def get_farmers_to_alert(self, village, district, crop, reporter_user_id):
-        """
-        Get list of farmers in the same village growing the same crop
-        (excluding the reporter)
-        
-        Args:
-            village: Village name
-            district: District name
-            crop: Crop type
-            reporter_user_id: User ID of the farmer who reported (to exclude)
-        
-        Returns:
-            List of farmer profiles to send alerts to
-        """
+        """Get list of farmers in the same village growing the same crop"""
         try:
-            # Import onboarding manager to query farmer profiles
             from farmer_onboarding import onboarding_manager
             
             # Get all farmers in the village
@@ -324,20 +239,7 @@ class HyperlocalDiseaseTracker:
     
     def format_disease_alert_notification(self, disease_name, severity, village, 
                                          reporter_name, crop, language='english'):
-        """
-        Format a disease alert notification message for nearby farmers
-        
-        Args:
-            disease_name: Name of the disease
-            severity: low/medium/high
-            village: Village where disease was reported
-            reporter_name: Name of farmer who reported (optional, can be "A farmer")
-            crop: Affected crop
-            language: Message language
-        
-        Returns:
-            Formatted alert message
-        """
+        """Format a disease alert notification message for nearby farmers"""
         severity_emoji = {
             'high': '🔴',
             'medium': '🟡',
@@ -379,10 +281,7 @@ class HyperlocalDiseaseTracker:
             print(f"[HYPERLOCAL ERROR] Failed to update alerts count: {e}")
     
     def format_disease_alert(self, village, crop, language='english'):
-        """
-        Format a disease alert message for farmers
-        Shows what diseases are active in their area
-        """
+        """Message listing the diseases active in the farmer's area"""
         reports = self.get_nearby_diseases(village, None, days=7, crop=crop)
         
         if not reports:

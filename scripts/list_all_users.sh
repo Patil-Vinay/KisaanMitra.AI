@@ -2,8 +2,7 @@
 
 # List all registered users from KisaanMitra
 
-echo "📋 KisaanMitra - All Registered Users"
-echo "======================================"
+echo "KisaanMitra - All Registered Users"
 echo ""
 
 # Fetch all users

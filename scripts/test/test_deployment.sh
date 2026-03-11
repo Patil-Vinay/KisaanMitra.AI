@@ -1,12 +1,11 @@
 #!/bin/bash
 
-# KisaanMitra.AI - Comprehensive Deployment Test
+# KisaanMitra.AI - deployment test
 # Tests all components: AWS connection, S3, Secrets, Lambda
 
 set -e
 
-echo "🧪 KisaanMitra.AI - Deployment Test Suite"
-echo "=========================================="
+echo "KisaanMitra.AI - Deployment Test Suite"
 echo ""
 
 # Colors for output
@@ -22,10 +21,10 @@ FAILED=0
 # Function to print test result
 test_result() {
     if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}✅ PASS${NC}: $2"
+        echo -e "${GREEN}PASS${NC}: $2"
         ((PASSED++))
     else
-        echo -e "${RED}❌ FAIL${NC}: $2"
+        echo -e "${RED}FAIL${NC}: $2"
         ((FAILED++))
     fi
     echo ""
@@ -171,18 +170,16 @@ fi
 
 # Summary
 echo ""
-echo "=========================================="
-echo "📊 Test Summary"
-echo "=========================================="
+echo "Test Summary"
 echo -e "${GREEN}Passed: $PASSED${NC}"
 echo -e "${RED}Failed: $FAILED${NC}"
 echo "Total: $((PASSED + FAILED))"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}🎉 All tests passed! Deployment is ready.${NC}"
+    echo -e "${GREEN}All tests passed! Deployment is ready.${NC}"
     exit 0
 else
-    echo -e "${YELLOW}⚠️  Some tests failed. Please review the output above.${NC}"
+    echo -e "${YELLOW}Some tests failed. Please review the output above.${NC}"
     exit 1
 fi

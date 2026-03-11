@@ -17,9 +17,7 @@ except ImportError:
 
 
 def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
-    """
-    PRIMARY: Fetch real-time prices from AgMarkNet API with caching and rate limiting
-    """
+    """Today's prices from the AgMarkNet API (cached)"""
     import urllib3
     from urllib3.exceptions import MaxRetryError, TimeoutError
 
@@ -48,25 +46,23 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
         return None
 
     try:
-        print(f"[AGMARKNET] 📡 Calling API for {crop_name} in {state}...")
+        print(f"[AGMARKNET] Calling API for {crop_name} in {state}...")
 
-        # Create HTTP pool with optimized configuration
         http = urllib3.PoolManager(
-            timeout=urllib3.Timeout(connect=3.0, read=8.0),  # Reduced timeouts
+            timeout=urllib3.Timeout(connect=3.0, read=8.0),  # short timeouts
             retries=urllib3.Retry(
-                total=2,  # Reduced retries for faster response
+                total=2,  # fewer retries
                 backoff_factor=0.3,
                 status_forcelist=[500, 502, 503, 504]
             ),
             maxsize=5  # Connection pool size
         )
 
-        # AgMarkNet API endpoint with optimized parameters
         url = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
         params = {
             "api-key": api_key,
             "format": "json",
-            "limit": "15",  # Reduced limit for faster response
+            "limit": "15",
             "filters[commodity]": crop_name.title(),
             "filters[state]": state
         }
@@ -100,9 +96,9 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
             print(f"[AGMARKNET] No records found")
             return None
 
-        print(f"[AGMARKNET] ✅ Got {len(records)} records")
+        print(f"[AGMARKNET] Got {len(records)} records")
 
-        # Optimized price processing with validation
+        # keep only sane prices
         prices = []
         mandis = []
 
@@ -130,12 +126,11 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
             print(f"[AGMARKNET] No valid prices found")
             return None
 
-        # Efficient statistics calculation
         avg_price = int(sum(prices) / len(prices))
         min_price = int(min(prices))
         max_price = int(max(prices))
 
-        # Optimized trend calculation
+        # trend
         trend = "stable"
         if len(prices) >= 4:
             mid_point = len(prices) // 2
@@ -148,7 +143,7 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
             elif change_pct < -3:
                 trend = "decreasing"
 
-        # Get top 3 unique mandis efficiently
+        # top 3 mandis
         seen_mandis = set()
         top_mandis = []
         for mandi in mandis:
@@ -160,7 +155,7 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
                     "price": mandi["price"]
                 })
 
-        # Optimized timestamp calculation
+        # IST timestamp
         utc_now = datetime.utcnow()
         ist_now = utc_now + timedelta(hours=5, minutes=30)
 
@@ -181,7 +176,7 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
             cache_key = CacheService.get_market_data_key(crop_name, state)
             CacheService.set(cache_key, result, ttl_seconds=300)  # 5 minutes cache
 
-        print(f"[AGMARKNET] ✅ Avg: ₹{avg_price}, Min: ₹{min_price}, Max: ₹{max_price}, Trend: {trend}")
+        print(f"[AGMARKNET] Avg: ₹{avg_price}, Min: ₹{min_price}, Max: ₹{max_price}, Trend: {trend}")
         return result
 
     except (MaxRetryError, TimeoutError) as e:
@@ -195,9 +190,7 @@ def get_agmarknet_api_prices(crop_name, state="Maharashtra"):
 
 
 def get_claude_ai_fallback(crop_name, state="Maharashtra"):
-    """
-    FALLBACK: Use Claude API (Anthropic) with caching and rate limiting
-    """
+    """Price estimate from the model when AgMarkNet has nothing"""
     try:
         # Check cache first
         if CACHE_AVAILABLE:
@@ -213,12 +206,10 @@ def get_claude_ai_fallback(crop_name, state="Maharashtra"):
                 print(f"[CLAUDE FALLBACK] Rate limited")
                 return None
 
-        print(f"[CLAUDE FALLBACK] 🤖 Using Claude AI to fetch {crop_name} prices for {state}...")
+        print(f"[CLAUDE FALLBACK] Using Claude AI to fetch {crop_name} prices for {state}...")
 
-        # Use Anthropic client via call_claude function
         from anthropic_client import call_claude_with_retry
         
-        # Optimized prompt for faster response
         prompt = f"""Get current mandi prices for {crop_name} in {state}, India (March 2026).
 
 Provide realistic market data in this EXACT JSON format:
@@ -239,7 +230,7 @@ RULES:
 1. Use REAL current market prices for March 2026
 2. Mandis from {state} only
 3. Prices in ₹ per quintal
-4. Trend: "increasing", "decreasing", or "stable"
+4. Trend: "increasing", "decreasing" or "stable"
 5. Reply with ONLY valid JSON, no explanation
 
 {crop_name} prices for {state}:"""
@@ -251,7 +242,7 @@ RULES:
             model="claude-sonnet-4-6"
         )
 
-        # Optimized JSON extraction
+        # pull the JSON out of the reply
         if "```json" in response_text:
             response_text = response_text.split("```json")[1].split("```")[0].strip()
         elif "```" in response_text:
@@ -259,11 +250,11 @@ RULES:
 
         data = json.loads(response_text)
 
-        # Optimized timestamp
+        # IST timestamp
         utc_now = datetime.utcnow()
         ist_now = utc_now + timedelta(hours=5, minutes=30)
 
-        # Add metadata efficiently
+        # add metadata
         data.update({
             "crop": crop_name,
             "last_updated": ist_now.strftime("%Y-%m-%d %H:%M IST"),
@@ -273,9 +264,9 @@ RULES:
         # Cache the result
         if CACHE_AVAILABLE:
             cache_key = f"ai_fallback:{crop_name.lower()}:{state.lower()}"
-            CacheService.set(cache_key, data, ttl_seconds=600)  # 10 minutes cache for AI
+            CacheService.set(cache_key, data, ttl_seconds=600)  # 10 minutes
 
-        print(f"[CLAUDE FALLBACK] ✅ Got prices: Avg ₹{data['average_price']}, Trend: {data['trend']}")
+        print(f"[CLAUDE FALLBACK] Got prices: Avg ₹{data['average_price']}, Trend: {data['trend']}")
         return data
 
     except Exception as e:
@@ -286,28 +277,24 @@ RULES:
 
 
 def get_fast_market_prices(crop_name, state="Maharashtra"):
-    """
-    Get real-time market prices
-    Priority: AgMarkNet API > Claude AI Fallback
-    NO STATIC DATA
-    """
+    """AgMarkNet first, model estimate if that fails"""
     print(f"[MARKET DATA] Fetching prices for: {crop_name}, state: {state}")
     
-    # Method 1: AgMarkNet API (PRIMARY - Real-time government data)
+    # 1. AgMarkNet (government mandi data)
     agmarknet_data = get_agmarknet_api_prices(crop_name, state)
     if agmarknet_data:
-        print(f"[MARKET DATA] ✅ Using AgMarkNet API data")
+        print(f"[MARKET DATA] Using AgMarkNet API data")
         return agmarknet_data
     
-    # Method 2: Claude AI Fallback (SECONDARY - AI-powered data)
+    # 2. model estimate
     print(f"[MARKET DATA] AgMarkNet API failed, trying Claude AI fallback...")
     claude_data = get_claude_ai_fallback(crop_name, state)
     if claude_data:
-        print(f"[MARKET DATA] ✅ Using Claude AI fallback data")
+        print(f"[MARKET DATA] Using Claude AI fallback data")
         return claude_data
     
     # No data available
-    print(f"[MARKET DATA] ❌ No data available for {crop_name}")
+    print(f"[MARKET DATA] No data available for {crop_name}")
     return None
 
 
@@ -336,7 +323,7 @@ def format_market_response_fast(crop_name, market_data, language='hindi'):
         
         # Trend
         trend = market_data.get("trend", "stable")
-        trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "➡️"
+        trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "📊"
         message += f"{trend_emoji} *Trend*: {trend.title()}\n\n"
         
         # Top mandis
@@ -367,7 +354,7 @@ def format_market_response_fast(crop_name, market_data, language='hindi'):
         trend = market_data.get("trend", "stable")
         trend_map = {"increasing": "बढ़ रहा", "decreasing": "घट रहा", "stable": "स्थिर"}
         trend_hindi = trend_map.get(trend, "स्थिर")
-        trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "➡️"
+        trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "📊"
         message += f"{trend_emoji} *रुझान*: {trend_hindi}\n\n"
         
         # Top mandis
@@ -382,5 +369,5 @@ def format_market_response_fast(crop_name, market_data, language='hindi'):
         if last_updated:
             message += f"\n🕐 *अपडेट*: {last_updated}"
     
-    print(f"[FORMAT] ✅ Response formatted")
+    print(f"[FORMAT] Response formatted")
     return message

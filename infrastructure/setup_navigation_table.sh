@@ -3,7 +3,7 @@
 # Setup Navigation State Table for KisaanMitra
 # This table stores user navigation history for Back/Home/Cancel functionality
 
-echo "🔧 Setting up Navigation State Table..."
+echo "Setting up Navigation State Table..."
 
 # Create navigation state table
 aws dynamodb create-table \
@@ -17,22 +17,22 @@ aws dynamodb create-table \
     --tags Key=Project,Value=KisaanMitra Key=Purpose,Value=NavigationState
 
 if [ $? -eq 0 ]; then
-    echo "✅ Navigation state table created successfully!"
+    echo "Navigation state table created successfully!"
 else
-    echo "⚠️  Table might already exist or there was an error"
+    echo "Table might already exist or there was an error"
 fi
 
 # Wait for table to be active
-echo "⏳ Waiting for table to be active..."
+echo "Waiting for table to be active..."
 aws dynamodb wait table-exists --table-name kisaanmitra-navigation-state --region ap-south-1
 
-echo "✅ Navigation state table is ready!"
+echo "Navigation state table is ready!"
 echo ""
-echo "📋 Table Details:"
+echo "Table Details:"
 aws dynamodb describe-table --table-name kisaanmitra-navigation-state --region ap-south-1 --query 'Table.[TableName,TableStatus,ItemCount]' --output table
 
 echo ""
-echo "✅ Setup complete!"
+echo "Setup complete!"
 echo ""
 echo "Next steps:"
 echo "1. Update Lambda IAM role to allow access to this table"

@@ -145,7 +145,7 @@ def update_knowledge_graph():
     # Add known users
     known_users = add_known_users()
     
-    # Find and remove Parth if exists (he's not a real user)
+    # drop the old test entry
     data['farmers'] = [f for f in data['farmers'] if f['name'] != 'Parth Nikam']
     
     # Add/Update Vinay
@@ -154,12 +154,12 @@ def update_knowledge_graph():
         if 'Vinay' in farmer.get('name', ''):
             data['farmers'][i] = known_users[0]
             vinay_found = True
-            print("✅ Updated Vinay's profile")
+            print("Updated Vinay's profile")
             break
     
     if not vinay_found:
         data['farmers'].insert(0, known_users[0])
-        print("✅ Added Vinay")
+        print("Added Vinay")
     
     # Update metadata
     data['metadata']['total_farmers'] = len(data['farmers'])
@@ -197,7 +197,7 @@ def update_knowledge_graph():
     with open('knowledge_graph_dummy_data.json', 'w') as f:
         json.dump(data, f, indent=2)
     
-    print("\n✅ Knowledge graph updated!")
+    print("\nKnowledge graph updated!")
     print(f"   Total farmers: {len(data['farmers'])}")
     print(f"   Total relationships: {len(data['relationships'])}")
     print(f"   Real user: Vinay (data cleared, ready for fresh onboarding)")
@@ -206,12 +206,12 @@ def main():
     """Main function"""
     try:
         update_knowledge_graph()
-        print("\n🎉 Real users imported successfully!")
+        print("\nReal users imported successfully!")
         print("\nNext steps:")
         print("1. Regenerate dashboard: python visualize_knowledge_graph.py")
         print("2. Deploy to S3: ./deploy_to_s3.sh")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         import traceback
         traceback.print_exc()
 

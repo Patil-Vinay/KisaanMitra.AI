@@ -9,7 +9,7 @@ conversation_table = dynamodb.Table("kisaanmitra-conversations")
 
 
 class ConversationService:
-    """Manages conversation history and context building with optimized database operations"""
+    """Conversation history in DynamoDB"""
 
     # Connection pool for DynamoDB
     _dynamodb_resource = None
@@ -33,7 +33,7 @@ class ConversationService:
 
     @staticmethod
     def get_history(user_id, limit=3):
-        """Get recent conversation history with optimized query"""
+        """Recent messages for a user"""
         if not user_id or not user_id.strip():
             return []
 
@@ -42,7 +42,7 @@ class ConversationService:
 
             table = ConversationService._get_table()
 
-            # Optimized query with projection to reduce data transfer
+            # only fetch the fields we need
             response = table.query(
                 KeyConditionExpression="user_id = :uid",
                 ExpressionAttributeValues={":uid": user_id},
@@ -67,7 +67,7 @@ class ConversationService:
 
     @staticmethod
     def save(user_id, message, response, agent_type):
-        """Save conversation with optimized write and input validation"""
+        """Save one message and its reply"""
         if not user_id or not user_id.strip():
             print(f"[ERROR] Invalid user_id for conversation save")
             return False
@@ -85,7 +85,6 @@ class ConversationService:
 
             table = ConversationService._get_table()
 
-            # Use batch write for better performance if needed
             table.put_item(
                 Item={
                     "user_id": user_id,
@@ -110,7 +109,7 @@ class ConversationService:
 
     @staticmethod
     def build_context(history):
-        """Build optimized context string from conversation history"""
+        """Short context string from the last messages"""
         if not history or len(history) == 0:
             return ""
 

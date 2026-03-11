@@ -1,13 +1,11 @@
-"""
-SageMaker Batch Predictor for Time Series Forecasting
-Runs batch inference to generate forecasts
-"""
+"""Batch transform with a trained AutoML model."""
 
 import boto3
 import time
 import pandas as pd
 from io import StringIO
 from datetime import datetime
+from decimal import Decimal
 
 
 class SageMakerBatchPredictor:
@@ -19,17 +17,7 @@ class SageMakerBatchPredictor:
         self.region = region
     
     def create_model(self, model_name, best_candidate, role_arn):
-        """
-        Create SageMaker model from best candidate
-        
-        Args:
-            model_name: Name for the model
-            best_candidate: Best candidate from AutoML job
-            role_arn: IAM role ARN
-        
-        Returns:
-            str: Model ARN
-        """
+        """Create SageMaker model from best candidate"""
         print(f"Creating model: {model_name}")
         
         try:
@@ -42,11 +30,11 @@ class SageMakerBatchPredictor:
                 ExecutionRoleArn=role_arn
             )
             
-            print(f"✅ Model created: {response['ModelArn']}")
+            print(f"Model created: {response['ModelArn']}")
             return response['ModelArn']
             
         except Exception as e:
-            print(f"❌ Error creating model: {e}")
+            print(f"Error creating model: {e}")
             raise
     
     def create_transform_job(
@@ -58,20 +46,7 @@ class SageMakerBatchPredictor:
         instance_type='ml.m5.xlarge',
         instance_count=1
     ):
-        """
-        Create batch transform job for inference
-        
-        Args:
-            job_name: Name for the transform job
-            model_name: Name of the model to use
-            input_s3_uri: S3 URI of input data
-            output_s3_uri: S3 URI for output predictions
-            instance_type: Instance type for inference
-            instance_count: Number of instances
-        
-        Returns:
-            dict: Transform job response
-        """
+        """Create batch transform job for inference"""
         print(f"Creating transform job: {job_name}")
         print(f"  Model: {model_name}")
         print(f"  Input: {input_s3_uri}")
@@ -101,25 +76,15 @@ class SageMakerBatchPredictor:
                 }
             )
             
-            print(f"✅ Transform job created: {response['TransformJobArn']}")
+            print(f"Transform job created: {response['TransformJobArn']}")
             return response
             
         except Exception as e:
-            print(f"❌ Error creating transform job: {e}")
+            print(f"Error creating transform job: {e}")
             raise
     
     def wait_for_transform_job(self, job_name, check_interval=30, max_wait_time=1800):
-        """
-        Wait for transform job to complete
-        
-        Args:
-            job_name: Name of the transform job
-            check_interval: Seconds between checks
-            max_wait_time: Maximum seconds to wait
-        
-        Returns:
-            dict: Final job status
-        """
+        """Wait for transform job to complete"""
         print(f"Waiting for transform job: {job_name}")
         
         start_time = time.time()
@@ -139,7 +104,7 @@ class SageMakerBatchPredictor:
             print(f"  [{int(elapsed)}s] Status: {status}")
             
             if status == 'Completed':
-                print(f"✅ Transform job completed!")
+                print(f"Transform job completed!")
                 return response
             
             elif status == 'Failed':
@@ -152,17 +117,7 @@ class SageMakerBatchPredictor:
             time.sleep(check_interval)
     
     def get_predictions(self, output_s3_uri, s3_bucket, s3_key):
-        """
-        Download and parse predictions from S3
-        
-        Args:
-            output_s3_uri: S3 URI of output directory
-            s3_bucket: S3 bucket name
-            s3_key: S3 key of output file
-        
-        Returns:
-            DataFrame: Predictions
-        """
+        """Download and parse predictions from S3"""
         print(f"Downloading predictions from s3://{s3_bucket}/{s3_key}")
         
         try:
@@ -173,39 +128,29 @@ class SageMakerBatchPredictor:
             # Parse CSV
             df = pd.read_csv(StringIO(content))
             
-            print(f"✅ Downloaded {len(df)} predictions")
+            print(f"Downloaded {len(df)} predictions")
             return df
             
         except Exception as e:
-            print(f"❌ Error downloading predictions: {e}")
+            print(f"Error downloading predictions: {e}")
             raise
     
     def format_predictions_for_dynamodb(self, predictions_df):
-        """
-        Format predictions for DynamoDB storage
-        
-        Args:
-            predictions_df: DataFrame with predictions
-        
-        Returns:
-            list: List of items ready for DynamoDB
-        """
-        items = []
-        
+        """Groups predictions into {crop: [{date, day, price, lower, upper}]}"""
+        out = {}
         for _, row in predictions_df.iterrows():
-            item = {
-                'crop_name': row['item_id'],
-                'forecast_date': row['timestamp'],
-                'predicted_price': float(row['p50']),  # Median forecast
-                'lower_bound': float(row.get('p10', row['p50'] * 0.9)),
-                'upper_bound': float(row.get('p90', row['p50'] * 1.1)),
-                'confidence': 0.8,  # 80% confidence interval
-                'generated_at': datetime.now().isoformat(),
-                'model_version': 'sagemaker_automl_v1'
-            }
-            items.append(item)
-        
-        return items
+            day = pd.to_datetime(row['timestamp'])
+            p50 = float(row['p50'])
+            out.setdefault(row['item_id'], []).append({
+                'date': day.strftime('%Y-%m-%d'),
+                'day': day.strftime('%A'),
+                'price': Decimal(str(round(p50, 2))),
+                'lower': Decimal(str(round(float(row.get('p10', p50 * 0.9)), 2))),
+                'upper': Decimal(str(round(float(row.get('p90', p50 * 1.1)), 2))),
+            })
+        for rows in out.values():
+            rows.sort(key=lambda r: r['date'])
+        return out
 
 
 if __name__ == '__main__':

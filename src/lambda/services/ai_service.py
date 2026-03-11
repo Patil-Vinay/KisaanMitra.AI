@@ -1,6 +1,4 @@
-"""
-AI Service - Handles all AI/LLM interactions with caching and optimization
-"""
+"""Calls to Amazon Nova Pro on Bedrock: answers, routing and extraction."""
 import os
 import time
 import boto3
@@ -16,35 +14,34 @@ except ImportError:
     CACHE_AVAILABLE = False
     print("[AI_SERVICE] Cache service not available")
 
-# Use AWS Bedrock Amazon Nova Pro for all operations
+# Nova Pro on Bedrock for all text calls
 print("[AI_SERVICE] Using AWS Bedrock Amazon Nova Pro with optimization")
 
-# Create optimized Bedrock client
 try:
     bedrock = boto3.client(
         "bedrock-runtime", 
         region_name="us-east-1",
         config=boto3.session.Config(
-            retries={'max_attempts': 2, 'mode': 'adaptive'},  # Reduced retries
-            read_timeout=20,  # Reduced timeout
+            retries={'max_attempts': 2, 'mode': 'adaptive'},  # fewer retries
+            read_timeout=20,  # short timeout
             connect_timeout=5,
             max_pool_connections=10  # Connection pooling
         )
     )
     bedrock_for_images = bedrock
-    print("[AI_SERVICE] ✅ Optimized Bedrock client initialized")
+    print("[AI_SERVICE] Optimized Bedrock client initialized")
 except Exception as e:
-    print(f"[AI_SERVICE] ❌ Failed to initialize Bedrock client: {e}")
+    print(f"[AI_SERVICE] Failed to initialize Bedrock client: {e}")
     bedrock = None
     bedrock_for_images = None
 
 
 class AIService:
-    """Manages AI/LLM interactions with robust error handling"""
+    """Bedrock calls with caching and retries"""
     
     @staticmethod
     def ask(prompt, system_prompt=None, conversation_context="", skip_context=False, max_retries=2):
-        """Call Bedrock/Claude with caching and optimized retry logic"""
+        """Ask Nova Pro, with cache and retries"""
         if not bedrock:
             return "AI service is currently unavailable. Please try again later."
 
@@ -71,21 +68,19 @@ class AIService:
             print(f"[AI] Calling Bedrock - Model: Nova Pro")
             print(f"[AI] Prompt length: {len(prompt)} chars")
 
-            # Optimized context handling
             if skip_context:
                 full_prompt = prompt
             else:
                 full_prompt = conversation_context + prompt if conversation_context else prompt
 
-            # Optimized truncation with better limits
-            max_prompt_length = 6000  # Reduced for faster processing
+            # trim long context
+            max_prompt_length = 6000
             if len(full_prompt) > max_prompt_length:
                 full_prompt = full_prompt[-max_prompt_length:]
                 print(f"[AI] Truncated prompt to {max_prompt_length} chars")
 
             messages = [{"role": "user", "content": [{"text": full_prompt}]}]
 
-            # Optimized token calculation
             estimated_tokens = len(full_prompt) // 3  # Rough estimate
             max_response_tokens = min(1500, 3000 - estimated_tokens)  # Dynamic limit
 
@@ -94,14 +89,14 @@ class AIService:
                 "messages": messages,
                 "inferenceConfig": {
                     "maxTokens": max_response_tokens,
-                    "temperature": 0.6  # Balanced creativity/consistency
+                    "temperature": 0.6
                 }
             }
 
             if system_prompt and system_prompt.strip():
                 kwargs["system"] = [{"text": system_prompt}]
 
-            # Optimized retry logic with faster backoff
+            # retry with a short backoff
             for attempt in range(max_retries):
                 try:
                     response = bedrock.converse(**kwargs)
@@ -140,7 +135,7 @@ class AIService:
                     else:
                         print(f"[AI] Client error: {error_code} - {error_message}")
                         if attempt < max_retries - 1:
-                            time.sleep(0.5 * (attempt + 1))  # Faster retry
+                            time.sleep(0.5 * (attempt + 1))
                             continue
                         else:
                             raise
@@ -174,7 +169,7 @@ class AIService:
     
     @staticmethod
     def extract_crop(user_message, max_retries=2):
-        """Extract crop name from message using AI with validation"""
+        """Crop name mentioned in the message"""
         if not user_message or not user_message.strip():
             return None
             
@@ -205,7 +200,7 @@ Reply with ONLY the crop name in English (e.g., "tomato" or "wheat" or "none"). 
     
     @staticmethod
     def extract_state(user_message, max_retries=2):
-        """Extract state/location from message using AI with validation"""
+        """State or place mentioned in the message"""
         if not user_message or not user_message.strip():
             return "Maharashtra"
             
@@ -235,7 +230,7 @@ Reply with ONLY the state name (e.g., "Maharashtra" or "Punjab"). No explanation
     
     @staticmethod
     def route_message(user_message, max_retries=2):
-        """Route message to appropriate agent using AI with validation"""
+        """Pick the agent (crop, market, finance or general) for a message"""
         if not user_message or not user_message.strip():
             return "general"
             
@@ -253,11 +248,11 @@ Available agents:
 - general: General farming advice, crop recommendations, weather, other queries
 
 IMPORTANT ROUTING RULES:
-1. If message mentions costs, budget, expenses, profit, or financial planning → FINANCE
-2. If message mentions a crop + land size (e.g., "wheat in 10 acres", "sugarcane 50% of my land") → FINANCE (implies budget planning)
-3. If message asks about cultivation/growing a crop with land details → FINANCE
-4. If message is about crop health/disease → CROP
-5. If message asks for market prices → MARKET
+1. If message mentions costs, budget, expenses, profit or financial planning: FINANCE
+2. If message mentions a crop + land size (e.g., "wheat in 10 acres", "sugarcane 50% of my land"): FINANCE (implies budget planning)
+3. If message asks about cultivation/growing a crop with land details: FINANCE
+4. If message is about crop health/disease: CROP
+5. If message asks for market prices: MARKET
 
 Reply with ONLY ONE WORD - the agent name (greeting/crop/market/finance/general).
 No explanation, just the agent name."""

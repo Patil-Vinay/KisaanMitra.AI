@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-"""
-Comprehensive Test Scenarios for KisaanMitra Finance Agent
-Tests 10 diverse scenarios covering different crops, regions, and edge cases
-"""
+"""Finance agent scenarios run against the deployed Lambda."""
 
 import json
 import time
 from datetime import datetime
 
-# Test scenarios covering various crops, regions, and conditions
+# Test scenarios covering various crops, regions and conditions
 TEST_SCENARIOS = [
     {
         "id": 1,
@@ -237,9 +234,9 @@ def run_test_scenario(scenario):
     """Run a single test scenario"""
     print_section(f"Test #{scenario['id']}: {scenario['name']}")
     
-    print(f"\n📱 Phone: {scenario['phone']}")
-    print(f"💬 Message: {scenario['message']}")
-    print(f"🎯 Expected: {scenario['expected_crop']} | {scenario['expected_location']} | {scenario['expected_land']} acres")
+    print(f"\nPhone: {scenario['phone']}")
+    print(f"Message: {scenario['message']}")
+    print(f"Expected: {scenario['expected_crop']} | {scenario['expected_location']} | {scenario['expected_land']} acres")
     
     # Simulate WhatsApp message
     webhook_payload = {
@@ -273,7 +270,7 @@ def run_test_scenario(scenario):
     with open(payload_file, 'w') as f:
         json.dump(webhook_payload, f, indent=2)
     
-    print(f"\n⏳ Invoking Lambda function...")
+    print(f"\nInvoking Lambda function...")
     start_time = time.time()
     
     # Invoke Lambda
@@ -289,7 +286,7 @@ def run_test_scenario(scenario):
     elapsed_time = time.time() - start_time
     
     if result.returncode != 0:
-        print(f"\n❌ Lambda invocation failed!")
+        print(f"\nLambda invocation failed!")
         print(f"Error: {result.stderr}")
         return {
             "scenario_id": scenario['id'],
@@ -298,14 +295,14 @@ def run_test_scenario(scenario):
             "elapsed_time": elapsed_time
         }
     
-    print(f"✅ Lambda invoked successfully ({elapsed_time:.2f}s)")
+    print(f"Lambda invoked successfully ({elapsed_time:.2f}s)")
     
     # Wait for processing
-    print("⏳ Waiting for processing (20s)...")
+    print("Waiting for processing (20s)...")
     time.sleep(20)
     
     # Check logs for this specific request
-    print("\n📋 Fetching logs...")
+    print("\nFetching logs...")
     log_result = subprocess.run([
         'aws', 'logs', 'tail',
         '/aws/lambda/whatsapp-llama-bot',
@@ -317,7 +314,7 @@ def run_test_scenario(scenario):
     
     # Extract relevant log sections
     if f"test_msg_{scenario['id']}" in logs or scenario['message'] in logs:
-        print("✅ Found request in logs")
+        print("Found request in logs")
         
         # Look for validation steps
         validation_found = "VALIDATION" in logs
@@ -325,11 +322,11 @@ def run_test_scenario(scenario):
         sanity_check_found = "SANITY_CHECK" in logs
         anthropic_success = "✅ Response received" in logs
         
-        print(f"\n🔍 Validation Pipeline:")
-        print(f"  - Pre-scaling validation: {'✅' if validation_found else '❌'}")
-        print(f"  - Math enforcement: {'✅' if math_enforcement_found else '❌'}")
-        print(f"  - Sanity check: {'✅' if sanity_check_found else '❌'}")
-        print(f"  - Anthropic API: {'✅' if anthropic_success else '❌'}")
+        print(f"\nValidation Pipeline:")
+        print(f"  - Pre-scaling validation: {'OK' if validation_found else 'FAIL'}")
+        print(f"  - Math enforcement: {'OK' if math_enforcement_found else 'FAIL'}")
+        print(f"  - Sanity check: {'OK' if sanity_check_found else 'FAIL'}")
+        print(f"  - Anthropic API: {'OK' if anthropic_success else 'FAIL'}")
         
         # Extract final numbers from logs
         import re
@@ -339,7 +336,7 @@ def run_test_scenario(scenario):
         final_roi_match = re.search(r'\[FINAL\] ROI: ([\d.]+)%', logs)
         
         if all([final_cost_match, final_revenue_match, final_profit_match, final_roi_match]):
-            print(f"\n💰 Final Numbers:")
+            print(f"\nFinal Numbers:")
             print(f"  - Total Cost: ₹{final_cost_match.group(1)}")
             print(f"  - Total Revenue: ₹{final_revenue_match.group(1)}")
             print(f"  - Total Profit: ₹{final_profit_match.group(1)}")
@@ -358,9 +355,9 @@ def run_test_scenario(scenario):
             math_accurate = abs(calculated_profit - total_profit) < 100  # Allow ₹100 rounding
             roi_accurate = abs(calculated_roi - roi) < 1  # Allow 1% rounding
             
-            print(f"\n✓ Mathematical Accuracy:")
-            print(f"  - Profit calculation: {'✅' if math_accurate else '❌'}")
-            print(f"  - ROI calculation: {'✅' if roi_accurate else '❌'}")
+            print(f"\nMathematical Accuracy:")
+            print(f"  - Profit calculation: {'OK' if math_accurate else 'FAIL'}")
+            print(f"  - ROI calculation: {'OK' if roi_accurate else 'FAIL'}")
             
             # Check cost per acre
             cost_per_acre = total_cost / scenario['expected_land']
@@ -369,9 +366,9 @@ def run_test_scenario(scenario):
             cost_realistic = (checks['cost_per_acre_min'] <= cost_per_acre <= checks['cost_per_acre_max'])
             roi_realistic = roi <= checks['roi_max']
             
-            print(f"\n✓ Realism Checks:")
-            print(f"  - Cost per acre (₹{cost_per_acre:,.0f}): {'✅' if cost_realistic else '⚠️'}")
-            print(f"  - ROI ({roi}%): {'✅' if roi_realistic else '⚠️'}")
+            print(f"\nRealism Checks:")
+            print(f"  - Cost per acre (₹{cost_per_acre:,.0f}): {'OK' if cost_realistic else 'WARN'}")
+            print(f"  - ROI ({roi}%): {'OK' if roi_realistic else 'WARN'}")
             
             return {
                 "scenario_id": scenario['id'],
@@ -398,9 +395,9 @@ def run_test_scenario(scenario):
                 }
             }
         else:
-            print("\n⚠️ Could not extract final numbers from logs")
+            print("\nCould not extract final numbers from logs")
     else:
-        print("⚠️ Request not found in logs")
+        print("Request not found in logs")
     
     return {
         "scenario_id": scenario['id'],
@@ -412,8 +409,8 @@ def run_test_scenario(scenario):
 def main():
     """Run all test scenarios"""
     print_header("KisaanMitra Comprehensive Test Suite")
-    print(f"📅 Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"🧪 Total Scenarios: {len(TEST_SCENARIOS)}")
+    print(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Total Scenarios: {len(TEST_SCENARIOS)}")
     
     results = []
     
@@ -423,7 +420,7 @@ def main():
         
         # Wait between tests to avoid rate limiting
         if i < len(TEST_SCENARIOS):
-            print(f"\n⏸️  Waiting 30s before next test...")
+            print(f"\n Waiting 30s before next test...")
             time.sleep(30)
     
     # Summary
@@ -433,23 +430,23 @@ def main():
     failed_count = sum(1 for r in results if r['status'] == 'FAILED')
     partial_count = sum(1 for r in results if r['status'] == 'PARTIAL')
     
-    print(f"\n📊 Results:")
-    print(f"  ✅ Success: {success_count}/{len(TEST_SCENARIOS)}")
-    print(f"  ❌ Failed: {failed_count}/{len(TEST_SCENARIOS)}")
-    print(f"  ⚠️  Partial: {partial_count}/{len(TEST_SCENARIOS)}")
+    print(f"\nResults:")
+    print(f"  Success: {success_count}/{len(TEST_SCENARIOS)}")
+    print(f"  Failed: {failed_count}/{len(TEST_SCENARIOS)}")
+    print(f"   Partial: {partial_count}/{len(TEST_SCENARIOS)}")
     
     # Detailed results
-    print(f"\n📋 Detailed Results:")
+    print(f"\nDetailed Results:")
     for result in results:
         status_icon = "✅" if result['status'] == 'SUCCESS' else "❌" if result['status'] == 'FAILED' else "⚠️"
         print(f"\n{status_icon} Scenario #{result['scenario_id']}: {result['status']}")
         
         if 'accuracy' in result:
             acc = result['accuracy']
-            print(f"  - Math Accurate: {'✅' if acc['math_accurate'] else '❌'}")
-            print(f"  - ROI Accurate: {'✅' if acc['roi_accurate'] else '❌'}")
-            print(f"  - Cost Realistic: {'✅' if acc['cost_realistic'] else '⚠️'}")
-            print(f"  - ROI Realistic: {'✅' if acc['roi_realistic'] else '⚠️'}")
+            print(f"  - Math Accurate: {'OK' if acc['math_accurate'] else 'FAIL'}")
+            print(f"  - ROI Accurate: {'OK' if acc['roi_accurate'] else 'FAIL'}")
+            print(f"  - Cost Realistic: {'OK' if acc['cost_realistic'] else 'WARN'}")
+            print(f"  - ROI Realistic: {'OK' if acc['roi_realistic'] else 'WARN'}")
     
     # Save results
     with open('test_results.json', 'w') as f:
@@ -464,7 +461,7 @@ def main():
             "results": results
         }, f, indent=2)
     
-    print(f"\n💾 Results saved to test_results.json")
+    print(f"\nResults saved to test_results.json")
     
     return success_count == len(TEST_SCENARIOS)
 

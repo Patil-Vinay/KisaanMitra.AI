@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Setting up API Gateway for KisaanMitra Web Demo..."
+echo "Setting up API Gateway for KisaanMitra Web Demo..."
 
 # Configuration
 LAMBDA_FUNCTION="whatsapp-llama-bot"
@@ -9,7 +9,7 @@ REGION="ap-south-1"
 STAGE_NAME="prod"
 
 # Create REST API
-echo "📡 Creating REST API..."
+echo "Creating REST API..."
 API_ID=$(aws apigateway create-rest-api \
     --name "$API_NAME" \
     --description "KisaanMitra Web Demo API for AWS AI Challenge" \
@@ -19,11 +19,11 @@ API_ID=$(aws apigateway create-rest-api \
     --output text)
 
 if [ -z "$API_ID" ]; then
-    echo "❌ Failed to create API"
+    echo "Failed to create API"
     exit 1
 fi
 
-echo "✅ API created: $API_ID"
+echo "API created: $API_ID"
 
 # Get root resource ID
 ROOT_ID=$(aws apigateway get-resources \
@@ -32,10 +32,10 @@ ROOT_ID=$(aws apigateway get-resources \
     --query 'items[0].id' \
     --output text)
 
-echo "📁 Root resource: $ROOT_ID"
+echo "Root resource: $ROOT_ID"
 
 # Create /chat resource
-echo "📁 Creating /chat resource..."
+echo "Creating /chat resource..."
 CHAT_RESOURCE_ID=$(aws apigateway create-resource \
     --rest-api-id $API_ID \
     --parent-id $ROOT_ID \
@@ -44,10 +44,10 @@ CHAT_RESOURCE_ID=$(aws apigateway create-resource \
     --query 'id' \
     --output text)
 
-echo "✅ Chat resource created: $CHAT_RESOURCE_ID"
+echo "Chat resource created: $CHAT_RESOURCE_ID"
 
 # Create POST method
-echo "🔧 Creating POST method..."
+echo "Creating POST method..."
 aws apigateway put-method \
     --rest-api-id $API_ID \
     --resource-id $CHAT_RESOURCE_ID \
@@ -56,7 +56,7 @@ aws apigateway put-method \
     --region $REGION
 
 # Create OPTIONS method for CORS
-echo "🔧 Creating OPTIONS method for CORS..."
+echo "Creating OPTIONS method for CORS..."
 aws apigateway put-method \
     --rest-api-id $API_ID \
     --resource-id $CHAT_RESOURCE_ID \
@@ -71,10 +71,10 @@ LAMBDA_ARN=$(aws lambda get-function \
     --query 'Configuration.FunctionArn' \
     --output text)
 
-echo "🔗 Lambda ARN: $LAMBDA_ARN"
+echo "Lambda ARN: $LAMBDA_ARN"
 
 # Set up Lambda integration for POST
-echo "🔗 Setting up Lambda integration..."
+echo "Setting up Lambda integration..."
 aws apigateway put-integration \
     --rest-api-id $API_ID \
     --resource-id $CHAT_RESOURCE_ID \
@@ -85,7 +85,7 @@ aws apigateway put-integration \
     --region $REGION
 
 # Set up mock integration for OPTIONS (CORS)
-echo "🔗 Setting up CORS integration..."
+echo "Setting up CORS integration..."
 aws apigateway put-integration \
     --rest-api-id $API_ID \
     --resource-id $CHAT_RESOURCE_ID \
@@ -113,7 +113,7 @@ aws apigateway put-integration-response \
     --region $REGION
 
 # Grant API Gateway permission to invoke Lambda
-echo "🔐 Granting API Gateway permission..."
+echo "Granting API Gateway permission..."
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 aws lambda add-permission \
@@ -125,7 +125,7 @@ aws lambda add-permission \
     --region $REGION 2>/dev/null || echo "Permission may already exist"
 
 # Deploy API
-echo "🚀 Deploying API to $STAGE_NAME stage..."
+echo "Deploying API to $STAGE_NAME stage..."
 aws apigateway create-deployment \
     --rest-api-id $API_ID \
     --stage-name $STAGE_NAME \
@@ -136,9 +136,7 @@ aws apigateway create-deployment \
 API_ENDPOINT="https://$API_ID.execute-api.$REGION.amazonaws.com/$STAGE_NAME/chat"
 
 echo ""
-echo "=========================================="
-echo "✅ API Gateway Setup Complete!"
-echo "=========================================="
+echo "API Gateway Setup Complete!"
 echo ""
 echo "API Endpoint:"
 echo "  $API_ENDPOINT"

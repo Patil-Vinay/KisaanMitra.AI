@@ -1,9 +1,7 @@
 #!/bin/bash
 # Update WhatsApp Access Token in Lambda
 
-echo "=========================================="
 echo "UPDATE WHATSAPP TOKEN"
-echo "=========================================="
 echo ""
 echo "Get your new token from:"
 echo "https://developers.facebook.com/apps"
@@ -12,7 +10,7 @@ echo ""
 read -p "Enter new WhatsApp token: " NEW_TOKEN
 
 if [ -z "$NEW_TOKEN" ]; then
-    echo "❌ No token provided"
+    echo "No token provided"
     exit 1
 fi
 
@@ -37,7 +35,7 @@ aws lambda update-function-configuration \
   --region ap-south-1
 
 echo ""
-echo "✅ Token updated!"
+echo "Token updated!"
 echo ""
 echo "Test by sending 'Hi' to your WhatsApp number"
 echo ""

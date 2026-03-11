@@ -1,12 +1,4 @@
-"""
-Ultimate Knowledge Graph Dashboard with Advanced D3.js Visualization
-- 3D force-directed graph with particle effects
-- Advanced filtering and search
-- Real-time statistics
-- Interactive node clustering
-- Animated transitions
-- Export capabilities
-"""
+"""Builds the knowledge graph HTML dashboard (D3.js) from the farmer JSON."""
 
 import json
 from datetime import datetime
@@ -67,7 +59,7 @@ def generate_stats(data):
     }
 
 def generate_enhanced_network_data(data):
-    """Generate comprehensive network with all relationships"""
+    """Build nodes and links for the network graph"""
     farmers = data.get('farmers', [])
     
     nodes = []
@@ -197,7 +189,7 @@ def create_html(data, stats, network):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KisaanMitra.AI - Ultimate Knowledge Graph</title>
+    <title>KisaanMitra.AI - Knowledge Graph</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -676,7 +668,7 @@ def create_html(data, stats, network):
     <div class="container">
         <div class="header">
             <h1>🌾 KisaanMitra.AI</h1>
-            <p>Ultimate Knowledge Graph Dashboard</p>
+            <p>Knowledge Graph Dashboard</p>
             <p style="font-size: 1rem; opacity: 0.6; margin-top: 10px;">
                 {stats['total_farmers']} Farmers • {len(stats['districts'])} Districts • {len(stats['villages'])} Villages • {len(stats['crops'])} Crops
             </p>
@@ -867,7 +859,7 @@ def create_html_part3(stats, network, top_crops, top_villages, district_list, so
     </div>
     
     <script>
-        // Enhanced Network Graph with Advanced Features
+        // network graph
         const networkData = {json.dumps(network)};
         let allNodes = networkData.nodes;
         let allLinks = networkData.links;
@@ -1305,23 +1297,23 @@ def create_html_part3(stats, network, top_crops, top_villages, district_list, so
     return html_part3
 
 def main():
-    print("🌾 Loading knowledge graph data...")
+    print("Loading knowledge graph data...")
     data = load_data()
     
-    print("📊 Generating comprehensive statistics...")
+    print("Generating statistics...")
     stats = generate_stats(data)
     
-    print("🕸️ Generating enhanced network data...")
+    print("Generating enhanced network data...")
     network = generate_enhanced_network_data(data)
     
-    print(f"✅ Found {stats['total_farmers']} farmers")
+    print(f"Found {stats['total_farmers']} farmers")
     print(f"   - {len(network['nodes'])} nodes")
     print(f"   - {len(network['links'])} connections")
     print(f"   - {len([n for n in network['nodes'] if n['type'] == 'district'])} districts")
     print(f"   - {len([n for n in network['nodes'] if n['type'] == 'village'])} villages")
     print(f"   - {len([n for n in network['nodes'] if n['type'] == 'crop'])} crops")
     
-    print("🎨 Creating ultimate HTML dashboard...")
+    print("Creating HTML dashboard...")
     top_crops = sorted(stats['crops'].items(), key=lambda x: x[1]['count'], reverse=True)[:15]
     top_villages = sorted(stats['villages'].items(), key=lambda x: x[1]['count'], reverse=True)[:15]
     district_list = sorted(stats['districts'].items(), key=lambda x: x[1], reverse=True)
@@ -1331,12 +1323,12 @@ def main():
     html += create_html_part2(stats, network)
     html += create_html_part3(stats, network, top_crops, top_villages, district_list, soil_list)
     
-    print("💾 Saving to knowledge_graph_dashboard.html...")
+    print("Saving to knowledge_graph_dashboard.html...")
     with open('knowledge_graph_dashboard.html', 'w', encoding='utf-8') as f:
         f.write(html)
     
-    print("✅ Ultimate dashboard generated successfully!")
-    print(f"\n📊 Final Statistics:")
+    print("Dashboard generated")
+    print(f"\nFinal Statistics:")
     print(f"   - Total Farmers: {stats['total_farmers']}")
     print(f"   - Districts: {len(stats['districts'])}")
     print(f"   - Villages: {len(stats['villages'])}")
@@ -1344,7 +1336,7 @@ def main():
     print(f"   - Network Nodes: {len(network['nodes'])}")
     print(f"   - Network Links: {len(network['links'])}")
     print(f"   - Total Land: {stats['total_land']:,.0f} acres")
-    print(f"\n🚀 Open knowledge_graph_dashboard.html to view!")
+    print(f"\nOpen knowledge_graph_dashboard.html to view!")
 
 if __name__ == "__main__":
     main()

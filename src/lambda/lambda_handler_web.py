@@ -1,7 +1,4 @@
-"""
-KisaanMitra Web Demo Handler - API Gateway Compatible
-Allows evaluators to test via web interface
-"""
+"""Handler for the browser chat demo (demo/web-chat-demo.html)."""
 import json
 import os
 import sys
@@ -173,7 +170,7 @@ def handle_text_message_web(user_message, user_id, language):
                 traceback.print_exc()
                 return "Welcome to KisaanMitra! Let's get you registered. What's your name?"
         else:
-            return "Welcome to KisaanMitra! This is a demo version. Try asking about crops, market prices, or weather!"
+            return "Welcome to KisaanMitra! This is a demo version. Try asking about crops, market prices or weather!"
     
     # Handle greetings for registered users
     if user_message.strip().lower() in ['hi', 'hello', 'hey', 'start', 'namaste']:
@@ -227,8 +224,7 @@ def handle_image_message_web(image_data, user_id, language):
         
         image_bytes = base64.b64decode(image_data)
         
-        # Get Bedrock client for image analysis
-        # Note: We pass None to let the function create its own optimized client
+        # None lets the detector create its own client
         result = detect_disease_with_confidence(image_bytes, bedrock_client=None)
         
         if result:

@@ -1,7 +1,4 @@
-"""
-KisaanMitra.AI - Dynamic Streamlit Dashboard
-Real-time analytics with auto-refresh from DynamoDB
-"""
+"""Streamlit dashboard for the farmers and conversations stored in DynamoDB."""
 
 import streamlit as st
 import boto3
@@ -26,7 +23,7 @@ st.set_page_config(
 # Initialize AWS clients with caching
 @st.cache_resource(ttl=60)  # Cache for 60 seconds
 def get_aws_clients():
-    """Initialize DynamoDB clients with connection pooling"""
+    """DynamoDB resource, cached by Streamlit"""
     dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
     return {
         'conversations': dynamodb.Table('kisaanmitra-conversations'),

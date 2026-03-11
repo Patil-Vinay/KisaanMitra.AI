@@ -1,6 +1,4 @@
-"""
-Weather-Aware Smart Recommendations
-"""
+"""Weather forecast from OpenWeather and farming advice from it."""
 import urllib3
 import json
 import os
@@ -14,9 +12,10 @@ def get_weather_forecast(location):
     
     print(f"[WEATHER] API key present: {bool(api_key)}, Length: {len(api_key) if api_key else 0}")
     
+    # no made-up weather: callers handle None
     if not api_key or api_key == 'not_available' or len(api_key) < 10:
-        print("[WEATHER] API key not available, using mock data")
-        return get_mock_weather(location)
+        print("[WEATHER] OPENWEATHER_API_KEY not set")
+        return None
     
     try:
         # Clean location name (remove extra words like "weather in")
@@ -32,53 +31,16 @@ def get_weather_forecast(location):
         
         if response.status == 200:
             data = json.loads(response.data)
-            print(f"[WEATHER] ✅ Real weather data fetched successfully")
+            print(f"[WEATHER] Real weather data fetched successfully")
             return data
         else:
             print(f"[WEATHER] API error: {response.status}, {response.data[:200]}")
-            return get_mock_weather(location)
+            return None
     except Exception as e:
         print(f"[WEATHER] Error fetching weather: {e}")
         import traceback
         print(f"[WEATHER] Traceback: {traceback.format_exc()}")
-        return get_mock_weather(location)
-
-def get_mock_weather(location):
-    """
-    FALLBACK ONLY - Mock weather data
-    
-    ⚠️ WARNING: THIS IS NOT REAL WEATHER DATA! ⚠️
-    
-    This function returns fake weather data and should NEVER be used in production.
-    Get a real OpenWeather API key and set it in environment variables.
-    
-    TODO: Get real OpenWeather API key from https://openweathermap.org/api
-    """
-    print(f"[WARNING] ⚠️⚠️⚠️  Using MOCK weather data for {location}")
-    print(f"[CRITICAL] This is NOT real weather! Get OpenWeather API key!")
-    print(f"[ACTION] Visit https://openweathermap.org/api to get API key")
-    
-    # Generate mock data with proper datetime stamps
-    import time
-    current_time = int(time.time())
-    
-    mock_forecasts = []
-    for i in range(56):  # 7 days * 8 intervals (3-hour intervals)
-        mock_forecasts.append({
-            'dt': current_time + (i * 3 * 3600),  # Add 3 hours for each interval
-            'main': {
-                'temp': 28 + (i % 10) - 5,  # Vary temperature
-                'humidity': 65 + (i % 20) - 10
-            },
-            'weather': [{'main': 'Clear', 'description': '⚠️ MOCK DATA - NOT REAL'}],
-            'rain': {'3h': 0.5} if i % 12 == 0 else None  # Mock rain every 12 intervals
-        })
-    
-    # FAKE DATA - DO NOT USE IN PRODUCTION
-    return {
-        'city': {'name': location},
-        'list': mock_forecasts
-    }
+        return None
 
 def analyze_weather_for_farming(forecast):
     """Analyze weather for farming decisions with 7-day forecast"""

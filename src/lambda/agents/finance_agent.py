@@ -1,5 +1,5 @@
 """
-Finance Agent - Handles finance, budget, loan, and scheme queries
+Finance Agent - Handles finance, budget, loan and scheme queries
 """
 import sys
 sys.path.append('/opt/python')
@@ -7,7 +7,7 @@ sys.path.append('/opt/python')
 from services.ai_service import AIService
 from services.conversation_service import ConversationService
 
-# Import optional modules
+# optional modules, the agent still answers without them
 try:
     from farmer_onboarding import onboarding_manager
     ONBOARDING_AVAILABLE = True
@@ -24,7 +24,7 @@ class FinanceAgent:
         """Handle finance-related queries"""
         print(f"[FINANCE AGENT] Processing query: {user_message}, Language: {language}")
         
-        # ALWAYS fetch user profile first
+        # profile gives land size, district and crops
         profile = None
         profile_context = ""
         
@@ -63,18 +63,18 @@ Finance types:
 - general: Other finance questions
 
 CRITICAL RULES:
-1. If message mentions crop name + land size/percentage → BUDGET
-2. If message asks about costs, expenses, profit, ROI → BUDGET
-3. If message says "budget planning" or similar → BUDGET
-4. If message mentions growing/cultivating a crop with land details → BUDGET
+1. If message mentions crop name + land size/percentage: BUDGET
+2. If message asks about costs, expenses, profit, ROI: BUDGET
+3. If message says "budget planning" or similar: BUDGET
+4. If message mentions growing/cultivating a crop with land details: BUDGET
 
 Examples:
-"Sugarcane 50% of my land" → budget
-"What is the cost of growing wheat in 10 acres?" → budget
-"Budget planning for tomato" → budget
-"How much profit in onion farming?" → budget
-"PM-KISAN scheme" → schemes
-"I need a loan" → loan
+"Sugarcane 50% of my land": budget
+"What is the cost of growing wheat in 10 acres?": budget
+"Budget planning for tomato": budget
+"How much profit in onion farming?": budget
+"PM-KISAN scheme": schemes
+"I need a loan": loan
 
 Reply with ONLY ONE WORD - the type (schemes/budget/loan/general).
 No explanation."""
@@ -86,10 +86,8 @@ No explanation."""
             print(f"[FINANCE AGENT] Routing failed: {e}, defaulting to general")
             finance_type = "general"
         
-        # Build system prompt based on type and language
         system_prompt = FinanceAgent._get_system_prompt(finance_type, language)
         
-        # Generate response with profile context
         enhanced_message = user_message + profile_context
         result = AIService.ask(enhanced_message, system_prompt, context)
         
@@ -118,7 +116,7 @@ Format your response for WhatsApp:
 ✅ Eligibility: [who can apply]
 
 *🏛️ Where to Apply:*
-Visit nearest Krishi Vigyan Kendra (KVK), CSC center, or district agriculture office
+Visit nearest Krishi Vigyan Kendra (KVK), CSC center or district agriculture office
 
 Include major schemes: PM-KISAN (₹6,000/year), KCC (₹3 lakh at 7%), PMFBY (crop insurance), etc.
 Reply in simple English. Always use ₹ for currency."""

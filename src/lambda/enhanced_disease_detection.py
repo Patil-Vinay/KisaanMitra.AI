@@ -1,10 +1,4 @@
-"""
-Enhanced Crop Disease Detection with Confidence Scores
-- Multi-disease detection
-- Confidence scoring
-- Treatment recommendations with success rates
-- Follow-up questions
-"""
+"""Crop disease detection from a leaf photo with Claude 3.5 Sonnet vision on Bedrock."""
 
 import json
 import base64
@@ -12,17 +6,7 @@ import os
 
 
 def detect_disease_with_confidence(image_data, bedrock_client=None):
-    """
-    Enhanced disease detection with optimized image processing and caching
-
-    Returns: {
-        primary_disease,
-        confidence,
-        alternative_diseases,
-        treatments,
-        follow_up_questions
-    }
-    """
+    """Detect disease from an image, with caching"""
 
     # Import caching if available
     try:
@@ -31,7 +15,7 @@ def detect_disease_with_confidence(image_data, bedrock_client=None):
     except ImportError:
         CACHE_AVAILABLE = False
 
-    # Optimized prompt for faster processing
+    # short prompt keeps the reply fast
     prompt = """Analyze this crop image and provide diagnosis in EXACT JSON format:
 
 {
@@ -56,13 +40,12 @@ def detect_disease_with_confidence(image_data, bedrock_client=None):
 Rules: confidence 0.0-1.0, provide 2-3 treatments, include costs. Analyze now:"""
 
     try:
-        # Optimize image processing
         if isinstance(image_data, str):
             image_bytes = base64.b64decode(image_data)
         else:
             image_bytes = image_data
 
-        # Image size optimization for faster processing
+        # image size check
         original_size = len(image_bytes)
         print(f"[DISEASE DETECTION] Processing image (size: {original_size} bytes)")
 
@@ -84,11 +67,10 @@ Rules: confidence 0.0-1.0, provide 2-3 treatments, include costs. Analyze now:""
                     "urgency": "routine"
                 }
 
-        # Optimize image size if too large (reduce processing time)
+        # large images are slow to analyse
         if original_size > 1024 * 1024:  # 1MB
             print(f"[DISEASE DETECTION] Large image detected, may take longer to process")
 
-        # Use optimized bedrock client
         if bedrock_client is None:
             import boto3
             bedrock_client = boto3.client(
@@ -96,13 +78,12 @@ Rules: confidence 0.0-1.0, provide 2-3 treatments, include costs. Analyze now:""
                 region_name='us-east-1',
                 config=boto3.session.Config(
                     retries={'max_attempts': 2, 'mode': 'adaptive'},
-                    read_timeout=25,  # Reduced timeout
+                    read_timeout=25,  # short timeout
                     connect_timeout=5
                 )
             )
             print(f"[DISEASE DETECTION] Created optimized Bedrock client")
 
-        # Optimized API call with reduced token limit
         response = bedrock_client.converse(
             modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
             messages=[{
@@ -118,14 +99,14 @@ Rules: confidence 0.0-1.0, provide 2-3 treatments, include costs. Analyze now:""
                 ]
             }],
             inferenceConfig={
-                "maxTokens": 1500,  # Reduced for faster response
-                "temperature": 0.1   # Lower for more consistent results
+                "maxTokens": 1500,  # small reply
+                "temperature": 0.1   # low temperature, same answer for the same photo
             }
         )
 
         print(f"[DISEASE DETECTION] Bedrock response received")
 
-        # Optimized response parsing
+        # parse the reply
         if "output" in response and "message" in response["output"]:
             content = response["output"]["message"]["content"]
             if isinstance(content, list) and len(content) > 0:
@@ -141,7 +122,7 @@ Rules: confidence 0.0-1.0, provide 2-3 treatments, include costs. Analyze now:""
             print(f"[DISEASE DETECTION ERROR] Invalid response structure")
             raise ValueError("Invalid response structure")
 
-        # Optimized JSON extraction
+        # pull the JSON out of the reply
         json_text = result_text
         if "```json" in result_text:
             json_text = result_text.split("```json")[1].split("```")[0].strip()
@@ -173,7 +154,7 @@ Rules: confidence 0.0-1.0, provide 2-3 treatments, include costs. Analyze now:""
         import traceback
         traceback.print_exc()
 
-        # Optimized fallback response
+        # fallback reply
         return {
             "primary_disease": "Analysis failed",
             "primary_disease_hindi": "विश्लेषण असफल",
@@ -269,7 +250,7 @@ def format_disease_response(diagnosis, language='hindi'):
         
         message += "💡 *Tip*: Test treatment on a small area first."
     else:
-        # Hindi version (original)
+        # Hindi
         message = f"{confidence_emoji} *फसल रोग निदान*\n\n"
         message += f"*रोग*: {diagnosis['primary_disease_hindi']}\n"
         message += f"*विश्वास स्तर*: {confidence_text} ({int(confidence*100)}%)\n"

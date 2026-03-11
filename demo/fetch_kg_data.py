@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Fetch real-time data from DynamoDB and generate knowledge graph JSON
-This script should be run periodically (e.g., via cron or Lambda) to update the KG dashboard
-"""
+"""Builds the knowledge graph JSON from farmer profiles in DynamoDB."""
 
 import boto3
 import json

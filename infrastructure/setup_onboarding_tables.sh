@@ -41,7 +41,7 @@ aws dynamodb create-table \
 
 echo "Created kisaanmitra-user-profiles table with village index"
 
-echo "✅ Onboarding tables created successfully!"
+echo "Onboarding tables created successfully!"
 echo ""
 echo "Tables created:"
 echo "  1. kisaanmitra-onboarding (tracks onboarding state)"

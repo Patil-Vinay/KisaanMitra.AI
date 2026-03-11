@@ -6,12 +6,11 @@ set -e
 
 REGION="ap-south-1"
 
-echo "💰 Setting up Finance Agent tables..."
-echo "======================================"
+echo "Setting up Finance Agent tables..."
 echo ""
 
 # Finance Plans Table
-echo "1️⃣ Creating finance plans table..."
+echo "1Creating finance plans table..."
 aws dynamodb create-table \
   --table-name kisaanmitra-finance \
   --attribute-definitions \
@@ -29,7 +28,7 @@ aws dynamodb create-table \
 echo ""
 
 # Government Schemes Table
-echo "2️⃣ Creating schemes database table..."
+echo "2Creating schemes database table..."
 aws dynamodb create-table \
   --table-name kisaanmitra-schemes \
   --attribute-definitions \
@@ -48,7 +47,7 @@ aws dynamodb create-table \
 echo ""
 
 # Create S3 bucket for budget PDFs
-echo "3️⃣ Creating S3 bucket for financial plans..."
+echo "3Creating S3 bucket for financial plans..."
 aws s3 mb s3://kisaanmitra-budgets --region $REGION 2>/dev/null || echo "Bucket already exists"
 
 # Enable versioning
@@ -58,9 +57,9 @@ aws s3api put-bucket-versioning \
   --region $REGION 2>/dev/null || true
 
 echo ""
-echo "✅ Finance Agent infrastructure ready!"
+echo "Finance Agent infrastructure ready!"
 echo ""
-echo "📊 Resources created:"
+echo "Resources created:"
 echo "   • kisaanmitra-finance (financial plans)"
 echo "   • kisaanmitra-schemes (government schemes)"
 echo "   • s3://kisaanmitra-budgets (plan storage)"

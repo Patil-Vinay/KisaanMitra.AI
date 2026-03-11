@@ -1,7 +1,4 @@
-"""
-SageMaker AutoML Trainer for Time Series Forecasting
-Creates and manages AutoML jobs for price forecasting
-"""
+"""Starts and tracks SageMaker AutoML forecasting jobs."""
 
 import boto3
 import time
@@ -28,22 +25,7 @@ class SageMakerAutoMLTrainer:
         timestamp_column='timestamp',
         target_column='price'
     ):
-        """
-        Create SageMaker AutoML job for time series forecasting
-        
-        Args:
-            job_name: Unique name for the AutoML job
-            train_s3_uri: S3 URI of training data CSV
-            output_s3_uri: S3 URI for output artifacts
-            forecast_horizon: Number of time steps to forecast (default: 30 days)
-            forecast_frequency: Frequency of forecasts ('D' for daily, 'W' for weekly)
-            item_id_column: Name of item identifier column
-            timestamp_column: Name of timestamp column
-            target_column: Name of target column to forecast
-        
-        Returns:
-            dict: Job creation response
-        """
+        """Create SageMaker AutoML job for time series forecasting"""
         print(f"Creating AutoML job: {job_name}")
         print(f"  Training data: {train_s3_uri}")
         print(f"  Forecast horizon: {forecast_horizon} {forecast_frequency}")
@@ -81,23 +63,15 @@ class SageMakerAutoMLTrainer:
                 RoleArn=self.role_arn
             )
             
-            print(f"✅ AutoML job created: {response['AutoMLJobArn']}")
+            print(f"AutoML job created: {response['AutoMLJobArn']}")
             return response
             
         except Exception as e:
-            print(f"❌ Error creating AutoML job: {e}")
+            print(f"Error creating AutoML job: {e}")
             raise
     
     def get_job_status(self, job_name):
-        """
-        Get status of AutoML job
-        
-        Args:
-            job_name: Name of the AutoML job
-        
-        Returns:
-            dict: Job status information
-        """
+        """Get status of AutoML job"""
         try:
             response = self.sagemaker_client.describe_auto_ml_job_v2(
                 AutoMLJobName=job_name
@@ -116,21 +90,11 @@ class SageMakerAutoMLTrainer:
             }
             
         except Exception as e:
-            print(f"❌ Error getting job status: {e}")
+            print(f"Error getting job status: {e}")
             raise
     
     def wait_for_completion(self, job_name, check_interval=60, max_wait_time=7200):
-        """
-        Wait for AutoML job to complete
-        
-        Args:
-            job_name: Name of the AutoML job
-            check_interval: Seconds between status checks (default: 60)
-            max_wait_time: Maximum seconds to wait (default: 7200 = 2 hours)
-        
-        Returns:
-            dict: Final job status
-        """
+        """Wait for AutoML job to complete"""
         print(f"Waiting for job completion: {job_name}")
         print(f"  Check interval: {check_interval}s")
         print(f"  Max wait time: {max_wait_time}s")
@@ -150,7 +114,7 @@ class SageMakerAutoMLTrainer:
             print(f"  [{int(elapsed)}s] Status: {status} | {secondary_status}")
             
             if status == 'Completed':
-                print(f"✅ Job completed successfully!")
+                print(f"Job completed successfully!")
                 return status_info
             
             elif status == 'Failed':
@@ -164,15 +128,7 @@ class SageMakerAutoMLTrainer:
             time.sleep(check_interval)
     
     def get_best_candidate(self, job_name):
-        """
-        Get best model candidate from completed job
-        
-        Args:
-            job_name: Name of the AutoML job
-        
-        Returns:
-            dict: Best candidate information
-        """
+        """Get best model candidate from completed job"""
         status_info = self.get_job_status(job_name)
         
         if status_info['status'] != 'Completed':
@@ -183,22 +139,13 @@ class SageMakerAutoMLTrainer:
         if not best_candidate:
             raise Exception("No best candidate found")
         
-        print(f"✅ Best candidate: {best_candidate['CandidateName']}")
+        print(f"Best candidate: {best_candidate['CandidateName']}")
         print(f"   Objective metric: {best_candidate.get('FinalAutoMLJobObjectiveMetric')}")
         
         return best_candidate
     
     def list_candidates(self, job_name, max_results=10):
-        """
-        List all model candidates from job
-        
-        Args:
-            job_name: Name of the AutoML job
-            max_results: Maximum number of candidates to return
-        
-        Returns:
-            list: List of candidates
-        """
+        """List all model candidates from job"""
         try:
             response = self.sagemaker_client.list_candidates_for_auto_ml_job(
                 AutoMLJobName=job_name,
@@ -219,7 +166,7 @@ class SageMakerAutoMLTrainer:
             return candidates
             
         except Exception as e:
-            print(f"❌ Error listing candidates: {e}")
+            print(f"Error listing candidates: {e}")
             raise
 
 

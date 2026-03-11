@@ -1,14 +1,11 @@
 #!/bin/bash
 
-# Setup SageMaker Canvas Time Series Forecasting
-# No Docker required!
+# Sets up the weekly price forecast Lambda (kisaanmitra-sagemaker-forecaster).
+# Run from the repo root.
 
 set -e
 
-echo "=========================================="
-echo "SAGEMAKER FORECASTING SETUP"
-echo "=========================================="
-echo ""
+echo "Price forecasting setup"
 
 AWS_REGION="ap-south-1"
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -25,7 +22,8 @@ echo ""
 # Step 1: Create S3 bucket for ML data
 echo "Step 1: Creating S3 bucket..."
 aws s3 mb s3://$S3_BUCKET --region $AWS_REGION 2>/dev/null || echo "Bucket already exists"
-echo "✅ S3 bucket ready"
+aws s3 cp data/historical_prices/ s3://$S3_BUCKET/historical-prices/ --recursive
+echo "S3 bucket ready"
 echo ""
 
 # Step 2: Create SageMaker execution role
@@ -62,7 +60,7 @@ aws iam attach-role-policy \
     --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
 
 SAGEMAKER_ROLE_ARN="arn:aws:iam::$AWS_ACCOUNT_ID:role/$SAGEMAKER_ROLE_NAME"
-echo "✅ SageMaker role: $SAGEMAKER_ROLE_ARN"
+echo "SageMaker role: $SAGEMAKER_ROLE_ARN"
 echo ""
 
 # Step 3: Create Lambda execution role
@@ -107,7 +105,7 @@ aws iam attach-role-policy \
     --policy-arn arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
 
 LAMBDA_ROLE_ARN="arn:aws:iam::$AWS_ACCOUNT_ID:role/$LAMBDA_ROLE_NAME"
-echo "✅ Lambda role: $LAMBDA_ROLE_ARN"
+echo "Lambda role: $LAMBDA_ROLE_ARN"
 echo ""
 
 # Wait for roles to propagate
@@ -117,12 +115,12 @@ sleep 10
 # Step 4: Package Lambda function
 echo "Step 4: Packaging Lambda function..."
 
-cd src
-zip -r /tmp/lambda_sagemaker.zip \
-    lambda/lambda_sagemaker_forecaster.py \
-    sagemaker_forecasting/*.py
+# handler file has to be at the zip root
+rm -f /tmp/lambda_sagemaker.zip
+zip -j /tmp/lambda_sagemaker.zip src/lambda/lambda_sagemaker_forecaster.py
+(cd src && zip -r /tmp/lambda_sagemaker.zip sagemaker_forecasting/*.py)
 
-echo "✅ Lambda package created"
+echo "Lambda package created"
 echo ""
 
 # Step 5: Create or update Lambda function
@@ -148,12 +146,12 @@ else
             S3_BUCKET=$S3_BUCKET,
             SAGEMAKER_ROLE_ARN=$SAGEMAKER_ROLE_ARN,
             DYNAMODB_TABLE=kisaanmitra-price-forecasts,
-            USE_EXISTING_MODEL=false
+            FORECAST_METHOD=trend
         }" \
         --region $AWS_REGION
 fi
 
-echo "✅ Lambda function deployed"
+echo "Lambda function deployed"
 echo ""
 
 # Step 6: Create EventBridge rule for weekly training
@@ -186,12 +184,10 @@ aws events put-targets \
     --targets "Id"="1","Arn"="$LAMBDA_ARN" \
     --region $AWS_REGION
 
-echo "✅ Weekly schedule configured"
+echo "Weekly schedule configured"
 echo ""
 
-echo "=========================================="
 echo "SETUP COMPLETE!"
-echo "=========================================="
 echo ""
 echo "Resources created:"
 echo "  - S3 Bucket: $S3_BUCKET"
@@ -203,8 +199,5 @@ echo "Next steps:"
 echo "1. Test Lambda manually:"
 echo "   aws lambda invoke --function-name $LAMBDA_FUNCTION_NAME --region $AWS_REGION output.json"
 echo ""
-echo "2. First run will create AutoML training job (takes 1-2 hours)"
-echo ""
-echo "3. After training completes, set USE_EXISTING_MODEL=true to use trained model"
-echo ""
-echo "4. Monitor SageMaker jobs in AWS Console"
+echo "2. FORECAST_METHOD=automl starts a SageMaker AutoML job (1-2 hours)."
+echo "   FORECAST_METHOD=batch then uses that model (needs a pandas layer)."

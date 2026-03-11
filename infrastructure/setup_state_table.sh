@@ -6,7 +6,7 @@
 REGION="ap-south-1"
 TABLE_NAME="kisaanmitra-user-state"
 
-echo "🔧 Creating user state tracking table..."
+echo "Creating user state tracking table..."
 
 aws dynamodb create-table \
     --table-name $TABLE_NAME \
@@ -18,17 +18,17 @@ aws dynamodb create-table \
     --region $REGION \
     --tags Key=Project,Value=KisaanMitra Key=Purpose,Value=StateTracking
 
-echo "⏳ Waiting for table to be active..."
+echo "Waiting for table to be active..."
 aws dynamodb wait table-exists --table-name $TABLE_NAME --region $REGION
 
 # Enable TTL after table is created
-echo "🕐 Enabling TTL..."
+echo "Enabling TTL..."
 aws dynamodb update-time-to-live \
     --table-name $TABLE_NAME \
     --time-to-live-specification Enabled=true,AttributeName=ttl \
     --region $REGION
 
-echo "✅ State tracking table created: $TABLE_NAME"
+echo "State tracking table created: $TABLE_NAME"
 echo ""
-echo "📊 Table details:"
+echo "Table details:"
 aws dynamodb describe-table --table-name $TABLE_NAME --region $REGION --query 'Table.[TableName,TableStatus,ItemCount]' --output table

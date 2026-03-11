@@ -1,7 +1,4 @@
-"""
-Generate 10,000 Farmers Dataset
-Creates a massive hyperlocal dataset with realistic data
-"""
+"""Generates 10,000 fake farmers for the knowledge graph demo."""
 
 import json
 import random
@@ -31,7 +28,7 @@ LAST_NAMES = ["Patil", "Deshmukh", "Kulkarni", "Jadhav", "Pawar", "Shinde", "Mor
 def generate_farmers(count=10000):
     farmers = []
     
-    print(f"🌾 Generating {count:,} farmers...")
+    print(f"Generating {count:,} farmers...")
     
     for i in range(count):
         if (i + 1) % 1000 == 0:
@@ -91,7 +88,7 @@ def generate_farmers(count=10000):
 
 def main():
     print("=" * 60)
-    print("🌾 GENERATING 10,000 FARMERS DATASET")
+    print("GENERATING 10,000 FARMERS DATASET")
     print("=" * 60)
     
     # Generate farmers
@@ -111,7 +108,7 @@ def main():
     }
     
     # Calculate statistics
-    print("\n📊 Dataset Statistics:")
+    print("\nDataset Statistics:")
     print(f"   Total Farmers: {len(farmers):,}")
     print(f"   Districts: {len(DISTRICTS)}")
     print(f"   Villages: {sum(len(v) for v in DISTRICTS.values())}")
@@ -124,14 +121,14 @@ def main():
         d = f['district']
         district_counts[d] = district_counts.get(d, 0) + 1
     
-    print("\n🏛️ District Distribution:")
+    print("\nDistrict Distribution:")
     for district, count in sorted(district_counts.items(), key=lambda x: x[1], reverse=True):
         print(f"   {district}: {count:,} farmers")
     
     # Total land
     total_land = sum(f['land_size_acres'] for f in farmers)
     avg_land = total_land / len(farmers)
-    print(f"\n📏 Land Statistics:")
+    print(f"\nLand Statistics:")
     print(f"   Total Land: {total_land:,.2f} acres")
     print(f"   Average per Farmer: {avg_land:.2f} acres")
     
@@ -141,12 +138,12 @@ def main():
         for crop in f['crops_grown']:
             crop_counts[crop] = crop_counts.get(crop, 0) + 1
     
-    print(f"\n🌾 Top 10 Crops:")
+    print(f"\nTop 10 Crops:")
     for crop, count in sorted(crop_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
         print(f"   {crop}: {count:,} farmers")
     
     # Save to file
-    print(f"\n💾 Saving to knowledge_graph_dummy_data.json...")
+    print(f"\nSaving to knowledge_graph_dummy_data.json...")
     with open('knowledge_graph_dummy_data.json', 'w') as f:
         json.dump(data, f, indent=2)
     
@@ -155,14 +152,14 @@ def main():
     file_size = os.path.getsize('knowledge_graph_dummy_data.json')
     file_size_mb = file_size / (1024 * 1024)
     
-    print(f"✅ Dataset saved successfully!")
+    print(f"Dataset saved successfully!")
     print(f"   File size: {file_size_mb:.2f} MB")
     
     print("\n" + "=" * 60)
-    print("🎉 10,000 FARMERS DATASET COMPLETE!")
+    print("10,000 FARMERS DATASET COMPLETE!")
     print("=" * 60)
     print("\nNext steps:")
-    print("1. Update KG dashboard: python create_ultimate_kg_dashboard.py")
+    print("1. Update KG dashboard: python create_kg_dashboard.py")
     print("2. Upload to S3 so lambda_kg_updater can pick it up")
 
 if __name__ == "__main__":

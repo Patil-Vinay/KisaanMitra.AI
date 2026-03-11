@@ -45,12 +45,12 @@ for pattern, replacement in replacements:
 with open('demo/knowledge_graph_dashboard_embedded.html', 'w') as f:
     f.write(html_content)
 
-print(f"✅ Created embedded dashboard with {len(kg_data['nodes'])} nodes and {len(kg_data['links'])} links")
-print(f"✅ Total farmers in metadata: {kg_data['metadata']['total_farmers']}")
-print(f"✅ Stats updated:")
+print(f"Created embedded dashboard with {len(kg_data['nodes'])} nodes and {len(kg_data['links'])} links")
+print(f"Total farmers in metadata: {kg_data['metadata']['total_farmers']}")
+print(f"Stats updated:")
 print(f"   - Farmers: {metadata['total_farmers']:,}")
 print(f"   - Districts: {metadata['total_districts']}")
 print(f"   - Villages: {metadata['total_villages']}")
 print(f"   - Crops: {metadata['total_crops']}")
 print(f"   - Land: {metadata['total_land']:,.0f} acres")
-print(f"✅ Output: demo/knowledge_graph_dashboard_embedded.html")
+print(f"Output: demo/knowledge_graph_dashboard_embedded.html")

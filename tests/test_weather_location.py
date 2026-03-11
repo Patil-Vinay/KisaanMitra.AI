@@ -31,20 +31,20 @@ def test_weather_location_priority():
     
     location = None
     
-    # PRIORITY 1: Check user profile for district
+    # 1. district from the profile
     if user_id != "unknown":
         profile = onboarding_manager.get_user_profile(user_id)
         if profile:
             location = profile.get('district')
             if location:
-                print(f"✅ PASS: Using profile location: {location}")
+                print(f"PASS: Using profile location: {location}")
                 assert location == "Sangli", f"Expected Sangli, got {location}"
                 return True
     
-    # PRIORITY 2: Extract from message (should not reach here)
+    # 2. place in the message (should not reach here)
     if not location:
         location = "Pune"  # Default
-        print(f"❌ FAIL: Fell back to default: {location}")
+        print(f"FAIL: Fell back to default: {location}")
         return False
     
     return True
@@ -57,8 +57,8 @@ if __name__ == "__main__":
     
     print("=" * 50)
     if success:
-        print("✅ Test PASSED: Profile district takes priority")
+        print("Test PASSED: Profile district takes priority")
         sys.exit(0)
     else:
-        print("❌ Test FAILED: Logic error")
+        print("Test FAILED: Logic error")
         sys.exit(1)

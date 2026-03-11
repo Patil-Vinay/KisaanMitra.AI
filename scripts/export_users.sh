@@ -2,8 +2,7 @@
 
 # Export KisaanMitra users in various formats
 
-echo "📊 KisaanMitra - Export Users"
-echo "=============================="
+echo "KisaanMitra - Export Users"
 echo ""
 
 # Create exports directory
@@ -16,7 +15,7 @@ aws dynamodb scan \
     --region ap-south-1 \
     --output json > exports/all_users.json
 
-echo "✅ Exported to: exports/all_users.json"
+echo "Exported to: exports/all_users.json"
 
 # Export to CSV
 echo "Exporting to CSV..."
@@ -48,7 +47,7 @@ with open('exports/all_users.csv', 'w', newline='') as f:
             item.get('registered_at', {}).get('S', '')
         ])
 
-print('✅ Exported to: exports/all_users.csv')
+print('Exported to: exports/all_users.csv')
 "
 
 # Export to Markdown table
@@ -79,10 +78,10 @@ with open('exports/all_users.md', 'w') as f:
         
         f.write(f'| {name} | {phone} | {village} | {district} | {crops} | {land} acres |\n')
 
-print('✅ Exported to: exports/all_users.md')
+print('Exported to: exports/all_users.md')
 "
 
 echo ""
-echo "📁 All exports saved to: exports/"
+echo "All exports saved to: exports/"
 echo ""
 ls -lh exports/

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test Price Forecasting Feature
-echo "🔮 Testing Price Forecasting System..."
+echo "Testing Price Forecasting System..."
 echo ""
 
 # Test 1: Forecast query in Hindi
@@ -21,4 +21,4 @@ curl -X POST https://graph.facebook.com/v17.0/YOUR_PHONE_ID/messages \
 echo ""
 echo "Test 2: What will be the price of sugarcane next week?"
 echo ""
-echo "✅ Tests sent! Check WhatsApp for responses."
+echo "Tests sent! Check WhatsApp for responses."

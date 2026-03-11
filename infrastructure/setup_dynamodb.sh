@@ -6,12 +6,11 @@ set -e
 
 REGION="ap-south-1"
 
-echo "🗄️  Setting up DynamoDB tables..."
-echo "=================================="
+echo "Setting up DynamoDB tables..."
 echo ""
 
 # 1. Conversation History Table
-echo "1️⃣ Creating conversation history table..."
+echo "1Creating conversation history table..."
 aws dynamodb create-table \
   --table-name kisaanmitra-conversations \
   --attribute-definitions \
@@ -28,7 +27,7 @@ aws dynamodb create-table \
 echo ""
 
 # 2. Market Data Cache Table
-echo "2️⃣ Creating market data cache table..."
+echo "2Creating market data cache table..."
 aws dynamodb create-table \
   --table-name kisaanmitra-market-data \
   --attribute-definitions \
@@ -44,7 +43,7 @@ aws dynamodb create-table \
 echo ""
 
 # 3. User Preferences Table
-echo "3️⃣ Creating user preferences table..."
+echo "3Creating user preferences table..."
 aws dynamodb create-table \
   --table-name kisaanmitra-user-preferences \
   --attribute-definitions \
@@ -57,16 +56,16 @@ aws dynamodb create-table \
   2>/dev/null || echo "Table already exists"
 
 echo ""
-echo "⏳ Waiting for tables to become active..."
+echo "Waiting for tables to become active..."
 sleep 10
 
 echo ""
-echo "✅ DynamoDB tables setup complete!"
+echo "DynamoDB tables setup complete!"
 echo ""
-echo "📊 Tables created:"
+echo "Tables created:"
 echo "   • kisaanmitra-conversations (conversation history)"
 echo "   • kisaanmitra-market-data (market price cache)"
 echo "   • kisaanmitra-user-preferences (user settings)"
 echo ""
-echo "🔍 Verify tables:"
+echo "Verify tables:"
 echo "   aws dynamodb list-tables --region $REGION"

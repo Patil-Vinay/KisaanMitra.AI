@@ -8,8 +8,7 @@ ROLE_NAME="kisaanmitra-lambda-role"
 REGION="ap-south-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-echo "🔐 Updating IAM permissions for Lambda..."
-echo "=========================================="
+echo "Updating IAM permissions for Lambda..."
 echo ""
 
 # Create policy document
@@ -78,16 +77,16 @@ cat > lambda-policy.json << EOF
 }
 EOF
 
-echo "1️⃣ Creating/updating policy..."
+echo "1Creating/updating policy..."
 aws iam put-role-policy \
   --role-name $ROLE_NAME \
   --policy-name kisaanmitra-lambda-policy \
   --policy-document file://lambda-policy.json
 
 echo ""
-echo "✅ IAM permissions updated!"
+echo "IAM permissions updated!"
 echo ""
-echo "📋 Permissions granted:"
+echo "Permissions granted:"
 echo "   • CloudWatch Logs (write)"
 echo "   • S3 (read/write images)"
 echo "   • Secrets Manager (read API keys)"
