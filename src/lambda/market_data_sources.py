@@ -1,7 +1,4 @@
-"""
-Real-time Market Data from AgMarkNet API + Claude AI Fallback
-Optimized with caching and rate limiting
-"""
+"""Mandi prices from the AgMarkNet API, with a model estimate as fallback."""
 
 import json
 import os
@@ -368,6 +365,13 @@ def format_market_response_fast(crop_name, market_data, language='hindi'):
         last_updated = market_data.get("last_updated", "")
         if last_updated:
             message += f"\n🕐 *अपडेट*: {last_updated}"
-    
+
+    # fallback prices come from the model, not from a mandi
+    if market_data.get("source") == "claude_ai":
+        if language == 'english':
+            message += "\n\n⚠️ Live mandi data was not available, so these are estimated prices."
+        else:
+            message += "\n\n⚠️ मंडी का ताज़ा डेटा उपलब्ध नहीं था, ये अनुमानित भाव हैं।"
+
     print(f"[FORMAT] Response formatted")
     return message

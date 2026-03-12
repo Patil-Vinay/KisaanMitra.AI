@@ -1,7 +1,5 @@
-# KisaanMitra.AI Python Dependencies
-
-# API Requests
-requests==2.32.5
-
-# Environment Variables
-python-dotenv==1.0.1
+# local scripts (demo/, tests/, src/sagemaker_forecasting)
+# the Lambda itself only needs boto3 and urllib3, which the runtime already has
+boto3==1.35.0
+urllib3==2.2.2
+pandas==2.2.0
