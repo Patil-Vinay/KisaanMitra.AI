@@ -1,266 +1,169 @@
-# KisaanMitra.AI 🌾
+<p align="center">
+  <img src="demo/kisaanmitra-logo.png" alt="KisaanMitra.AI logo" width="200">
+</p>
 
-[![AWS](https://img.shields.io/badge/AWS-Serverless-orange?logo=amazon-aws)](https://aws.amazon.com/)
-[![Python](https://img.shields.io/badge/Python-3.14-blue?logo=python)](https://www.python.org/)
-[![WhatsApp](https://img.shields.io/badge/WhatsApp-Business_API-25D366?logo=whatsapp)](https://business.whatsapp.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+<h1 align="center">KisaanMitra.AI</h1>
 
-**Team**: KisaanMitra.AI  
-**Problem Statement**: AI for Rural Innovation & Sustainable Systems
+<p align="center">
+  A WhatsApp assistant for farmers in Maharashtra, in Hindi and English.<br>
+  Built for the AWS AI for Bharat hackathon (Feb - Mar 2026).
+</p>
 
-> WhatsApp-based Multi-Agent AI System - From "Hi" to Profit in the Bank
+<p align="center">
+  <img src="https://img.shields.io/badge/WhatsApp-Cloud_API-25D366?logo=whatsapp&logoColor=white" alt="WhatsApp Cloud API">
+  <img src="https://img.shields.io/badge/AWS-Lambda-FF9900?logo=awslambda&logoColor=white" alt="AWS Lambda">
+  <img src="https://img.shields.io/badge/Amazon_Bedrock-Nova_Pro_%7C_Claude-232F3E?logo=amazonaws&logoColor=white" alt="Amazon Bedrock">
+  <img src="https://img.shields.io/badge/DynamoDB-4053D6?logo=amazondynamodb&logoColor=white" alt="DynamoDB">
+  <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" alt="Python 3.11">
+</p>
 
----
-
-## 🎯 The Problem
-
-Farmers lack timely, hyper-local, integrated decision support across crop management, financial planning and market intelligence. Existing information is fragmented, non-personalized and difficult to apply at village level.
-
-## 💡 Our Solution
-
-KisaanMitra.AI is a **WhatsApp-based multi-agent AI system** - a farmer's all-in-one intelligent assistant.
-
-### 🤖 Three Specialized AI Agents
-
-**🌱 Crop Agent**
-- Village-level knowledge graph
-- Disease diagnosis (image + text, high accuracy)
-- Fertilizer & pesticide recommendations
-- Weather-aware suggestions
-
-**📈 Market Agent**
-- Demand trends & time-series forecasting
-- Best crop to grow recommendations
-- Optimal harvest timing
-- Nearby farmer's market (mandi) price trends, supply vs demand signals
-
-**💰 Finance Agent**
-- End-to-end budget planning
-- Government scheme discovery + eligibility matching
-- Lowest price inputs (fertilizer/pesticide comparison)
-- Loan & subsidy planning, risk estimation
-
-### ✨ Key Features
-- **WhatsApp Native**: No app download, works on basic smartphones
-- **Local Language**: Hindi (USP), voice + text support
-- **Image Support**: Disease detection from crop photos
-- **Real-Time**: Instant response, high availability
-
-## 🏗️ Architecture
-
-```
-Farmer (WhatsApp) → Meta WhatsApp Business API
-    ↓
-AWS API Gateway (Auth, Rate Limit)
-    ↓
-Lambda Orchestrator (Intent Detection + Agent Routing)
-    ↓
-┌─────────────┬─────────────┬──────────────┐
-│ Crop Agent  │Market Agent │Finance Agent │
-└─────────────┴─────────────┴──────────────┘
-    ↓
-ML + Knowledge Layer
-├─ Crop DB, Pest Models, Soil API
-├─ Budget Engine, Schemes, Credit Scoring
-└─ Time-Series Forecasting (ARIMA, Mandi Prices)
-    ↓
-Data Layer: DynamoDB | S3 | Neptune | OpenSearch
-    ↓
-AWS Bedrock LLM (RAG + Multilingual)
-```
-
-## 🚀 Technology Stack
-
-### AWS Services (Core Infrastructure)
-**Compute**: AWS Lambda (Serverless, Python 3.14, 1536MB)  
-**Database**: Amazon DynamoDB (5 tables, pay-per-request)  
-**Storage**: Amazon S3 (Images, data lake)  
-**AI/ML**: Amazon Bedrock (Nova Pro), Claude Sonnet 4  
-**Security**: AWS Secrets Manager, IAM  
-**Monitoring**: Amazon CloudWatch (Logs, Metrics, Alarms)  
-**Planned**: API Gateway, CloudFront, Route 53
-
-### AI Models
-**Primary**: Amazon Nova Pro (fast routing, entity extraction)  
-**Secondary**: Claude Sonnet 4 (complex reasoning, budget planning)  
-**Specialized**: Kindwise API (crop disease detection, 85%+ accuracy)
-
-### External APIs
-**Interface**: WhatsApp Business API (Meta)  
-**Weather**: OpenWeather API (7-day forecasts)  
-**Market**: AgMarkNet API (Government of India mandi prices)  
-
-## 📊 Expected Impact
-
-| Metric | Target | Description |
-|--------|--------|-------------|
-| 💰 Farmer Income | **+20-30%** | Better market timing and crop selection |
-| 🌾 Crop Loss Reduction | **-40%** | Early disease detection and prevention |
-| 💵 Input Cost Savings | **-15-20%** | Optimized fertilizer and pesticide usage |
-| 📈 Better Market Prices | **+25%** | Demand forecasting and optimal harvest timing |
+<p align="center">
+  <a href="https://youtu.be/HGGA7kz9L8U"><b>Demo video</b></a> &nbsp;|&nbsp;
+  <a href="docs/KisaanMitra_AI_Submission.pdf"><b>Submission deck (PDF)</b></a> &nbsp;|&nbsp;
+  <a href="docs/KisaanMitra_AI_Submission.pptx"><b>PPTX</b></a>
+</p>
 
 ---
 
-## 💰 Cost & Revenue
+A farmer sends a text or a photo of a leaf and the bot answers about crop disease, mandi prices, price forecasts, crop budgets, government schemes and the weather. A short onboarding chat stores each farmer's village, land and crops. Every answer uses that profile. When a farmer reports a disease, the other farmers in the same village who grow that crop get a WhatsApp alert.
 
-### Pilot Cost (1 Village)
-**₹47,000-74,000** (setup + 1 month operation)
+## Screenshots
 
-| Component | Cost |
-|-----------|------|
-| Tech Infrastructure | ₹6-17K/month |
-| Village Data Agent | ₹10-12K/month |
-| Data Collection | ₹28-40K (one-time) |
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/onboarding.jpg" width="245" alt="Onboarding"></td>
+    <td align="center"><img src="docs/images/disease.jpg" width="200" alt="Disease diagnosis"></td>
+    <td align="center"><img src="docs/images/market_price.jpg" width="200" alt="Market price"></td>
+    <td align="center"><img src="docs/images/budget.jpg" width="200" alt="Budget plan"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Onboarding</b><br>profile saved after a short chat</td>
+    <td align="center"><b>Crop agent</b><br>disease diagnosis from a photo</td>
+    <td align="center"><b>Market agent</b><br>mandi prices with back / home / cancel</td>
+    <td align="center"><b>Finance agent</b><br>crop budget for the farmer's land</td>
+  </tr>
+</table>
 
-### Revenue Model
-1. **Data-as-a-Service (DaaS)** - Agri-input companies, insurers
-2. **Sponsored Recommendations** - Pay-per-lead model
-3. **B2B SaaS Licensing** - FPOs, KVKs, agri-dealers
-4. **Advisory & Referral Network** - Mandis, banks
+## What it does
 
-**Why It Works**: Village-level agricultural data doesn't exist in India. Every interaction creates a data moat that competitors can't replicate.
+| | Feature | Details |
+|---|---|---|
+| 1 | **Onboarding** | Asks name, village, district, land size, soil, water source, current and past crops, years of farming, problems and goals. Saved in DynamoDB. |
+| 2 | **Crop agent** | Diagnoses disease from a leaf photo and answers crop questions with the local weather added. Reports are stored by village so neighbours get alerts. |
+| 3 | **Market agent** | Today's mandi prices from the AgMarkNet API (data.gov.in). If AgMarkNet has nothing, the model estimates the price and the reply says so. |
+| 4 | **Price forecast** | Next-day and 7-day forecasts for onion, rice, sugarcane, tomato and wheat, from five years of Maharashtra modal prices. |
+| 5 | **Finance agent** | Budget for a crop and land size (input costs, yield, profit), loan options and matching schemes such as PM-KISAN. |
+| 6 | **General agent** | Weather from OpenWeather, "who else grows sugarcane in my village" questions and anything that fits nowhere else. |
+| 7 | **Navigation** | WhatsApp list menus and buttons with `back`, `home` and `cancel`. |
+| 8 | **Web demo** | `demo/web-chat-demo.html` talks to the same Lambda, so the bot can be tried without WhatsApp. |
+| 9 | **Dashboards** | D3.js knowledge graph of farmers, villages and crops (`demo/`) and a Streamlit dashboard (`dashboard/`). |
 
----
+## AI models used
 
-## 🤖 Why AI is Essential
+The replies on WhatsApp are written by large language models. The code adds the farmer's profile, weather, prices and past messages to the prompt and formats the answer.
 
-### 1. Natural Language Understanding
-Farmers communicate in mixed Hindi-English with varying literacy levels. AI (Amazon Nova Pro + Claude) processes unstructured queries, extracts intent, and responds naturally - impossible with rule-based systems.
+| Model | Where | Used for |
+|---|---|---|
+| Amazon Nova Pro (Bedrock) | `services/ai_service.py`, `onboarding/` | picking the agent, answers of all four agents, pulling crop and place names out of messages, reading onboarding answers |
+| Claude 3.5 Sonnet (Bedrock) | `enhanced_disease_detection.py` | disease diagnosis from a leaf photo |
+| Claude 3 Sonnet (Bedrock) | `price_forecasting.py` | price outlook when no stored forecast exists |
+| Claude Sonnet (Anthropic API) | `anthropic_client.py`, `market_data_sources.py` | price estimate when AgMarkNet has no data |
 
-### 2. Intelligent Routing
-Multi-domain queries require AI to analyze complexity and route to specialized agents (Crop/Market/Finance/General) while maintaining context.
+The weekly price forecast itself is plain statistics (last 90 day average plus trend), not a model.
 
-### 3. Visual Disease Detection
-Computer vision identifies crop diseases from images with 85%+ accuracy - replacing expensive expert consultations.
+## Architecture
 
-### 4. Personalized Recommendations
-AI synthesizes user profile (village, crops, land, soil) + real-time data (weather, prices, disease outbreaks) for contextual advice.
-
-### 5. Financial Planning
-Complex budget calculations considering multiple variables (crop type, land size, input costs, yields, market prices, loans, subsidies) require AI reasoning.
-
-### 6. Market Intelligence
-Time-series analysis and demand forecasting predict optimal harvest timing and selling strategies.
-
-**Value**: 40% crop loss reduction, 20-30% income increase, 15-20% cost savings
-
-## ☁️ AWS Architecture Highlights
-
-### Serverless-First Design
-- **AWS Lambda**: Auto-scaling compute (1000+ concurrent executions)
-- **DynamoDB**: Unlimited scalability, single-digit ms latency
-- **S3**: Unlimited storage with lifecycle policies
-- **Cost**: 85% cheaper than traditional EC2+RDS ($29 vs $200/month for 1K users)
-
-### Multi-Model AI Strategy
-- **Amazon Nova Pro**: Fast queries (1-2s), $0.00008/1K tokens
-- **Claude Sonnet 4**: Complex analysis (3-5s), high accuracy
-- **Right model for right task**: Optimal cost-performance
-
-### Security & Compliance
-- **IAM**: Least-privilege access control
-- **Secrets Manager**: Encrypted credential storage
-- **CloudWatch**: Real-time monitoring and alerting
-- **Encryption**: At rest (DynamoDB, S3) and in transit (HTTPS)
-
-### Scalability
-- **Current**: 300K requests/month, 1K users
-- **Tested**: 1M requests/month, 10K users
-- **Capacity**: 10M+ requests/month without redesign
-- **Performance**: <3s text queries, <7s image analysis, 99.9% uptime  
-
-## 👥 Team
-
-- **Aditya Rane** - Project Manager, Agile Delivery Strategy
-- **Vinay Patil** - Lead Engineer, Backend AI Systems, Cloud Architecture
-- **Parth Nikam** - Advanced Analytics, Data Science, Agentic AI
-
----
-
-
-## 🌐 Live Demos
-
-### 🎮 Interactive Demos
-- **[Web Chat Demo](http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/)** - Try the AI assistant in your browser
-- **[Knowledge Graph Dashboard](http://kisaanmitra-knowledge-graph.s3-website.ap-south-1.amazonaws.com/)** - Live visualization of 10,007 farmers across 191 villages
-- **[Knowledge Graph (Alternative)](http://kisaanmitra-web-demo-1772974554.s3-website.ap-south-1.amazonaws.com/knowledge-graph.html)** - Interactive network visualization
-
-### 🎥 Video Demo
-- **[YouTube Demo](https://youtu.be/HGGA7kz9L8U)** - Complete system walkthrough
-
-### 💻 Source Code
-- **[GitHub Repository](https://github.com/parth-nikam/KisaanMitra.AI)** - Full source code and documentation
-
----
-
-## 📚 Documentation
-
-### 📋 Submission Documents
-- **[AWS AI Submission Guide](AWS_AI_SUBMISSION_GUIDE.md)** - Complete explanation of AI requirements and AWS services
-- **[AWS Architecture Visual](AWS_ARCHITECTURE_VISUAL.md)** - Detailed architecture diagrams and data flows
-- **[Submission Package](SUBMISSION_PACKAGE.md)** - Hackathon submission checklist
-- **[Submission Ready](SUBMISSION_READY.md)** - Final submission status
-
-### 🔧 Technical Documentation
-- **[Architecture](ARCHITECTURE.md)** - System architecture and AWS infrastructure
-- **[Requirements](requirements.md)** - Functional requirements and success metrics
-- **[Design](design.md)** - System design and AWS services
-- **[Quick Reference](QUICK_REFERENCE.md)** - Quick start guide
-- **[Features List](FEATURES_LIST.md)** - Complete feature documentation
-- **[Sample Commands](SAMPLE_COMMANDS.md)** - Usage examples
-
-### 🚀 Implementation Guides
-- **[Disease Alert System](DISEASE_ALERT_SYSTEM.md)** - Hyperlocal disease tracking
-- **[Hyperlocal Alert Demo](HYPERLOCAL_ALERT_DEMO.md)** - Alert system demonstration
-
-### 📐 Architecture Diagrams
-6 professional AWS diagrams in `generated-diagrams/`:
-1. Production Architecture
-2. ML/AI Pipeline
-3. Complete System Overview
-4. Detailed Data Flow
-5. Cost Optimization
-6. Simplified Architecture
-
----
-
-## 📐 Repository Structure
-
-```
-KisaanMitra.AI/
-├── src/
-│   ├── lambda/              # AWS Lambda functions
-│   │   ├── agents/          # Specialized AI agents
-│   │   └── services/        # Core services
-│   ├── crop_agent/          # Crop health API client
-│   ├── hyperlocal/          # Disease tracking system
-│   └── onboarding/          # Farmer onboarding
-├── docs/                    # Documentation
-├── tests/                   # Test suites
-├── infrastructure/          # AWS setup scripts
-├── demo/                    # Demo applications
-├── dashboard/               # Analytics dashboard
-├── generated-diagrams/      # Architecture diagrams
-└── archive/                 # Historical logs and scripts
-
+```mermaid
+flowchart TB
+    F([Farmer on WhatsApp]) --> M[Meta WhatsApp Cloud API]
+    W([Browser demo]) --> G[API Gateway]
+    M --> U
+    G --> U
+    subgraph L[whatsapp-llama-bot Lambda]
+        U[lambda_handler_unified] --> O[Onboarding]
+        U --> R{Router}
+        R --> C[Crop agent]
+        R --> K[Market agent]
+        R --> N[Finance agent]
+        R --> Q[General agent]
+    end
+    U <--> D[(DynamoDB<br>profiles, chats, reports)]
+    R <--> B[(Amazon Bedrock<br>Nova Pro, Claude)]
+    K --> A[AgMarkNet API]
+    Q --> X[OpenWeather API]
+    H[(S3 price history)] --> S[Weekly forecast Lambda]
+    S --> D
 ```
 
-See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for complete details.
+1. Meta sends the WhatsApp message to the webhook of the `whatsapp-llama-bot` Lambda.
+2. `lambda_handler_unified.py` passes WhatsApp webhooks to `lambda_handler_v2.py` and web demo requests to `lambda_handler_web.py`.
+3. The handler loads the farmer's profile and recent messages from DynamoDB. New users go through onboarding first.
+4. Photos go to disease detection. Text is routed to the crop, market, finance or general agent.
+5. The agent calls Bedrock, AgMarkNet, OpenWeather or DynamoDB and the reply goes back through the WhatsApp Cloud API.
 
----
+## Project layout
 
-## 🏆 Tagline
+```
+src/lambda/                 main bot Lambda
+  lambda_handler_unified.py   entry point
+  lambda_handler_v2.py        WhatsApp handler
+  lambda_handler_web.py       web demo handler
+  agents/                     crop, market, finance and general agents
+  services/                   Bedrock calls, conversation memory, cache, language, WhatsApp API
+  forecast_reply.py           reads stored forecasts for the bot
+  lambda_sagemaker_forecaster.py  weekly forecast job
+  lambda_kg_updater.py        rebuilds the knowledge graph JSON in S3
+  deploy.sh                   packages and deploys the bot
+src/onboarding/             onboarding chat and farmer profiles
+src/hyperlocal/             village disease reports, treatments and alerts
+src/sagemaker_forecasting/  optional SageMaker AutoML training and batch transform
+data/historical_prices/     AgMarkNet modal prices, Maharashtra, Mar 2021 - Mar 2026
+infrastructure/             scripts for the DynamoDB tables, API Gateway, IAM and schedules
+demo/                       web chat demo, knowledge graph dashboard, data generators
+dashboard/                  Streamlit dashboard
+docs/                       hackathon submission deck (PDF and PPTX)
+docs/images/                screenshots used in this README
+scripts/                    user admin, demo and test scripts that call the deployed Lambda
+tests/                      scenario tests against the deployed Lambda
+```
 
-**"The AI is the interface. The data is the moat."**
+## Setup
 
-*Building India's first village-level agricultural data infrastructure*
+You need an AWS account with the AWS CLI configured, Bedrock model access in `us-east-1` for Amazon Nova Pro and Claude 3.5 Sonnet and a WhatsApp Business app in the Meta developer console. Everything else runs in `ap-south-1`.
 
----
+1. Create the tables:
 
-## 📄 License
+   ```bash
+   cd infrastructure
+   ./setup_dynamodb.sh
+   ./setup_onboarding_tables.sh
+   ./setup_hyperlocal_tables.sh
+   ./setup_finance_tables.sh
+   ./setup_state_table.sh
+   ./setup_navigation_table.sh
+   ```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+2. Create a Python Lambda named `whatsapp-llama-bot`. `update_iam_permissions.sh` gives its role DynamoDB, S3 and Bedrock access and `update_lambda_config.sh` sets a 60 s timeout and 512 MB memory.
 
----
+3. Set the environment variables listed in `.env.example` on the Lambda.
 
-Made with ❤️ by Team KisaanMitra.AI
+4. Deploy the code:
+
+   ```bash
+   cd src/lambda
+   ./deploy.sh
+   ```
+
+5. Expose the Lambda over HTTPS (API Gateway or a function URL) and set that URL as the WhatsApp webhook with your `VERIFY_TOKEN`. For the web demo, `infrastructure/setup_api_gateway.sh` creates a `/chat` endpoint; put it in `API_ENDPOINT` in `demo/web-chat-demo.html`.
+
+6. Price forecasts: `infrastructure/setup_sagemaker_forecasting.sh` (run from the repo root) uploads the CSVs, creates the forecast Lambda and schedules it every Sunday. Invoke it once by hand to fill the table. `FORECAST_METHOD=automl` on that Lambda starts a SageMaker AutoML training job instead and `FORECAST_METHOD=batch` uses the trained model, which needs a pandas layer and batch transform quota.
+
+7. Knowledge graph: `python demo/generate_10k_farmers.py` creates `demo/knowledge_graph_dummy_data.json` (about 5 MB, not tracked). Upload it to the `kisaanmitra-knowledge-graph` bucket and deploy the updater with `src/lambda/deploy_kg_updater.sh`, which merges real farmer profiles into it.
+
+8. Dashboard:
+
+   ```bash
+   pip install -r dashboard/requirements.txt
+   cd dashboard
+   ./run_dashboard.sh
+   ```
